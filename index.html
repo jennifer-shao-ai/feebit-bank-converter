@@ -381,9 +381,70 @@ select:focus, input[type="text"]:focus { border-color: var(--primary); }
 <script>
 // ── NAVIGATION ────────────────────────────────────────────────
 const PAGE_META = {
-  home: { title: '首頁', badge: '飛比特營運工具箱' },
-  bank: { title: '帳務轉換', badge: '財務工具' },
+  home:  { title: '首頁',    badge: '飛比特營運工具箱' },
+  bank:  { title: '帳務轉換', badge: '財務工具' },
+  tools: { title: '使用工具', badge: '系統資訊' },
 };
+
+// ── TOOLS DATA ────────────────────────────────────────────────
+// 新增工具時，在此陣列加一筆資料即可，頁面會自動更新
+const TOOLS_DATA = [
+  {
+    icon: '🐙',
+    name: 'GitHub',
+    category: '開發 / 版本控制',
+    desc: '儀表板原始碼管理，所有程式碼變更與版本記錄都在這裡',
+    url: 'https://github.com/jennifer-shao-ai/feebit-bank-converter',
+    related: ['整體工具箱'],
+  },
+  {
+    icon: '🌐',
+    name: 'GitHub Pages',
+    category: '部署 / 網站託管',
+    desc: '靜態網站免費部署，推送 main 分支後自動上線',
+    url: 'https://jennifer-shao-ai.github.io/feebit-bank-converter/',
+    related: ['整體工具箱'],
+  },
+  {
+    icon: '🤖',
+    name: 'Claude Code',
+    category: '開發 / AI 助手',
+    desc: '用於撰寫、調整、優化儀表板所有功能與介面',
+    url: 'https://claude.ai/code',
+    related: ['整體工具箱'],
+  },
+];
+
+function renderTools() {
+  const container = document.getElementById('tools-list');
+  if (!container) return;
+  const groups = {};
+  TOOLS_DATA.forEach(t => {
+    if (!groups[t.category]) groups[t.category] = [];
+    groups[t.category].push(t);
+  });
+  let html = '';
+  Object.entries(groups).forEach(([cat, tools]) => {
+    html += `<div class="tools-section-title">${cat}</div><div class="tools-grid">`;
+    tools.forEach(t => {
+      const tags = t.related.map(r => `<span class="tool-tag">${r}</span>`).join('');
+      html += `
+        <div class="tool-card">
+          <div class="tool-card-header">
+            <div class="tool-card-icon">${t.icon}</div>
+            <div class="tool-card-meta">
+              <div class="name">${t.name}</div>
+            </div>
+          </div>
+          <div class="tool-card-desc">${t.desc}</div>
+          <div class="tool-card-related">${tags}</div>
+          <a class="tool-card-link" href="${t.url}" target="_blank" rel="noopener">前往 →</a>
+        </div>`;
+    });
+    html += `</div>`;
+  });
+  container.innerHTML = html;
+}
 
 function navigate(page) {
   document.querySelectorAll('.tool-page').forEach(p => p.classList.remove('active'));
@@ -394,6 +455,7 @@ function navigate(page) {
   const meta = PAGE_META[page] || { title: page, badge: '' };
   document.getElementById('topbar-title').textContent = meta.title;
   document.getElementById('topbar-badge').textContent = meta.badge;
+  if (page === 'tools') renderTools();
 }
 
 // ── STATE ─────────────────────────────────────────────────────
