@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>使用工具 · 飛比特營運工具箱</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="sidebar">
+  <div class="sidebar-logo"><div class="brand">飛比特 Feebit</div><div class="sub">營運工具箱</div></div>
+  <div class="sidebar-section"><div class="sidebar-label">總覽</div><a class="nav-item" href="index.html"><span class="icon">🏠</span> 首頁</a></div>
+  <div class="sidebar-section"><div class="sidebar-label">財務</div>
+    <a class="nav-item" href="bank-converter.html"><span class="icon">🏦</span> 帳務轉換</a>
+    <div class="nav-item soon"><span class="icon">💰</span> 定價試算<span class="soon-tag">即將推出</span></div>
+  </div>
+  <div class="sidebar-section"><div class="sidebar-label">行銷</div><div class="nav-item soon"><span class="icon">📢</span> 廣告文案<span class="soon-tag">即將推出</span></div></div>
+  <div class="sidebar-section"><div class="sidebar-label">客服</div><div class="nav-item soon"><span class="icon">💬</span> 客服回覆<span class="soon-tag">即將推出</span></div></div>
+  <div class="sidebar-section"><div class="sidebar-label">系統</div><a class="nav-item active" href="tools.html"><span class="icon">🔧</span> 使用工具</a></div>
+  <div class="sidebar-footer">v1.0 · Feebit © 2026</div>
+</div>
+<div id="main">
+  <div class="topbar"><span class="topbar-title">使用工具</span><span class="topbar-badge">系統資訊</span></div>
+  <div class="page">
+    <p style="color:var(--gray-600);font-size:14px;margin-bottom:20px">儀表板中所有用到的工具，點擊前往各平台</p>
+    <div id="tools-list"></div>
+  </div>
+</div>
+<script>
+const TOOLS_DATA = [
+  { icon:'🐙', name:'GitHub', category:'開發 / 版本控制', desc:'儀表板原始碼管理，所有程式碼變更與版本記錄都在這裡', url:'https://github.com/jennifer-shao-ai/feebit-bank-converter', related:['整體工具箱'] },
+  { icon:'🌐', name:'GitHub Pages', category:'部署 / 網站託管', desc:'靜態網站免費部署，推送 main 分支後自動上線', url:'https://jennifer-shao-ai.github.io/feebit-bank-converter/', related:['整體工具箱'] },
+  { icon:'🤖', name:'Claude Code', category:'開發 / AI 助手', desc:'用於撰寫、調整、優化儀表板所有功能與介面', url:'https://claude.ai/code', related:['整體工具箱'] },
+];
+const container = document.getElementById('tools-list');
+const groups = {};
+TOOLS_DATA.forEach(t => { if (!groups[t.category]) groups[t.category]=[]; groups[t.category].push(t); });
+let html = '';
+Object.entries(groups).forEach(([cat, tools]) => {
+  html += `<div class="tools-section-title">${cat}</div><div class="tools-grid">`;
+  tools.forEach(t => {
+    html += `<div class="tool-card"><div class="tool-card-header"><div class="tool-card-icon">${t.icon}</div><div class="tool-card-meta"><div class="name">${t.name}</div></div></div><div class="tool-card-desc">${t.desc}</div><div class="tool-card-related">${t.related.map(r=>`<span class="tool-tag">${r}</span>`).join('')}</div><a class="tool-card-link" href="${t.url}" target="_blank" rel="noopener">前往 →</a></div>`;
+  });
+  html += `</div>`;
+});
+container.innerHTML = html;
+</script>
+</body>
+</html>
