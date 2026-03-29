@@ -316,16 +316,17 @@ select:focus, input[type="text"]:focus { border-color: var(--primary); }
       <label>主分類</label>
       <select id="modal-main" onchange="handleMainChange()">
         <option value="">-- 選擇 --</option>
-        <option>銷售場/通路收費</option><option>薪資</option><option>廣告費/加值費</option>
-        <option>自費/外付</option><option>貨款付款</option><option>貨運運費</option>
-        <option>政府相關</option><option>外幣兌換</option><option>帳務轉帳</option>
-        <option>會計師</option><option>其他費用</option><option>其他收入</option>
+        <option>保險相關</option><option>其他費用</option><option>廠商貨款</option>
+        <option>廣告費/加值費</option><option>政府相關</option><option>會計師</option>
+        <option>耗材相關</option><option>薪資/獎金</option><option>貨運運費</option>
+        <option>銷售場/通路費用</option><option>軟體/系統工具</option><option>進口費用</option>
         <option value="__custom__">＋ 自訂...</option>
       </select>
       <input type="text" id="modal-main-custom" placeholder="輸入自訂主分類" style="display:none;margin-top:8px">
     </div>
     <div class="form-group">
       <label>子分類</label>
+      <select id="modal-sub-select" onchange="handleSubSelectChange()" style="display:none"></select>
       <input type="text" id="modal-sub" placeholder="例：蝦皮購物、勞保、Google廣告費">
     </div>
     <div class="form-group">
@@ -389,19 +390,34 @@ function getAccountName(raw) {
 }
 
 // ── RULES ─────────────────────────────────────────────────────
+// ── CATEGORY MAP ──────────────────────────────────────────────
+const CATEGORY_MAP = {
+  '保險相關':     ['產品責任險'],
+  '其他費用':     ['簡訊費','系統流量維護費','年節禮品','現金代墊手續費','週轉週轉款','加工費用','停車費','課程費用','零食零嘴購','餐費','認證/簽署','網站維護','零用金','郵資'],
+  '廠商貨款':     ['台三百貨','SILICON2 CO.','TOP KOREA','SEHAN','蝦皮購入','威珏優','淳寶','巧賀','燧竹','YJBN','保士（物聯）','慕仁亦麗','翡翠Qure','Dr.SEED-BRYZE CO.','樂天購入'],
+  '廣告費/加值費':['FB廣告費','Google廣告費','Line中用金','SHOPLINE後台加值','蝦皮廣告行銷','聯購/推廣'],
+  '政府相關':     ['環保署申報','食藥署','稅捐處','商標登記'],
+  '會計師':       ['正一'],
+  '耗材相關':     ['新竹氣泡袋','泡泡氣泡袋','紙箱','破壞袋','草帶','標布','木標貼紙','祥和緩衝材料','影印紙','碳粉','碳帶','機器維修費'],
+  '薪資/獎金':    ['正職','工讀','銷售獎金','津貼','人資顧問','Ricky'],
+  '貨運運費':     ['新竹貨運','加拿貨運','樂天退貨運費','泰風貨運','黑貓貨運'],
+  '銷售場/通路費用':['蝦皮店到店/一般/寶貝媽','官網','樂天','MOMO','POYA寶雅','子世界','蝦皮直播','塔購','其他','家樂福好市','MO超市+','樂天店鋪'],
+  '軟體/系統工具':['TMS','SHOPLINE','ChatGPT','Adobe','Ragic','數碼聯聖ERP','Google One','Canva','Zeabur','CURSOR AI','office 365','Open AI'],
+  '進口費用':     ['泰風','船務','台港海運費','運費費用退款','運費','手續費','台太物流'],
+};
+
 const DEFAULT_RULES = [
-  { summary: '00000',  payeeKey: 'SHOPEE',  type: '收入', main: '銷售場/通路收費', sub: '蝦皮購物',  payee: 'SHOPEE' },
-  { summary: '勞保',   payeeKey: '',         type: '支出', main: '薪資',            sub: '勞保',       payee: '' },
-  { summary: '勞退',   payeeKey: '',         type: '支出', main: '薪資',            sub: '勞退',       payee: '' },
-  { summary: '健保',   payeeKey: '',         type: '支出', main: '薪資',            sub: '健保',       payee: '' },
-  { summary: '垃圾費', payeeKey: '',         type: '支出', main: '政府相關',        sub: '環保費',     payee: '資源回收管理基金' },
-  { summary: '結購',   payeeKey: '',         type: '支出', main: '外幣兌換',        sub: '',           payee: '' },
-  { summary: '匯款',   payeeKey: '商線科技', type: '收入', main: '銷售場/通路收費', sub: '官網',       payee: '商線科技' },
-  { summary: '匯款',   payeeKey: '翠霖科技', type: '收入', main: '銷售場/通路收費', sub: '官網',       payee: '翠霖科技' },
-  { summary: '匯款',   payeeKey: '翠和科技', type: '收入', main: '銷售場/通路收費', sub: '官網',       payee: '翠和科技' },
-  { summary: '匯款',   payeeKey: '寶雅',     type: '收入', main: '銷售場/通路收費', sub: 'POYA寶雅',   payee: '寶雅連鎖' },
-  { summary: '匯款',   payeeKey: '富邦媒',   type: '收入', main: '銷售場/通路收費', sub: 'MOMO',       payee: '富邦媒體' },
-  { summary: '匯款',   payeeKey: '樂天',     type: '收入', main: '銷售場/通路收費', sub: '樂天市場',   payee: '樂天' },
+  { summary: '00000',  payeeKey: 'SHOPEE',  type: '收入', main: '銷售場/通路費用', sub: '蝦皮店到店/一般/寶貝媽', payee: 'SHOPEE' },
+  { summary: '勞保',   payeeKey: '',         type: '支出', main: '薪資/獎金',       sub: '正職',       payee: '' },
+  { summary: '勞退',   payeeKey: '',         type: '支出', main: '薪資/獎金',       sub: '正職',       payee: '' },
+  { summary: '健保',   payeeKey: '',         type: '支出', main: '薪資/獎金',       sub: '正職',       payee: '' },
+  { summary: '垃圾費', payeeKey: '',         type: '支出', main: '政府相關',        sub: '環保署申報', payee: '資源回收管理基金' },
+  { summary: '匯款',   payeeKey: '商線科技', type: '收入', main: '銷售場/通路費用', sub: '官網',       payee: '商線科技' },
+  { summary: '匯款',   payeeKey: '翠霖科技', type: '收入', main: '銷售場/通路費用', sub: '官網',       payee: '翠霖科技' },
+  { summary: '匯款',   payeeKey: '翠和科技', type: '收入', main: '銷售場/通路費用', sub: '官網',       payee: '翠和科技' },
+  { summary: '匯款',   payeeKey: '寶雅',     type: '收入', main: '銷售場/通路費用', sub: 'POYA寶雅',   payee: '寶雅連鎖' },
+  { summary: '匯款',   payeeKey: '富邦媒',   type: '收入', main: '銷售場/通路費用', sub: 'MOMO',       payee: '富邦媒體' },
+  { summary: '匯款',   payeeKey: '樂天',     type: '收入', main: '銷售場/通路費用', sub: '樂天',       payee: '樂天' },
 ];
 function getRules() {
   try { const s = localStorage.getItem(KEY_RULES); return s ? JSON.parse(s) : [...DEFAULT_RULES]; }
@@ -565,6 +581,9 @@ function showModal(tx) {
   document.getElementById('modal-main').value = '';
   document.getElementById('modal-main-custom').style.display = 'none';
   document.getElementById('modal-main-custom').value = '';
+  document.getElementById('modal-sub-select').style.display = 'none';
+  document.getElementById('modal-sub-select').innerHTML = '';
+  document.getElementById('modal-sub').style.display = 'block';
   document.getElementById('modal-sub').value = '';
   document.getElementById('modal-payee').value = tx.payeeCode || '';
   document.getElementById('modal-remember').checked = true;
@@ -572,17 +591,47 @@ function showModal(tx) {
 }
 function handleMainChange() {
   const v = document.getElementById('modal-main').value;
-  const el = document.getElementById('modal-main-custom');
-  el.style.display = v==='__custom__' ? 'block' : 'none';
-  if (v==='__custom__') el.focus();
+  const customEl = document.getElementById('modal-main-custom');
+  const subSel = document.getElementById('modal-sub-select');
+  const subInput = document.getElementById('modal-sub');
+  customEl.style.display = v==='__custom__' ? 'block' : 'none';
+  if (v==='__custom__') customEl.focus();
+  const subs = CATEGORY_MAP[v];
+  if (subs && subs.length) {
+    subSel.innerHTML = '<option value="">-- 選擇 --</option>' +
+      subs.map(s => `<option>${s}</option>`).join('') +
+      '<option value="__custom_sub__">＋ 自訂...</option>';
+    subSel.style.display = 'block';
+    subInput.style.display = 'none';
+    subInput.value = '';
+  } else {
+    subSel.style.display = 'none';
+    subInput.style.display = 'block';
+  }
+}
+function handleSubSelectChange() {
+  const sel = document.getElementById('modal-sub-select');
+  const input = document.getElementById('modal-sub');
+  if (sel.value === '__custom_sub__') {
+    sel.style.display = 'none';
+    input.style.display = 'block';
+    input.focus();
+    input.value = '';
+  } else {
+    input.value = sel.value;
+  }
 }
 function getModalVals() {
   const sel = document.getElementById('modal-main').value;
   const cus = document.getElementById('modal-main-custom').value.trim();
+  const subSel = document.getElementById('modal-sub-select');
+  const subInput = document.getElementById('modal-sub');
+  const subVal = (subSel.style.display !== 'none' && subSel.value && subSel.value !== '__custom_sub__')
+    ? subSel.value : subInput.value.trim();
   return {
     type: document.getElementById('modal-type').value,
     main: sel==='__custom__' ? cus : sel,
-    sub:  document.getElementById('modal-sub').value.trim(),
+    sub:  subVal,
     payee:document.getElementById('modal-payee').value.trim(),
     remember: document.getElementById('modal-remember').checked,
   };
