@@ -3,34 +3,77 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>飛比特 帳務轉換工具</title>
+<title>飛比特 營運工具箱</title>
 <style>
 :root {
-  --primary: #2563eb; --primary-light: #dbeafe;
+  --primary: #2563eb; --primary-light: #dbeafe; --primary-dark: #1d4ed8;
   --success: #16a34a; --warning: #d97706; --danger: #dc2626;
   --gray-50: #f9fafb; --gray-100: #f3f4f6; --gray-200: #e5e7eb;
-  --gray-600: #4b5563; --gray-800: #1f2937; --radius: 8px;
+  --gray-400: #9ca3af; --gray-600: #4b5563; --gray-800: #1f2937;
+  --sidebar-bg: #0f172a; --sidebar-w: 220px; --radius: 8px;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Microsoft JhengHei', sans-serif; background: var(--gray-100); color: var(--gray-800); min-height: 100vh; padding: 24px; }
-h1 { font-size: 22px; font-weight: 700; }
-h2 { font-size: 16px; font-weight: 600; }
-.container { max-width: 1200px; margin: 0 auto; }
-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 2px solid var(--gray-200); }
-.badge { background: var(--primary); color: white; padding: 2px 10px; border-radius: 20px; font-size: 12px; }
-#dropzone { border: 2px dashed var(--gray-200); border-radius: var(--radius); padding: 48px 24px; text-align: center; cursor: pointer; transition: all 0.2s; background: white; margin-bottom: 24px; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Microsoft JhengHei', sans-serif; background: var(--gray-100); color: var(--gray-800); min-height: 100vh; display: flex; }
+
+/* ── SIDEBAR ── */
+#sidebar {
+  width: var(--sidebar-w); min-height: 100vh; background: var(--sidebar-bg);
+  display: flex; flex-direction: column; flex-shrink: 0; position: fixed; top: 0; left: 0; bottom: 0; z-index: 100;
+}
+.sidebar-logo {
+  padding: 20px 16px 16px; border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.sidebar-logo .brand { color: white; font-size: 16px; font-weight: 700; letter-spacing: 0.5px; }
+.sidebar-logo .sub { color: rgba(255,255,255,0.4); font-size: 11px; margin-top: 2px; }
+.sidebar-section { padding: 16px 8px 4px; }
+.sidebar-label { color: rgba(255,255,255,0.3); font-size: 10px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; padding: 0 8px; margin-bottom: 4px; }
+.nav-item {
+  display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 6px;
+  cursor: pointer; color: rgba(255,255,255,0.55); font-size: 13px; font-weight: 500;
+  transition: all 0.15s; margin-bottom: 2px; text-decoration: none;
+}
+.nav-item:hover { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.9); }
+.nav-item.active { background: var(--primary); color: white; }
+.nav-item.soon { opacity: 0.4; cursor: default; pointer-events: none; }
+.nav-item .icon { font-size: 15px; width: 20px; text-align: center; flex-shrink: 0; }
+.nav-item .soon-tag { margin-left: auto; font-size: 9px; background: rgba(255,255,255,0.15); padding: 1px 5px; border-radius: 3px; letter-spacing: 0.5px; }
+.sidebar-footer { margin-top: auto; padding: 16px; border-top: 1px solid rgba(255,255,255,0.08); color: rgba(255,255,255,0.25); font-size: 11px; }
+
+/* ── MAIN ── */
+#main { margin-left: var(--sidebar-w); flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
+.topbar { background: white; border-bottom: 1px solid var(--gray-200); padding: 0 24px; height: 52px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50; }
+.topbar-title { font-size: 15px; font-weight: 600; }
+.topbar-badge { background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; }
+.page { padding: 24px; flex: 1; }
+
+/* ── TOOL PAGES ── */
+.tool-page { display: none; }
+.tool-page.active { display: block; }
+
+/* ── HOME ── */
+.home-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; margin-top: 8px; }
+.home-card { background: white; border-radius: var(--radius); padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); cursor: pointer; transition: all 0.15s; border: 2px solid transparent; }
+.home-card:hover { border-color: var(--primary); box-shadow: 0 4px 12px rgba(37,99,235,0.1); }
+.home-card.soon { opacity: 0.5; cursor: default; pointer-events: none; }
+.home-card .hc-icon { font-size: 32px; margin-bottom: 12px; }
+.home-card .hc-name { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+.home-card .hc-desc { font-size: 12px; color: var(--gray-600); line-height: 1.4; }
+.home-card .hc-tag { margin-top: 10px; font-size: 10px; font-weight: 600; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; }
+.home-card.soon .hc-tag { color: var(--gray-400); }
+
+/* ── BANK CONVERTER ── */
+#dropzone { border: 2px dashed var(--gray-200); border-radius: var(--radius); padding: 48px 24px; text-align: center; cursor: pointer; transition: all 0.2s; background: white; margin-bottom: 20px; }
 #dropzone:hover, #dropzone.dragover { border-color: var(--primary); background: var(--primary-light); }
-#dropzone .icon { font-size: 48px; margin-bottom: 12px; }
-#dropzone p { color: var(--gray-600); margin-top: 8px; font-size: 14px; }
+#dropzone .dz-icon { font-size: 40px; margin-bottom: 10px; }
+#dropzone p { color: var(--gray-600); margin-top: 6px; font-size: 13px; }
 #dropzone input { display: none; }
-.btn-upload { display: inline-block; margin-top: 16px; padding: 8px 20px; background: var(--primary); color: white; border-radius: var(--radius); font-size: 14px; }
-.card { background: white; border-radius: var(--radius); padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+.btn-upload { display: inline-block; margin-top: 14px; padding: 8px 20px; background: var(--primary); color: white; border-radius: var(--radius); font-size: 14px; }
+.card { background: white; border-radius: var(--radius); padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
 .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
 .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: var(--radius); border: none; cursor: pointer; font-size: 14px; font-weight: 500; transition: opacity 0.15s; }
 .btn:hover { opacity: 0.85; }
 .btn-primary { background: var(--primary); color: white; }
 .btn-success { background: var(--success); color: white; }
-.btn-danger { background: var(--danger); color: white; }
 .btn-outline { background: white; color: var(--gray-800); border: 1px solid var(--gray-200); }
 .alert { padding: 12px 16px; border-radius: var(--radius); margin-bottom: 16px; display: flex; align-items: center; gap: 10px; font-size: 14px; }
 .alert-warning { background: #fef3c7; border-left: 4px solid var(--warning); }
@@ -44,6 +87,18 @@ tr:hover td { background: var(--gray-50); }
 .type-out { color: var(--danger); font-weight: 600; }
 .tag-unknown { background: #fef3c7; color: var(--warning); padding: 2px 6px; border-radius: 4px; font-size: 11px; }
 .tag-auto { background: #dcfce7; color: var(--success); padding: 2px 6px; border-radius: 4px; font-size: 11px; }
+.tabs { display: flex; gap: 4px; margin-bottom: 20px; }
+.tab { padding: 7px 14px; border-radius: var(--radius); cursor: pointer; font-size: 13px; font-weight: 500; color: var(--gray-600); border: 1px solid transparent; }
+.tab.active { background: var(--primary); color: white; }
+.tab:hover:not(.active) { background: var(--gray-100); }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+.account-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 14px; }
+.account-row input { flex: 1; }
+.account-num { color: var(--gray-600); font-family: monospace; font-size: 12px; min-width: 150px; }
+h2 { font-size: 16px; font-weight: 600; }
+
+/* ── MODAL ── */
 .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
 .modal { background: white; border-radius: var(--radius); padding: 28px; width: 520px; max-width: 95vw; max-height: 90vh; overflow-y: auto; }
 .modal h2 { margin-bottom: 16px; }
@@ -58,115 +113,201 @@ select:focus, input[type="text"]:focus { border-color: var(--primary); }
 .checkbox-row { display: flex; align-items: center; gap: 8px; margin: 16px 0; font-size: 14px; }
 .modal-actions { display: flex; gap: 8px; margin-top: 20px; }
 .progress-text { font-size: 13px; color: var(--gray-600); margin-bottom: 16px; }
-.tabs { display: flex; gap: 4px; margin-bottom: 20px; }
-.tab { padding: 8px 16px; border-radius: var(--radius); cursor: pointer; font-size: 14px; font-weight: 500; color: var(--gray-600); border: 1px solid transparent; }
-.tab.active { background: var(--primary); color: white; }
-.tab:hover:not(.active) { background: var(--gray-100); }
-.tab-content { display: none; }
-.tab-content.active { display: block; }
-.account-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 14px; }
-.account-row input { flex: 1; }
-.account-num { color: var(--gray-600); font-family: monospace; font-size: 12px; min-width: 150px; }
 </style>
 </head>
 <body>
-<div class="container">
-  <header>
-    <h1>飛比特 帳務轉換工具</h1>
-    <span class="badge">v1.0</span>
-  </header>
 
-  <div id="upload-section">
-    <div id="dropzone" onclick="document.getElementById('fileInput').click()">
-      <div class="icon">📄</div>
-      <h2>拖曳 TWD-2601 CSV 到這裡</h2>
-      <p>支援彰銀 TWD-2601 格式 · Big5 / UTF-8 自動偵測</p>
-      <div class="btn-upload">選擇檔案</div>
-      <input type="file" id="fileInput" accept=".csv" onchange="handleFile(this.files[0])">
+<!-- ── SIDEBAR ── -->
+<div id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand">飛比特 Feebit</div>
+    <div class="sub">營運工具箱</div>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-label">總覽</div>
+    <div class="nav-item active" onclick="navigate('home')" id="nav-home">
+      <span class="icon">🏠</span> 首頁
     </div>
   </div>
 
-  <div id="result-section" style="display:none">
-    <div id="alert-unknown" class="alert alert-warning" style="display:none">
-      <span>⚠️</span>
-      <span><strong id="unknown-count">0</strong> 筆交易無法自動分類</span>
-      <button class="btn btn-primary" onclick="startCategorizing()" style="margin-left:auto">開始分類</button>
+  <div class="sidebar-section">
+    <div class="sidebar-label">財務</div>
+    <div class="nav-item" onclick="navigate('bank')" id="nav-bank">
+      <span class="icon">🏦</span> 帳務轉換
     </div>
-    <div id="alert-done" class="alert alert-success" style="display:none">
-      <span>✅</span><span>所有交易已分類完成，可以下載</span>
-    </div>
-
-    <div class="tabs">
-      <div class="tab active" onclick="switchTab('preview')">交易預覽</div>
-      <div class="tab" onclick="switchTab('rules')">分類規則</div>
-      <div class="tab" onclick="switchTab('accounts')">帳戶設定</div>
-    </div>
-
-    <div id="tab-preview" class="tab-content active">
-      <div class="card">
-        <div class="card-header">
-          <h2>交易記錄 <span id="row-count" style="color:var(--gray-600);font-weight:400;font-size:14px"></span></h2>
-          <button class="btn btn-success" onclick="downloadCSV()">⬇ 下載 CSV</button>
-        </div>
-        <div class="table-wrapper">
-          <table>
-            <thead><tr>
-              <th>交易日期</th><th>收入/支出</th><th>帳戶</th><th>幣別</th>
-              <th>原幣金額</th><th>主分類</th><th>子分類</th><th>收款人</th><th>描述</th><th>狀態</th>
-            </tr></thead>
-            <tbody id="preview-body"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <div id="tab-rules" class="tab-content">
-      <div class="card">
-        <div class="card-header">
-          <h2>分類規則 <span id="rules-count" style="color:var(--gray-600);font-weight:400;font-size:14px"></span></h2>
-          <div style="display:flex;gap:8px">
-            <button class="btn btn-outline" onclick="exportRules()">匯出 JSON</button>
-            <button class="btn btn-outline" onclick="clearRules()">清除全部</button>
-          </div>
-        </div>
-        <div class="table-wrapper">
-          <table>
-            <thead><tr>
-              <th>摘要</th><th>匯存代號關鍵字</th><th>收入/支出</th>
-              <th>主分類</th><th>子分類</th><th>收款人</th><th></th>
-            </tr></thead>
-            <tbody id="rules-body"></tbody>
-          </table>
-        </div>
-        <p style="font-size:12px;color:var(--gray-600);margin-top:12px">規則儲存在本機瀏覽器，不會消失</p>
-      </div>
-    </div>
-
-    <div id="tab-accounts" class="tab-content">
-      <div class="card">
-        <h2 style="margin-bottom:8px">帳戶對應設定</h2>
-        <p style="font-size:14px;color:var(--gray-600);margin-bottom:16px">依 CSV 帳號欄位自動對應帳戶名稱</p>
-        <div id="account-list"></div>
-        <div style="display:flex;gap:8px;margin-top:12px">
-          <button class="btn btn-outline" onclick="addAccountRow()">＋ 新增帳戶</button>
-          <button class="btn btn-primary" onclick="saveAccounts()">儲存</button>
-        </div>
-      </div>
+    <div class="nav-item soon" id="nav-price">
+      <span class="icon">💰</span> 定價試算
+      <span class="soon-tag">即將推出</span>
     </div>
   </div>
 
-  <div id="upload-another" style="display:none;margin-top:16px;text-align:center">
-    <button class="btn btn-outline" onclick="resetUpload()">↩ 上傳另一個檔案</button>
+  <div class="sidebar-section">
+    <div class="sidebar-label">行銷</div>
+    <div class="nav-item soon" id="nav-ad">
+      <span class="icon">📢</span> 廣告文案
+      <span class="soon-tag">即將推出</span>
+    </div>
   </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-label">客服</div>
+    <div class="nav-item soon" id="nav-cs">
+      <span class="icon">💬</span> 客服回覆
+      <span class="soon-tag">即將推出</span>
+    </div>
+  </div>
+
+  <div class="sidebar-footer">v1.0 · Feebit © 2026</div>
 </div>
 
-<!-- Category Modal -->
+<!-- ── MAIN ── -->
+<div id="main">
+  <div class="topbar">
+    <span class="topbar-title" id="topbar-title">首頁</span>
+    <span class="topbar-badge" id="topbar-badge">飛比特營運工具箱</span>
+  </div>
+
+  <div class="page">
+
+    <!-- HOME -->
+    <div class="tool-page active" id="page-home">
+      <p style="color:var(--gray-600);font-size:14px;margin-bottom:20px">選擇一個工具開始使用</p>
+      <div class="home-grid">
+        <div class="home-card" onclick="navigate('bank')">
+          <div class="hc-icon">🏦</div>
+          <div class="hc-name">帳務轉換</div>
+          <div class="hc-desc">將彰銀 TWD-2601 CSV 轉成帶分類的交易明細</div>
+          <div class="hc-tag">可使用</div>
+        </div>
+        <div class="home-card soon">
+          <div class="hc-icon">💰</div>
+          <div class="hc-name">定價試算</div>
+          <div class="hc-desc">輸入成本自動計算建議售價與毛利率</div>
+          <div class="hc-tag">即將推出</div>
+        </div>
+        <div class="home-card soon">
+          <div class="hc-icon">📢</div>
+          <div class="hc-name">廣告文案</div>
+          <div class="hc-desc">快速產出蝦皮、FB、IG 廣告文案</div>
+          <div class="hc-tag">即將推出</div>
+        </div>
+        <div class="home-card soon">
+          <div class="hc-icon">💬</div>
+          <div class="hc-name">客服回覆</div>
+          <div class="hc-desc">輸入客訴情境，自動產出溫和但不退讓的回覆</div>
+          <div class="hc-tag">即將推出</div>
+        </div>
+        <div class="home-card soon">
+          <div class="hc-icon">📦</div>
+          <div class="hc-name">庫存風險</div>
+          <div class="hc-desc">計算庫存週轉天數，標示滯銷風險商品</div>
+          <div class="hc-tag">即將推出</div>
+        </div>
+        <div class="home-card soon">
+          <div class="hc-icon">🤝</div>
+          <div class="hc-name">廠商談判</div>
+          <div class="hc-desc">依情境產出談判策略與話術</div>
+          <div class="hc-tag">即將推出</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BANK CONVERTER -->
+    <div class="tool-page" id="page-bank">
+
+      <div id="upload-section">
+        <div id="dropzone" onclick="document.getElementById('fileInput').click()">
+          <div class="dz-icon">📄</div>
+          <h2>拖曳 TWD-2601 CSV 到這裡</h2>
+          <p>支援彰銀 TWD-2601 格式 · Big5 / UTF-8 自動偵測</p>
+          <div class="btn-upload">選擇檔案</div>
+          <input type="file" id="fileInput" accept=".csv" onchange="handleFile(this.files[0])">
+        </div>
+      </div>
+
+      <div id="result-section" style="display:none">
+        <div id="alert-unknown" class="alert alert-warning" style="display:none">
+          <span>⚠️</span>
+          <span><strong id="unknown-count">0</strong> 筆交易無法自動分類</span>
+          <button class="btn btn-primary" onclick="startCategorizing()" style="margin-left:auto">開始分類</button>
+        </div>
+        <div id="alert-done" class="alert alert-success" style="display:none">
+          <span>✅</span><span>所有交易已分類完成，可以下載</span>
+        </div>
+
+        <div class="tabs">
+          <div class="tab active" onclick="switchTab('preview')">交易預覽</div>
+          <div class="tab" onclick="switchTab('rules')">分類規則</div>
+          <div class="tab" onclick="switchTab('accounts')">帳戶設定</div>
+        </div>
+
+        <div id="tab-preview" class="tab-content active">
+          <div class="card">
+            <div class="card-header">
+              <h2>交易記錄 <span id="row-count" style="color:var(--gray-600);font-weight:400;font-size:13px"></span></h2>
+              <div style="display:flex;gap:8px">
+                <button class="btn btn-outline" onclick="resetUpload()">↩ 重新上傳</button>
+                <button class="btn btn-success" onclick="downloadCSV()">⬇ 下載 CSV</button>
+              </div>
+            </div>
+            <div class="table-wrapper">
+              <table>
+                <thead><tr>
+                  <th>交易日期</th><th>收入/支出</th><th>帳戶</th><th>幣別</th>
+                  <th>原幣金額</th><th>主分類</th><th>子分類</th><th>收款人</th><th>描述</th><th>狀態</th>
+                </tr></thead>
+                <tbody id="preview-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div id="tab-rules" class="tab-content">
+          <div class="card">
+            <div class="card-header">
+              <h2>分類規則 <span id="rules-count" style="color:var(--gray-600);font-weight:400;font-size:13px"></span></h2>
+              <div style="display:flex;gap:8px">
+                <button class="btn btn-outline" onclick="exportRules()">匯出 JSON</button>
+                <button class="btn btn-outline" onclick="clearRules()">清除全部</button>
+              </div>
+            </div>
+            <div class="table-wrapper">
+              <table>
+                <thead><tr>
+                  <th>摘要</th><th>匯存代號關鍵字</th><th>收入/支出</th>
+                  <th>主分類</th><th>子分類</th><th>收款人</th><th></th>
+                </tr></thead>
+                <tbody id="rules-body"></tbody>
+              </table>
+            </div>
+            <p style="font-size:12px;color:var(--gray-600);margin-top:12px">規則儲存在本機瀏覽器，不會消失</p>
+          </div>
+        </div>
+
+        <div id="tab-accounts" class="tab-content">
+          <div class="card">
+            <h2 style="margin-bottom:8px">帳戶對應設定</h2>
+            <p style="font-size:14px;color:var(--gray-600);margin-bottom:16px">依 CSV 帳號欄位自動對應帳戶名稱</p>
+            <div id="account-list"></div>
+            <div style="display:flex;gap:8px;margin-top:12px">
+              <button class="btn btn-outline" onclick="addAccountRow()">＋ 新增帳戶</button>
+              <button class="btn btn-primary" onclick="saveAccounts()">儲存</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /page -->
+</div><!-- /main -->
+
+<!-- ── MODAL ── -->
 <div id="modal-backdrop" class="modal-backdrop" style="display:none">
   <div class="modal">
     <h2>📂 設定分類</h2>
     <div class="progress-text" id="modal-progress"></div>
     <div class="tx-info" id="modal-tx-info"></div>
-
     <div class="form-group">
       <label>收入 / 支出</label>
       <select id="modal-type"><option value="收入">收入</option><option value="支出">支出</option></select>
@@ -203,63 +344,70 @@ select:focus, input[type="text"]:focus { border-color: var(--primary); }
 </div>
 
 <script>
-// ── STATE ────────────────────────────────────────────────────
+// ── NAVIGATION ────────────────────────────────────────────────
+const PAGE_META = {
+  home: { title: '首頁', badge: '飛比特營運工具箱' },
+  bank: { title: '帳務轉換', badge: '財務工具' },
+};
+
+function navigate(page) {
+  document.querySelectorAll('.tool-page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  const nav = document.getElementById('nav-' + page);
+  if (nav) nav.classList.add('active');
+  const meta = PAGE_META[page] || { title: page, badge: '' };
+  document.getElementById('topbar-title').textContent = meta.title;
+  document.getElementById('topbar-badge').textContent = meta.badge;
+}
+
+// ── STATE ─────────────────────────────────────────────────────
 let transactions = [];
 let unknownQueue = [];
 let currentIdx = 0;
-
 const KEY_RULES    = 'feebit_rules_v2';
 const KEY_ACCOUNTS = 'feebit_accounts_v2';
 
-// ── DEFAULT ACCOUNTS ─────────────────────────────────────────
+// ── ACCOUNTS ──────────────────────────────────────────────────
 const DEFAULT_ACCOUNTS = [
   { number: '93630100139100', name: '飛比特彰銀-台幣帳戶TWD' },
   { number: '93632201139700', name: '飛比特彰銀-美金USD' },
   { number: '93632201139702', name: '飛比特彰銀-日圓JPY' },
 ];
-
-// ── DEFAULT RULES ────────────────────────────────────────────
-const DEFAULT_RULES = [
-  { summary: '00000',  payeeKey: 'SHOPEE',   type: '收入', main: '銷售場/通路收費', sub: '蝦皮購物',    payee: 'SHOPEE' },
-  { summary: '勞保',   payeeKey: '',          type: '支出', main: '薪資',            sub: '勞保',        payee: '' },
-  { summary: '勞退',   payeeKey: '',          type: '支出', main: '薪資',            sub: '勞退',        payee: '' },
-  { summary: '健保',   payeeKey: '',          type: '支出', main: '薪資',            sub: '健保',        payee: '' },
-  { summary: '垃圾費', payeeKey: '',          type: '支出', main: '政府相關',        sub: '環保費',      payee: '資源回收管理基金' },
-  { summary: '結購',   payeeKey: '',          type: '支出', main: '外幣兌換',        sub: '',            payee: '' },
-  { summary: '匯款',   payeeKey: '商線科技',  type: '收入', main: '銷售場/通路收費', sub: '官網',        payee: '商線科技' },
-  { summary: '匯款',   payeeKey: '翠霖科技',  type: '收入', main: '銷售場/通路收費', sub: '官網',        payee: '翠霖科技' },
-  { summary: '匯款',   payeeKey: '翠和科技',  type: '收入', main: '銷售場/通路收費', sub: '官網',        payee: '翠和科技' },
-  { summary: '匯款',   payeeKey: '寶雅',      type: '收入', main: '銷售場/通路收費', sub: 'POYA寶雅',    payee: '寶雅連鎖' },
-  { summary: '匯款',   payeeKey: '可馨',      type: '收入', main: '銷售場/通路收費', sub: 'MOMO',        payee: '富邦媒體' },
-  { summary: '匯款',   payeeKey: '富邦媒',    type: '收入', main: '銷售場/通路收費', sub: 'MOMO',        payee: '富邦媒體' },
-  { summary: '匯款',   payeeKey: '樂天',      type: '收入', main: '銷售場/通路收費', sub: '樂天市場',    payee: '樂天' },
-];
-
-// ── ACCOUNTS ─────────────────────────────────────────────────
 function getAccounts() {
   try { return JSON.parse(localStorage.getItem(KEY_ACCOUNTS)) || [...DEFAULT_ACCOUNTS]; }
   catch(e) { return [...DEFAULT_ACCOUNTS]; }
 }
 function saveAccountsStore(arr) { localStorage.setItem(KEY_ACCOUNTS, JSON.stringify(arr)); }
-
-function getAccountName(rawNum) {
-  const clean = rawNum.replace(/[-\s]/g, '');
+function getAccountName(raw) {
+  const clean = raw.replace(/[-\s]/g, '');
   for (const a of getAccounts()) {
     const n = a.number.replace(/[-\s]/g, '');
     if (n === clean || clean.endsWith(n.slice(-6)) || n.endsWith(clean.slice(-6))) return a.name;
   }
-  return rawNum;
+  return raw;
 }
 
-// ── RULES ────────────────────────────────────────────────────
+// ── RULES ─────────────────────────────────────────────────────
+const DEFAULT_RULES = [
+  { summary: '00000',  payeeKey: 'SHOPEE',  type: '收入', main: '銷售場/通路收費', sub: '蝦皮購物',  payee: 'SHOPEE' },
+  { summary: '勞保',   payeeKey: '',         type: '支出', main: '薪資',            sub: '勞保',       payee: '' },
+  { summary: '勞退',   payeeKey: '',         type: '支出', main: '薪資',            sub: '勞退',       payee: '' },
+  { summary: '健保',   payeeKey: '',         type: '支出', main: '薪資',            sub: '健保',       payee: '' },
+  { summary: '垃圾費', payeeKey: '',         type: '支出', main: '政府相關',        sub: '環保費',     payee: '資源回收管理基金' },
+  { summary: '結購',   payeeKey: '',         type: '支出', main: '外幣兌換',        sub: '',           payee: '' },
+  { summary: '匯款',   payeeKey: '商線科技', type: '收入', main: '銷售場/通路收費', sub: '官網',       payee: '商線科技' },
+  { summary: '匯款',   payeeKey: '翠霖科技', type: '收入', main: '銷售場/通路收費', sub: '官網',       payee: '翠霖科技' },
+  { summary: '匯款',   payeeKey: '翠和科技', type: '收入', main: '銷售場/通路收費', sub: '官網',       payee: '翠和科技' },
+  { summary: '匯款',   payeeKey: '寶雅',     type: '收入', main: '銷售場/通路收費', sub: 'POYA寶雅',   payee: '寶雅連鎖' },
+  { summary: '匯款',   payeeKey: '富邦媒',   type: '收入', main: '銷售場/通路收費', sub: 'MOMO',       payee: '富邦媒體' },
+  { summary: '匯款',   payeeKey: '樂天',     type: '收入', main: '銷售場/通路收費', sub: '樂天市場',   payee: '樂天' },
+];
 function getRules() {
-  try {
-    const s = localStorage.getItem(KEY_RULES);
-    return s ? JSON.parse(s) : [...DEFAULT_RULES];
-  } catch(e) { return [...DEFAULT_RULES]; }
+  try { const s = localStorage.getItem(KEY_RULES); return s ? JSON.parse(s) : [...DEFAULT_RULES]; }
+  catch(e) { return [...DEFAULT_RULES]; }
 }
 function saveRulesStore(arr) { localStorage.setItem(KEY_RULES, JSON.stringify(arr)); }
-
 function upsertRule(rule) {
   const rules = getRules();
   const key = r => `${r.summary}||${r.payeeKey}`;
@@ -267,32 +415,22 @@ function upsertRule(rule) {
   if (idx >= 0) rules[idx] = rule; else rules.push(rule);
   saveRulesStore(rules);
 }
-
 function findRule(summary, payeeCode) {
-  const rules = getRules();
-  const s = summary.trim();
-  const p = payeeCode.trim();
-  // Specific match first (summary + payeeKey)
-  for (const r of rules) {
-    if (r.summary === s && r.payeeKey && p.includes(r.payeeKey)) return r;
-  }
-  // General match (summary only, no payeeKey)
-  for (const r of rules) {
-    if (r.summary === s && !r.payeeKey) return r;
-  }
+  const rules = getRules(); const s = summary.trim(); const p = payeeCode.trim();
+  for (const r of rules) { if (r.summary === s && r.payeeKey && p.includes(r.payeeKey)) return r; }
+  for (const r of rules) { if (r.summary === s && !r.payeeKey) return r; }
   return null;
 }
 
-// ── DATE ─────────────────────────────────────────────────────
+// ── DATE ──────────────────────────────────────────────────────
 function rocToAd(s) {
   s = s.trim().replace(/\D/g, '');
   if (s.length < 7) return s;
-  return (parseInt(s.slice(0, 3)) + 1911) + s.slice(3, 5) + s.slice(5, 7);
+  return (parseInt(s.slice(0,3)) + 1911) + s.slice(3,5) + s.slice(5,7);
 }
 
 // ── CSV PARSING ───────────────────────────────────────────────
 function parseField(f) { return f.replace(/^=?"?/, '').replace(/"$/, '').trim(); }
-
 function parseLine(line) {
   const fields = []; let cur = ''; let inQ = false;
   for (const ch of line) {
@@ -300,66 +438,36 @@ function parseLine(line) {
     else if (ch === ',' && !inQ) { fields.push(parseField(cur)); cur = ''; }
     else { cur += ch; }
   }
-  fields.push(parseField(cur));
-  return fields;
+  fields.push(parseField(cur)); return fields;
 }
-
 function decode(buf) {
-  for (const enc of ['big5', 'utf-8']) {
-    try {
-      const t = new TextDecoder(enc).decode(buf);
-      if (/[\u4e00-\u9fff]/.test(t)) return t;
-    } catch(e) {}
+  for (const enc of ['big5','utf-8']) {
+    try { const t = new TextDecoder(enc).decode(buf); if (/[\u4e00-\u9fff]/.test(t)) return t; } catch(e) {}
   }
-  return new TextDecoder('utf-8', { fatal: false }).decode(buf);
+  return new TextDecoder('utf-8',{fatal:false}).decode(buf);
 }
-
-// TWD-2601 column indices
-const C = { ACC:0, REC_DT:1, TX_DT:2, CUR:5, EXP:6, INC:7, SUM:9, PAYEE:11, NOTE:12, MEMO:14 };
-
+const C = { ACC:0, TX_DT:2, CUR:5, EXP:6, INC:7, SUM:9, PAYEE:11, NOTE:12, MEMO:14 };
 function parseTWD2601(text) {
   const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-  const result = [];
-  let skipFirst = true;
-
+  const result = []; let skipFirst = true;
   for (const line of lines) {
     const f = parseLine(line);
-    // Skip header row
-    if (skipFirst) {
-      skipFirst = false;
-      if (f[C.EXP] === '支出金額' || f[C.INC] === '存入金額' || f[0] === '帳號') continue;
-    }
+    if (skipFirst) { skipFirst = false; if (f[C.EXP]==='支出金額'||f[C.INC]==='存入金額'||f[0]==='帳號') continue; }
     if (f.length < 8) continue;
-
-    const exp = parseFloat(f[C.EXP]) || 0;
-    const inc = parseFloat(f[C.INC]) || 0;
-    if (exp === 0 && inc === 0) continue;
-
-    const summary  = f[C.SUM]  || '';
-    const payeeCode= f[C.PAYEE]|| '';
-    const note     = (f[C.NOTE]|| '') + (f[C.MEMO] ? ' ' + f[C.MEMO] : '');
-    const rule     = findRule(summary.trim(), payeeCode.trim());
-
-    const descParts = [summary.trim(), payeeCode.trim(), note.trim()]
-      .filter(s => s && s !== '00000000');
-    const description = [...new Set(descParts)].join(' ').trim();
-
+    const exp = parseFloat(f[C.EXP])||0; const inc = parseFloat(f[C.INC])||0;
+    if (!exp && !inc) continue;
+    const summary   = (f[C.SUM]||'').trim();
+    const payeeCode = (f[C.PAYEE]||'').trim();
+    const note      = (f[C.NOTE]||'') + (f[C.MEMO] ? ' '+f[C.MEMO] : '');
+    const rule      = findRule(summary, payeeCode);
+    const descParts = [summary, payeeCode, note.trim()].filter(s => s && s !== '00000000');
     result.push({
-      date:        rocToAd(f[C.TX_DT]),
-      accountNum:  f[C.ACC],
-      accountName: getAccountName(f[C.ACC]),
-      currency:    f[C.CUR] || 'TWD',
-      amount:      inc > 0 ? inc : exp,
-      rawType:     inc > 0 ? '收入' : '支出',
-      summary:     summary.trim(),
-      payeeCode:   payeeCode.trim(),
-      description,
-      main:        rule ? rule.main  : '',
-      sub:         rule ? rule.sub   : '',
-      payee:       rule ? rule.payee : '',
-      type:        rule ? rule.type  : (inc > 0 ? '收入' : '支出'),
-      auto:        !!rule,
-      needsCat:    !rule,
+      date: rocToAd(f[C.TX_DT]), accountNum: f[C.ACC],
+      accountName: getAccountName(f[C.ACC]), currency: f[C.CUR]||'TWD',
+      amount: inc>0 ? inc : exp, rawType: inc>0 ? '收入' : '支出',
+      summary, payeeCode, description: [...new Set(descParts)].join(' ').trim(),
+      main: rule?rule.main:'', sub: rule?rule.sub:'', payee: rule?rule.payee:'',
+      type: rule ? rule.type : (inc>0?'收入':'支出'), auto: !!rule, needsCat: !rule,
     });
   }
   return result;
@@ -369,26 +477,18 @@ function parseTWD2601(text) {
 async function handleFile(file) {
   if (!file) return;
   try {
-    const buf = await file.arrayBuffer();
-    const text = decode(buf);
+    const text = decode(await file.arrayBuffer());
     transactions = parseTWD2601(text);
     if (!transactions.length) { alert('無法解析檔案，請確認格式為 TWD-2601 CSV'); return; }
-    unknownQueue = transactions.filter(t => t.needsCat);
-    currentIdx = 0;
+    unknownQueue = transactions.filter(t => t.needsCat); currentIdx = 0;
     renderAll();
     document.getElementById('upload-section').style.display = 'none';
     document.getElementById('result-section').style.display = 'block';
-    document.getElementById('upload-another').style.display = 'block';
-  } catch(e) { alert('讀取失敗：' + e.message); console.error(e); }
+  } catch(e) { alert('讀取失敗：' + e.message); }
 }
 
 // ── RENDER ────────────────────────────────────────────────────
-function renderAll() {
-  renderPreview();
-  renderRules();
-  updateAlerts();
-}
-
+function renderAll() { renderPreview(); renderRules(); updateAlerts(); }
 function updateAlerts() {
   const n = transactions.filter(t => t.needsCat).length;
   document.getElementById('row-count').textContent = `共 ${transactions.length} 筆`;
@@ -396,40 +496,28 @@ function updateAlerts() {
   document.getElementById('alert-unknown').style.display = n > 0 ? 'flex' : 'none';
   document.getElementById('alert-done').style.display   = n === 0 ? 'flex' : 'none';
 }
-
 function renderPreview() {
-  const tbody = document.getElementById('preview-body');
-  tbody.innerHTML = '';
+  const tbody = document.getElementById('preview-body'); tbody.innerHTML = '';
   for (const tx of transactions) {
     const tr = document.createElement('tr');
-    const cls = tx.type === '收入' ? 'type-in' : 'type-out';
-    tr.innerHTML = `
-      <td>${tx.date}</td>
-      <td class="${cls}">${tx.type}</td>
-      <td>${tx.accountName}</td>
-      <td>${tx.currency}</td>
-      <td style="text-align:right">${tx.amount.toLocaleString()}</td>
-      <td>${tx.main || '<span style="color:#9ca3af">未分類</span>'}</td>
-      <td>${tx.sub}</td>
+    const cls = tx.type==='收入' ? 'type-in' : 'type-out';
+    tr.innerHTML = `<td>${tx.date}</td><td class="${cls}">${tx.type}</td><td>${tx.accountName}</td>
+      <td>${tx.currency}</td><td style="text-align:right">${tx.amount.toLocaleString()}</td>
+      <td>${tx.main||'<span style="color:#9ca3af">未分類</span>'}</td><td>${tx.sub}</td>
       <td>${tx.payee}</td>
       <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis" title="${tx.description}">${tx.description}</td>
-      <td>${tx.needsCat ? '<span class="tag-unknown">待分類</span>' : '<span class="tag-auto">自動</span>'}</td>`;
+      <td>${tx.needsCat?'<span class="tag-unknown">待分類</span>':'<span class="tag-auto">自動</span>'}</td>`;
     tbody.appendChild(tr);
   }
 }
-
 function renderRules() {
   const rules = getRules();
   document.getElementById('rules-count').textContent = `共 ${rules.length} 條`;
-  const tbody = document.getElementById('rules-body');
-  tbody.innerHTML = '';
+  const tbody = document.getElementById('rules-body'); tbody.innerHTML = '';
   rules.forEach((r, i) => {
     const tr = document.createElement('tr');
-    const cls = r.type === '收入' ? 'type-in' : 'type-out';
-    tr.innerHTML = `
-      <td>${r.summary}</td>
-      <td>${r.payeeKey || '<em style="color:#9ca3af">任意</em>'}</td>
-      <td class="${cls}">${r.type}</td>
+    tr.innerHTML = `<td>${r.summary}</td><td>${r.payeeKey||'<em style="color:#9ca3af">任意</em>'}</td>
+      <td class="${r.type==='收入'?'type-in':'type-out'}">${r.type}</td>
       <td>${r.main}</td><td>${r.sub}</td><td>${r.payee}</td>
       <td><button class="btn btn-outline" style="padding:3px 8px;font-size:12px" onclick="deleteRule(${i})">刪除</button></td>`;
     tbody.appendChild(tr);
@@ -438,14 +526,10 @@ function renderRules() {
 
 // ── ACCOUNTS TAB ──────────────────────────────────────────────
 function renderAccountList() {
-  const accounts = getAccounts();
-  const el = document.getElementById('account-list');
-  el.innerHTML = '';
+  const accounts = getAccounts(); const el = document.getElementById('account-list'); el.innerHTML = '';
   accounts.forEach((a, i) => {
-    const row = document.createElement('div');
-    row.className = 'account-row';
-    row.innerHTML = `
-      <span class="account-num">${a.number}</span>
+    const row = document.createElement('div'); row.className = 'account-row';
+    row.innerHTML = `<span class="account-num">${a.number}</span>
       <input type="text" value="${a.name}" onchange="updateAccount(${i},this.value)">
       <button class="btn btn-outline" style="padding:5px 10px" onclick="removeAccount(${i})">✕</button>`;
     el.appendChild(row);
@@ -461,153 +545,116 @@ function addAccountRow() {
 }
 function saveAccounts() { alert('帳戶設定已儲存！'); }
 
-// ── CATEGORIZATION FLOW ───────────────────────────────────────
+// ── CATEGORIZATION ────────────────────────────────────────────
 function startCategorizing() {
-  unknownQueue = transactions.filter(t => t.needsCat);
-  currentIdx = 0;
+  unknownQueue = transactions.filter(t => t.needsCat); currentIdx = 0;
   if (!unknownQueue.length) { updateAlerts(); return; }
   showModal(unknownQueue[0]);
 }
-
 function showModal(tx) {
   const total = transactions.filter(t => t.needsCat).length;
-  document.getElementById('modal-progress').textContent =
-    `第 ${currentIdx + 1} 筆（共 ${total} 筆待分類）`;
-
+  document.getElementById('modal-progress').textContent = `第 ${currentIdx+1} 筆（共 ${total} 筆待分類）`;
   document.getElementById('modal-tx-info').innerHTML = `
     <div class="row"><span class="label">日期</span><span>${tx.date}</span></div>
     <div class="row"><span class="label">帳戶</span><span>${tx.accountName}</span></div>
     <div class="row"><span class="label">摘要</span><span>${tx.summary}</span></div>
     <div class="row"><span class="label">來源代號</span><span>${tx.payeeCode}</span></div>
     <div class="row"><span class="label">金額</span><strong>${tx.amount.toLocaleString()} ${tx.currency}</strong></div>
-    ${tx.description ? `<div class="row"><span class="label">描述</span><span>${tx.description}</span></div>` : ''}`;
-
+    ${tx.description?`<div class="row"><span class="label">描述</span><span>${tx.description}</span></div>`:''}`;
   document.getElementById('modal-type').value = tx.rawType;
   document.getElementById('modal-main').value = '';
   document.getElementById('modal-main-custom').style.display = 'none';
   document.getElementById('modal-main-custom').value = '';
-  document.getElementById('modal-sub').value  = '';
+  document.getElementById('modal-sub').value = '';
   document.getElementById('modal-payee').value = tx.payeeCode || '';
   document.getElementById('modal-remember').checked = true;
   document.getElementById('modal-backdrop').style.display = 'flex';
 }
-
 function handleMainChange() {
   const v = document.getElementById('modal-main').value;
   const el = document.getElementById('modal-main-custom');
-  el.style.display = v === '__custom__' ? 'block' : 'none';
-  if (v === '__custom__') el.focus();
+  el.style.display = v==='__custom__' ? 'block' : 'none';
+  if (v==='__custom__') el.focus();
 }
-
 function getModalVals() {
   const sel = document.getElementById('modal-main').value;
   const cus = document.getElementById('modal-main-custom').value.trim();
   return {
-    type:     document.getElementById('modal-type').value,
-    main:     sel === '__custom__' ? cus : sel,
-    sub:      document.getElementById('modal-sub').value.trim(),
-    payee:    document.getElementById('modal-payee').value.trim(),
+    type: document.getElementById('modal-type').value,
+    main: sel==='__custom__' ? cus : sel,
+    sub:  document.getElementById('modal-sub').value.trim(),
+    payee:document.getElementById('modal-payee').value.trim(),
     remember: document.getElementById('modal-remember').checked,
   };
 }
-
-function applyToTx(tx, v) {
-  tx.type = v.type; tx.main = v.main; tx.sub = v.sub; tx.payee = v.payee; tx.needsCat = false;
-}
-
+function applyToTx(tx, v) { tx.type=v.type; tx.main=v.main; tx.sub=v.sub; tx.payee=v.payee; tx.needsCat=false; }
 function confirmCategory() {
-  const v = getModalVals();
-  if (!v.main) { alert('請選擇主分類'); return; }
-
-  const tx = unknownQueue[currentIdx];
-  applyToTx(tx, v);
-
+  const v = getModalVals(); if (!v.main) { alert('請選擇主分類'); return; }
+  const tx = unknownQueue[currentIdx]; applyToTx(tx, v);
   if (v.remember) {
-    const rule = { summary: tx.summary, payeeKey: tx.payeeCode, ...v };
-    delete rule.remember;
+    const rule = { summary:tx.summary, payeeKey:tx.payeeCode, type:v.type, main:v.main, sub:v.sub, payee:v.payee };
     upsertRule(rule);
-    // Apply to all matching in current batch
-    for (const t of transactions) {
-      if (t.needsCat && t.summary === tx.summary && t.payeeCode === tx.payeeCode) applyToTx(t, v);
-    }
+    for (const t of transactions) { if (t.needsCat && t.summary===tx.summary && t.payeeCode===tx.payeeCode) applyToTx(t,v); }
   }
-
   unknownQueue = transactions.filter(t => t.needsCat);
   currentIdx = Math.min(currentIdx, unknownQueue.length - 1);
   nextOrClose();
 }
-
 function skipCategory() { currentIdx++; nextOrClose(); }
-
 function nextOrClose() {
   if (currentIdx < 0 || currentIdx >= unknownQueue.length) {
-    document.getElementById('modal-backdrop').style.display = 'none';
-    renderAll();
-  } else {
-    showModal(unknownQueue[currentIdx]);
-  }
+    document.getElementById('modal-backdrop').style.display = 'none'; renderAll();
+  } else { showModal(unknownQueue[currentIdx]); }
 }
 
 // ── DOWNLOAD ──────────────────────────────────────────────────
 function downloadCSV() {
   const headers = ['交易日期','收入/支出','帳戶','幣別','原幣金額','主分類','子分類','收款人','描述'];
-  const rows = transactions.map(tx => [
-    tx.date, tx.type, tx.accountName, tx.currency, tx.amount,
-    tx.main, tx.sub, tx.payee, tx.description
-  ]);
-  const esc = v => { const s = String(v ?? ''); return (s.includes(',') || s.includes('"') || s.includes('\n')) ? `"${s.replace(/"/g,'""')}"` : s; };
-  const csv = [headers, ...rows].map(r => r.map(esc).join(',')).join('\n');
-  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `feebit_${new Date().toISOString().slice(0,10).replace(/-/g,'')}.csv`;
-  a.click();
+  const rows = transactions.map(tx => [tx.date,tx.type,tx.accountName,tx.currency,tx.amount,tx.main,tx.sub,tx.payee,tx.description]);
+  const esc = v => { const s=String(v??''); return (s.includes(',')||s.includes('"')||s.includes('\n'))?`"${s.replace(/"/g,'""')}"`:s; };
+  const csv = [headers,...rows].map(r=>r.map(esc).join(',')).join('\n');
+  const blob = new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = `feebit_${new Date().toISOString().slice(0,10).replace(/-/g,'')}.csv`; a.click();
 }
 
-// ── RULES MGMT ────────────────────────────────────────────────
+// ── RULES MGMT ───────────────────────────────────────────────
 function deleteRule(i) {
-  const rules = getRules();
-  if (!confirm(`刪除規則「${rules[i].summary}」？`)) return;
-  rules.splice(i, 1); saveRulesStore(rules); renderRules();
+  const rules = getRules(); if (!confirm(`刪除規則「${rules[i].summary}」？`)) return;
+  rules.splice(i,1); saveRulesStore(rules); renderRules();
 }
 function clearRules() {
   if (!confirm('清除所有分類規則？')) return;
   localStorage.removeItem(KEY_RULES); renderRules();
 }
 function exportRules() {
-  const blob = new Blob([JSON.stringify(getRules(), null, 2)], { type: 'application/json' });
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-  a.download = 'feebit_rules.json'; a.click();
+  const blob = new Blob([JSON.stringify(getRules(),null,2)],{type:'application/json'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='feebit_rules.json'; a.click();
 }
 
-// ── TABS ──────────────────────────────────────────────────────
+// ── TABS ─────────────────────────────────────────────────────
 function switchTab(name) {
-  ['preview','rules','accounts'].forEach((n, i) => {
-    document.querySelectorAll('.tab')[i].classList.toggle('active', n === name);
-    document.getElementById('tab-' + n).classList.toggle('active', n === name);
+  ['preview','rules','accounts'].forEach((n,i) => {
+    document.querySelectorAll('.tabs .tab')[i].classList.toggle('active', n===name);
+    document.getElementById('tab-'+n).classList.toggle('active', n===name);
   });
-  if (name === 'accounts') renderAccountList();
-  if (name === 'rules') renderRules();
+  if (name==='accounts') renderAccountList();
+  if (name==='rules') renderRules();
 }
 
 // ── DRAG & DROP ───────────────────────────────────────────────
 const dz = document.getElementById('dropzone');
 dz.addEventListener('dragover',  e => { e.preventDefault(); dz.classList.add('dragover'); });
 dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
-dz.addEventListener('drop', e => {
-  e.preventDefault(); dz.classList.remove('dragover');
-  const f = e.dataTransfer.files[0]; if (f) handleFile(f);
-});
+dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('dragover'); const f=e.dataTransfer.files[0]; if(f) handleFile(f); });
 
 function resetUpload() {
   document.getElementById('upload-section').style.display = 'block';
   document.getElementById('result-section').style.display = 'none';
-  document.getElementById('upload-another').style.display = 'none';
-  document.getElementById('fileInput').value = '';
-  transactions = [];
+  document.getElementById('fileInput').value = ''; transactions = [];
 }
 
-// ── INIT ──────────────────────────────────────────────────────
+// ── INIT ─────────────────────────────────────────────────────
 if (!localStorage.getItem(KEY_RULES)) saveRulesStore(DEFAULT_RULES);
 if (!localStorage.getItem(KEY_ACCOUNTS)) saveAccountsStore(DEFAULT_ACCOUNTS);
 </script>
