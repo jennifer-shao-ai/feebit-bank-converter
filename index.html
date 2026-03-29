@@ -113,6 +113,21 @@ select:focus, input[type="text"]:focus { border-color: var(--primary); }
 .checkbox-row { display: flex; align-items: center; gap: 8px; margin: 16px 0; font-size: 14px; }
 .modal-actions { display: flex; gap: 8px; margin-top: 20px; }
 .progress-text { font-size: 13px; color: var(--gray-600); margin-bottom: 16px; }
+
+/* ── TOOLS PAGE ── */
+.tools-section-title { font-size: 11px; font-weight: 600; color: var(--gray-400); text-transform: uppercase; letter-spacing: 1px; margin: 28px 0 12px; }
+.tools-section-title:first-child { margin-top: 0; }
+.tools-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-bottom: 4px; }
+.tool-card { background: white; border-radius: var(--radius); padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); display: flex; flex-direction: column; gap: 10px; }
+.tool-card-header { display: flex; align-items: center; gap: 12px; }
+.tool-card-icon { font-size: 24px; width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; background: var(--gray-50); border-radius: 10px; flex-shrink: 0; }
+.tool-card-meta .name { font-weight: 600; font-size: 14px; }
+.tool-card-meta .cat { font-size: 11px; color: var(--primary); font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; margin-top: 2px; }
+.tool-card-desc { font-size: 13px; color: var(--gray-600); line-height: 1.5; }
+.tool-card-related { display: flex; flex-wrap: wrap; gap: 5px; }
+.tool-tag { background: var(--primary-light); color: var(--primary-dark); padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; }
+.tool-card-link { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: var(--radius); font-size: 13px; font-weight: 500; color: var(--gray-800); text-decoration: none; transition: all 0.15s; margin-top: auto; align-self: flex-start; }
+.tool-card-link:hover { background: var(--primary); color: white; border-color: var(--primary); }
 </style>
 </head>
 <body>
@@ -155,6 +170,13 @@ select:focus, input[type="text"]:focus { border-color: var(--primary); }
     <div class="nav-item soon" id="nav-cs">
       <span class="icon">💬</span> 客服回覆
       <span class="soon-tag">即將推出</span>
+    </div>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-label">系統</div>
+    <div class="nav-item" onclick="navigate('tools')" id="nav-tools">
+      <span class="icon">🔧</span> 使用工具
     </div>
   </div>
 
@@ -210,7 +232,19 @@ select:focus, input[type="text"]:focus { border-color: var(--primary); }
           <div class="hc-desc">依情境產出談判策略與話術</div>
           <div class="hc-tag">即將推出</div>
         </div>
+        <div class="home-card" onclick="navigate('tools')">
+          <div class="hc-icon">🔧</div>
+          <div class="hc-name">使用工具</div>
+          <div class="hc-desc">儀表板用到的所有工具清單與快速連結</div>
+          <div class="hc-tag">可使用</div>
+        </div>
       </div>
+    </div>
+
+    <!-- TOOLS -->
+    <div class="tool-page" id="page-tools">
+      <p style="color:var(--gray-600);font-size:14px;margin-bottom:20px">儀表板中所有用到的工具，點擊前往各平台</p>
+      <div id="tools-list"></div>
     </div>
 
     <!-- BANK CONVERTER -->
@@ -316,10 +350,10 @@ select:focus, input[type="text"]:focus { border-color: var(--primary); }
       <label>主分類</label>
       <select id="modal-main" onchange="handleMainChange()">
         <option value="">-- 選擇 --</option>
-        <option>保險相關</option><option>其他費用</option><option>廠商貨款</option>
+        <option>保險相關</option><option>其他費用</option><option>商品貨款</option>
         <option>廣告費/加值費</option><option>政府相關</option><option>會計師</option>
-        <option>耗材相關</option><option>薪資/獎金</option><option>貨運運費</option>
-        <option>銷售場/通路費用</option><option>軟體/系統工具</option><option>進口費用</option>
+        <option>耗材相關</option><option>薪資/外包</option><option>貨運運費</option>
+        <option>賣場/通路銷售</option><option>軟體/系統工具</option><option>進口費用</option>
         <option value="__custom__">＋ 自訂...</option>
       </select>
       <input type="text" id="modal-main-custom" placeholder="輸入自訂主分類" style="display:none;margin-top:8px">
@@ -393,31 +427,23 @@ function getAccountName(raw) {
 // ── CATEGORY MAP ──────────────────────────────────────────────
 const CATEGORY_MAP = {
   '保險相關':     ['產品責任險'],
-  '其他費用':     ['簡訊費','系統流量維護費','年節禮品','現金代墊手續費','週轉週轉款','加工費用','停車費','課程費用','零食零嘴購','餐費','認證/簽署','網站維護','零用金','郵資'],
-  '廠商貨款':     ['台三百貨','SILICON2 CO.','TOP KOREA','SEHAN','蝦皮購入','威珏優','淳寶','巧賀','燧竹','YJBN','保士（物聯）','慕仁亦麗','翡翠Qure','Dr.SEED-BRYZE CO.','樂天購入'],
-  '廣告費/加值費':['FB廣告費','Google廣告費','Line中用金','SHOPLINE後台加值','蝦皮廣告行銷','聯購/推廣'],
-  '政府相關':     ['環保署申報','食藥署','稅捐處','商標登記'],
+  '其他費用':     ['簡訊費','系統流量維護費','年節禮品','美金匯款手續費','週轉金還款','加工費用','停車費','課程費用','零食補貨','餐費','認證/簽署','網站維護','零用金','郵資'],
+  '商品貨款':     ['小三美日','SILICON2 CO.','TOP KOREA','SEHAN','蝦皮購入','達特醫','淘寶','巧詠','晶站','YJBN','俐冠（向物）','時他依麗','睿澤Qure','Dr.SEED-BRYZE CO.','酷澎購入'],
+  '廣告費/加值費':['FB廣告費','Google廣告費','Line中用量','SHOPLINE後台加值','蝦皮聯盟行銷','團購/推廣'],
+  '政府相關':     ['環保署申報','食藥署','國稅局','產品登錄'],
   '會計師':       ['正一'],
-  '耗材相關':     ['新竹氣泡袋','泡泡氣泡袋','紙箱','破壞袋','草帶','標布','木標貼紙','祥和緩衝材料','影印紙','碳粉','碳帶','機器維修費'],
-  '薪資/獎金':    ['正職','工讀','銷售獎金','津貼','人資顧問','Ricky'],
-  '貨運運費':     ['新竹貨運','加拿貨運','樂天退貨運費','泰風貨運','黑貓貨運'],
-  '銷售場/通路費用':['蝦皮店到店/一般/寶貝媽','官網','樂天','MOMO','POYA寶雅','子世界','蝦皮直播','塔購','其他','家樂福好市','MO超市+','樂天店鋪'],
-  '軟體/系統工具':['TMS','SHOPLINE','ChatGPT','Adobe','Ragic','數碼聯聖ERP','Google One','Canva','Zeabur','CURSOR AI','office 365','Open AI'],
-  '進口費用':     ['泰風','船務','台港海運費','運費費用退款','運費','手續費','台太物流'],
+  '耗材相關':     ['新州氣泡袋','東紳氣泡袋','紙箱','破壞袋','膠帶','文具','標籤貼紙','祥昊緩衝包材','影印紙','碳粉','碳帶','機器維修費'],
+  '薪資/外包':    ['正職','工讀','勞務報酬','獎金','人力外包','Ricky'],
+  '貨運運費':     ['新竹貨運','加禾貨運','酷澎退貨運費','東風貨運','黑貓貨運'],
+  '賣場/通路銷售':['蝦皮商城/一般/寶媽','官網','酷澎','MOMO','POYA寶雅','子丑市集','蝦皮桑爹','員購','其他','家樂福商城','MO店+','酷澎商城'],
+  '軟體/系統工具':['TMS','SHOPLINE','ChatGPT','Adobe','Ragic','數碼動量ERP','Google One','Canva','Zeabur','CURSOR AI','office 365','Open AI'],
+  '進口費用':     ['東風','同光昇','商港服務費','關稅費用退款','關稅','手續費','兆太物流'],
 };
 
 const DEFAULT_RULES = [
-  { summary: '00000',  payeeKey: 'SHOPEE',  type: '收入', main: '銷售場/通路費用', sub: '蝦皮店到店/一般/寶貝媽', payee: 'SHOPEE' },
-  { summary: '勞保',   payeeKey: '',         type: '支出', main: '薪資/獎金',       sub: '正職',       payee: '' },
-  { summary: '勞退',   payeeKey: '',         type: '支出', main: '薪資/獎金',       sub: '正職',       payee: '' },
-  { summary: '健保',   payeeKey: '',         type: '支出', main: '薪資/獎金',       sub: '正職',       payee: '' },
-  { summary: '垃圾費', payeeKey: '',         type: '支出', main: '政府相關',        sub: '環保署申報', payee: '資源回收管理基金' },
-  { summary: '匯款',   payeeKey: '商線科技', type: '收入', main: '銷售場/通路費用', sub: '官網',       payee: '商線科技' },
-  { summary: '匯款',   payeeKey: '翠霖科技', type: '收入', main: '銷售場/通路費用', sub: '官網',       payee: '翠霖科技' },
-  { summary: '匯款',   payeeKey: '翠和科技', type: '收入', main: '銷售場/通路費用', sub: '官網',       payee: '翠和科技' },
-  { summary: '匯款',   payeeKey: '寶雅',     type: '收入', main: '銷售場/通路費用', sub: 'POYA寶雅',   payee: '寶雅連鎖' },
-  { summary: '匯款',   payeeKey: '富邦媒',   type: '收入', main: '銷售場/通路費用', sub: 'MOMO',       payee: '富邦媒體' },
-  { summary: '匯款',   payeeKey: '樂天',     type: '收入', main: '銷售場/通路費用', sub: '樂天',       payee: '樂天' },
+  { summary: '00000', payeeKey: 'SHOPEE', type: '收入', main: '賣場/通路銷售', sub: '蝦皮商城/一般/寶媽', payee: 'SHOPEE' },
+  { summary: '匯款',  payeeKey: '寶雅',   type: '收入', main: '賣場/通路銷售', sub: 'POYA寶雅',          payee: '寶雅連鎖' },
+  { summary: '匯款',  payeeKey: '富邦媒', type: '收入', main: '賣場/通路銷售', sub: 'MOMO',              payee: '富邦媒體' },
 ];
 function getRules() {
   try { const s = localStorage.getItem(KEY_RULES); return s ? JSON.parse(s) : [...DEFAULT_RULES]; }
