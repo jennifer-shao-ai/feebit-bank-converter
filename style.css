@@ -41,6 +41,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Microsoft
 .topbar { background: white; border-bottom: 1px solid var(--gray-200); padding: 0 24px; height: 52px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50; }
 .topbar-title { font-size: 15px; font-weight: 600; }
 .topbar-badge { background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; }
+.btn-share { display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px; border-radius: 20px; border: 1px solid var(--gray-200); background: white; color: var(--gray-600); font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+.btn-share:hover { border-color: var(--primary); color: var(--primary); }
 .page { padding: 24px; flex: 1; }
 
 /* ── HOME ── */

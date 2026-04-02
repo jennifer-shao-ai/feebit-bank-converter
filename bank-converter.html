@@ -66,6 +66,7 @@
   <div class="topbar">
     <span class="topbar-title">帳務轉換</span>
     <span class="topbar-badge">財務工具</span>
+    <button class="btn-share" onclick="copyShare(this)" title="複製分享連結">🔗 分享</button>
   </div>
 
   <div class="page">
@@ -535,5 +536,6 @@ function resetUpload() {
 if (!localStorage.getItem(KEY_RULES)) saveRulesStore(DEFAULT_RULES);
 if (!localStorage.getItem(KEY_ACCOUNTS)) saveAccountsStore(DEFAULT_ACCOUNTS);
 </script>
+<script>function copyShare(b){navigator.clipboard.writeText(location.origin+location.pathname+"?share").then(()=>{b.textContent="✅ 已複製";setTimeout(()=>b.innerHTML="🔗 分享",1500)});}</script>
 </body>
 </html>

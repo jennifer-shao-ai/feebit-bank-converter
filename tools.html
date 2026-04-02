@@ -47,5 +47,6 @@ Object.entries(groups).forEach(([cat, tools]) => {
 });
 container.innerHTML = html;
 </script>
+<script>function copyShare(b){navigator.clipboard.writeText(location.origin+location.pathname+"?share").then(()=>{b.textContent="✅ 已複製";setTimeout(()=>b.innerHTML="🔗 分享",1500)});}</script>
 </body>
 </html>
