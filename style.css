@@ -109,6 +109,34 @@ select:focus, input[type="text"]:focus { border-color: var(--primary); }
 .modal-actions { display: flex; gap: 8px; margin-top: 20px; }
 .progress-text { font-size: 13px; color: var(--gray-600); margin-bottom: 16px; }
 
+/* ── HAMBURGER ── */
+.btn-hamburger { display:none; background:none; border:none; cursor:pointer; padding:6px; font-size:22px; color:var(--gray-800); line-height:1; flex-shrink:0; }
+#sidebar-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:99; }
+#sidebar-overlay.show { display:block; }
+
+/* ── MOBILE ── */
+@media (max-width:768px) {
+  #sidebar {
+    transform:translateX(-100%);
+    transition:transform 0.25s ease;
+    z-index:200;
+  }
+  #sidebar.open { transform:translateX(0); }
+  #main { margin-left:0 !important; }
+  .btn-hamburger { display:flex; align-items:center; justify-content:center; }
+  .topbar { padding:0 14px; height:auto; min-height:52px; flex-wrap:wrap; gap:0; }
+  .page { padding:14px; }
+  /* Modal → bottom sheet */
+  .modal-backdrop { align-items:flex-end; }
+  .modal { width:100%; max-width:100%; border-radius:16px 16px 0 0; padding:20px 16px 32px; max-height:90vh; }
+  /* Home grid 2 col */
+  .home-grid { grid-template-columns:repeat(2,1fr); gap:10px; }
+  .home-card { padding:14px; }
+  .home-card .hc-icon { font-size:26px; margin-bottom:8px; }
+  /* Tools 1 col */
+  .tools-grid { grid-template-columns:1fr; }
+}
+
 /* ── TOOLS PAGE ── */
 .tools-section-title { font-size: 11px; font-weight: 600; color: var(--gray-400); text-transform: uppercase; letter-spacing: 1px; margin: 28px 0 12px; }
 .tools-section-title:first-child { margin-top: 0; }

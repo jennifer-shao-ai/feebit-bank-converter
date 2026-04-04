@@ -122,9 +122,51 @@
 .readonly-mode .shop-actions,
 .readonly-mode .expense-actions { display:none !important; }
 .readonly-mode .shop-check { pointer-events:none; }
+
+/* ── MOBILE ── */
+@media (max-width:768px) {
+  /* Topbar 2-row layout */
+  .topbar { flex-direction:column; align-items:stretch; height:auto; padding:10px 14px; gap:6px; }
+  .tp-topbar-row1 { display:flex; align-items:center; justify-content:space-between; }
+  .tp-topbar-row2 { display:flex; align-items:center; gap:8px; }
+  .tp-topbar-row2 select { flex:1; min-width:0; }
+  /* Tabs horizontal scroll */
+  .tp-tabs { overflow-x:auto; -webkit-overflow-scrolling:touch; flex-wrap:nowrap; scrollbar-width:none; }
+  .tp-tabs::-webkit-scrollbar { display:none; }
+  .tp-tab { white-space:nowrap; padding:10px 14px; flex-shrink:0; font-size:13px; }
+  /* Shop grid 2 cols */
+  .shop-grid { grid-template-columns:repeat(2,1fr); gap:10px; }
+  .shop-card { padding:11px; }
+  .shop-photo { font-size:24px; }
+  /* Day */
+  .day-card { padding:12px 14px; }
+  .day-header { flex-wrap:wrap; gap:6px; }
+  /* Spot */
+  .spot-item { padding:11px 13px; }
+  .spot-actions { flex-wrap:wrap; }
+  .spot-actions .btn { flex:1; justify-content:center; }
+  /* Expense */
+  .expense-item { padding:13px; }
+  .expense-actions .btn { font-size:12px; }
+  /* Section header */
+  .section-header { flex-wrap:wrap; gap:8px; }
+  .section-header h3 { flex:1; }
+  /* Form rows → stack on mobile */
+  .form-row { flex-direction:column; gap:0; }
+  /* Friends */
+  .friend-section-header { flex-wrap:wrap; }
+  /* Settle */
+  .settle-row { font-size:12px; }
+  /* Bigger touch targets */
+  .shop-check { width:26px; height:26px; }
+  .btn { min-height:38px; }
+}
 </style>
 </head>
 <body>
+
+<!-- SIDEBAR OVERLAY -->
+<div id="sidebar-overlay" onclick="closeSidebar()"></div>
 
 <!-- SIDEBAR -->
 <div id="sidebar">
@@ -163,13 +205,16 @@
 <!-- MAIN -->
 <div id="main">
   <div class="topbar">
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-      <span class="topbar-title">旅行規劃</span>
-      <select id="tripSelector" class="trip-selector" onchange="switchTrip(this.value)"></select>
-      <button class="btn btn-outline add-btn" onclick="showTripModal()" style="font-size:12px;padding:5px 10px">+ 新增旅行</button>
+    <div class="tp-topbar-row1">
+      <div style="display:flex;align-items:center;gap:8px">
+        <button class="btn-hamburger" onclick="openSidebar()">☰</button>
+        <span class="topbar-title">旅行規劃</span>
+      </div>
+      <button class="btn-share" id="shareBtn" onclick="shareTrip(this)">🔗 分享</button>
     </div>
-    <div style="display:flex;align-items:center;gap:8px">
-      <button class="btn-share" id="shareBtn" onclick="shareTrip(this)">🔗 分享行程</button>
+    <div class="tp-topbar-row2">
+      <select id="tripSelector" class="trip-selector" onchange="switchTrip(this.value)"></select>
+      <button class="btn btn-outline add-btn" onclick="showTripModal()" style="font-size:12px;padding:5px 10px;white-space:nowrap">+ 新增旅行</button>
     </div>
   </div>
 
@@ -231,6 +276,16 @@
 </div>
 
 <script>
+// ── SIDEBAR TOGGLE ─────────────────────────────
+function openSidebar() {
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('sidebar-overlay').classList.add('show');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('show');
+}
+
 // ── STATE ──────────────────────────────────────
 const STORAGE_KEY = 'feebit_travel_v1';
 let S = { trips:[], currentId:null, friends:[] };

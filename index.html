@@ -67,10 +67,16 @@
   <div class="sidebar-footer">v1.0 · Feebit © 2026</div>
 </div>
 
+<!-- ── SIDEBAR OVERLAY ── -->
+<div id="sidebar-overlay" onclick="closeSidebar()"></div>
+
 <!-- ── MAIN ── -->
 <div id="main">
   <div class="topbar">
-    <span class="topbar-title">首頁</span>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button class="btn-hamburger" onclick="openSidebar()">☰</button>
+      <span class="topbar-title">首頁</span>
+    </div>
     <span class="topbar-badge">飛比特營運工具箱</span>
   </div>
 
@@ -129,5 +135,9 @@
   </div>
 </div>
 
+<script>
+function openSidebar() { document.getElementById('sidebar').classList.add('open'); document.getElementById('sidebar-overlay').classList.add('show'); }
+function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebar-overlay').classList.remove('show'); }
+</script>
 </body>
 </html>
