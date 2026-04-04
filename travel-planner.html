@@ -5,8 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>旅行規劃 · 飛比特工具箱</title>
 <link rel="icon" href="favicon.svg">
-<script>if(location.search.includes("share"))document.documentElement.classList.add("standalone");</script>
+<script>if(location.search.includes("share")||location.search.includes("collab"))document.documentElement.classList.add("standalone");</script>
 <link rel="stylesheet" href="style.css">
+<!-- Firebase SDK (Realtime Database) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <style>
 /* ── TRAVEL PLANNER ── */
 .trip-selector { padding:5px 10px; border:1px solid var(--gray-200); border-radius:6px; font-size:13px; background:white; cursor:pointer; max-width:180px; }
@@ -118,6 +121,33 @@
 
 /* Spot photo */
 .spot-photo { width:100%; max-height:160px; object-fit:cover; border-radius:6px; margin-bottom:10px; display:block; }
+
+/* Collab badge */
+.collab-badge { display:inline-flex; align-items:center; gap:5px; padding:3px 10px; border-radius:12px; font-size:11px; font-weight:600; }
+.collab-badge.live { background:#dcfce7; color:#16a34a; }
+.collab-badge.offline { background:#fef3c7; color:#92400e; }
+.collab-dot { width:6px; height:6px; border-radius:50%; background:currentColor; }
+
+/* Member chips */
+.member-list { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+.member-chip { display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:20px; background:var(--primary-light); color:var(--primary-dark); font-size:12px; font-weight:500; }
+.member-chip .rm { cursor:pointer; font-size:14px; opacity:0.6; }
+.member-chip .rm:hover { opacity:1; }
+
+/* Member checkboxes in modal */
+.member-check-grid { display:flex; flex-wrap:wrap; gap:8px; }
+.member-check-item { display:flex; align-items:center; gap:6px; padding:6px 12px; border:1px solid var(--gray-200); border-radius:20px; cursor:pointer; font-size:13px; transition:all 0.15s; user-select:none; }
+.member-check-item.checked { background:var(--primary); color:white; border-color:var(--primary); }
+.member-check-item input { display:none; }
+
+/* Settle transactions */
+.settle-tx { display:flex; align-items:center; justify-content:space-between; padding:10px 14px; background:var(--gray-50); border-radius:8px; margin-bottom:6px; font-size:13px; }
+.settle-tx .arrow { color:var(--gray-400); margin:0 6px; }
+.settle-tx .amount { font-weight:700; color:var(--primary); }
+.settle-balance-row { display:flex; align-items:center; justify-content:space-between; padding:6px 0; border-bottom:1px solid var(--gray-100); font-size:12px; }
+.settle-balance-row:last-child { border:none; }
+.bal-pos { color:var(--success); font-weight:600; }
+.bal-neg { color:var(--danger); font-weight:600; }
 
 /* Location filter */
 .loc-filter-bar { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:14px; align-items:center; }
@@ -256,12 +286,14 @@
       </div>
       <button class="btn btn-outline add-btn" onclick="showTripModal()" style="font-size:12px;padding:5px 10px;white-space:nowrap">+ 新增旅行</button>
     </div>
-    <div class="tp-bar-right">
+    <div class="tp-bar-right" style="display:flex;align-items:center;gap:8px">
+      <span id="collab-badge" style="display:none"></span>
       <div class="share-menu-wrap">
         <button class="btn-share" onclick="toggleShareMenu(event)">🔗 分享 ▾</button>
         <div class="share-menu" id="share-menu" style="display:none">
           <div class="share-menu-item" onclick="shareTool();closeShareMenu()">🔧 分享這個工具</div>
-          <div class="share-menu-item" onclick="shareTrip();closeShareMenu()">✈️ 分享這趟旅行</div>
+          <div class="share-menu-item" onclick="startCollab();closeShareMenu()">✈️ 分享旅行（即時協作）</div>
+          <div class="share-menu-item" onclick="shareTrip();closeShareMenu()">📋 匯出行程連結（離線版）</div>
         </div>
       </div>
     </div>
@@ -279,8 +311,12 @@
     <div id="tab-itinerary" class="tp-tab-content active">
       <div class="section-header">
         <h3 id="itinerary-title">選擇或新增旅行</h3>
-        <button class="btn btn-primary add-btn" onclick="addDay()">+ 新增天數</button>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-outline" onclick="showMembersModal()" style="font-size:12px;padding:5px 10px">👥 成員</button>
+          <button class="btn btn-primary add-btn" onclick="addDay()">+ 新增天數</button>
+        </div>
       </div>
+      <div id="members-bar"></div>
       <div id="days-container"></div>
     </div>
 
@@ -336,20 +372,103 @@ function closeSidebar() {
   document.getElementById('sidebar-overlay').classList.remove('show');
 }
 
+// ── FIREBASE CONFIG ────────────────────────────
+// ⚠️ 需要填入你的 Firebase 設定（見頁尾說明）
+const FIREBASE_CONFIG = {
+  apiKey: "",
+  authDomain: "",
+  databaseURL: "",
+  projectId: "",
+  storageBucket: "",
+  messagingSenderId: "",
+  appId: ""
+};
+
+let _db = null;
+let _collabRef = null;
+let _collabRoomId = null;
+let _isSyncing = false;
+
+function initFirebase() {
+  if (_db || !FIREBASE_CONFIG.apiKey) return false;
+  try {
+    const app = firebase.initializeApp(FIREBASE_CONFIG);
+    _db = firebase.database(app);
+    return true;
+  } catch(e) { console.warn('Firebase init failed:', e); return false; }
+}
+
+function setCollabBadge(status) {
+  const el = document.getElementById('collab-badge');
+  if (!el) return;
+  if (!status) { el.style.display='none'; return; }
+  el.style.display = 'inline-flex';
+  el.className = 'collab-badge ' + (status==='live'?'live':'offline');
+  el.innerHTML = `<span class="collab-dot"></span>${status==='live'?'協作中':'連線中…'}`;
+}
+
+function startCollabListener(roomId) {
+  if (!_db) return;
+  _collabRoomId = roomId;
+  _collabRef = _db.ref('trips/' + roomId);
+  setCollabBadge('connecting');
+  _collabRef.on('value', snap => {
+    const data = snap.val();
+    if (!data) return;
+    _isSyncing = true;
+    // 更新本機對應的 trip
+    const idx = S.trips.findIndex(t => t.id === data.id);
+    if (idx >= 0) S.trips[idx] = data;
+    else { S.trips.unshift(data); }
+    S.currentId = data.id;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(S));
+    renderAll();
+    _isSyncing = false;
+    setCollabBadge('live');
+  }, err => { setCollabBadge('offline'); });
+}
+
+function pushToCollab() {
+  if (!_collabRef || _isSyncing) return;
+  const t = trip(); if (!t) return;
+  _collabRef.set(t).catch(e => { setCollabBadge('offline'); console.warn('Firebase write failed:', e); });
+}
+
 // ── STATE ──────────────────────────────────────
 const STORAGE_KEY = 'feebit_travel_v1';
 let S = { trips:[], currentId:null, friends:[] };
 function load() {
   try { const d = localStorage.getItem(STORAGE_KEY); if(d) S = JSON.parse(d); } catch(e){}
 }
-function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(S)); }
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(S));
+  pushToCollab(); // 若在協作模式，同步到 Firebase
+}
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
 function trip() { return S.trips.find(t => t.id === S.currentId) || null; }
 
 // ── INIT ───────────────────────────────────────
 function init() {
+  initFirebase();
   const params = new URLSearchParams(location.search);
   const hash = location.hash.slice(1);
+
+  // ── 協作模式（即時同步）
+  if (params.has('collab') && params.get('collab')) {
+    const roomId = params.get('collab');
+    load();
+    if (!S.trips) S.trips = [];
+    if (!S.friends) S.friends = [];
+    if (!S.currentId && S.trips.length > 0) S.currentId = S.trips[0].id;
+    renderAll();
+    if (_db) {
+      startCollabListener(roomId);
+    } else {
+      // Firebase 未設定，fallback 到離線版
+      showBanner('⚠️ Firebase 未設定，目前為離線模式。請在頁面底部查看設定說明。', '#d97706');
+    }
+    return;
+  }
 
   if (params.has('share') && hash) {
     // 分享連結：匯入資料到本機，完全可編輯
@@ -402,16 +521,19 @@ function init() {
   renderAll();
 }
 
-function showImportBanner(tripName) {
+function showBanner(msg, color='#16a34a') {
   const banner = document.createElement('div');
-  banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#16a34a;color:white;text-align:center;padding:10px 16px;font-size:13px;font-weight:500;display:flex;align-items:center;justify-content:center;gap:12px;';
-  banner.innerHTML = `✅ 已匯入「${esc(tripName)}」，你可以自由編輯！<button onclick="this.parentElement.remove()" style="background:rgba(255,255,255,0.25);border:none;color:white;padding:3px 10px;border-radius:4px;cursor:pointer;font-size:12px">關閉</button>`;
+  banner.style.cssText = `position:fixed;top:0;left:0;right:0;z-index:9999;background:${color};color:white;text-align:center;padding:10px 16px;font-size:13px;font-weight:500;display:flex;align-items:center;justify-content:center;gap:12px;`;
+  banner.innerHTML = `${msg}<button onclick="this.parentElement.remove()" style="background:rgba(255,255,255,0.25);border:none;color:white;padding:3px 10px;border-radius:4px;cursor:pointer;font-size:12px;flex-shrink:0">關閉</button>`;
   document.body.prepend(banner);
-  setTimeout(() => banner.remove(), 5000);
+  setTimeout(() => banner?.remove(), 6000);
+}
+function showImportBanner(tripName) {
+  showBanner(`✅ 已匯入「${esc(tripName)}」，你可以自由編輯！`);
 }
 
 function newTripObj(name, dest, start, end) {
-  const t = { id:uid(), name, destination:dest, startDate:start, endDate:end, days:[], shoppingList:[], expenses:[] };
+  const t = { id:uid(), name, destination:dest, startDate:start, endDate:end, days:[], shoppingList:[], expenses:[], members:[], collabRoomId:null };
   if (start && end) {
     let d = new Date(start), e = new Date(end);
     while (d <= e) { t.days.push({ id:uid(), date:d.toISOString().slice(0,10), spots:[] }); d.setDate(d.getDate()+1); }
@@ -423,9 +545,63 @@ function newTripObj(name, dest, start, end) {
 function renderAll() {
   renderSelector();
   renderItinerary();
+  renderMembersBar();
   renderShopping();
   renderExpenses();
   renderFriends();
+}
+
+// ── MEMBERS ────────────────────────────────────
+function getMembers() { return trip()?.members || []; }
+
+function renderMembersBar() {
+  const el = document.getElementById('members-bar');
+  if (!el) return;
+  const members = getMembers();
+  if (members.length === 0) { el.innerHTML = ''; return; }
+  el.innerHTML = `<div class="member-list" style="margin-bottom:14px">
+    ${members.map(m=>`<span class="member-chip">👤 ${esc(m)}</span>`).join('')}
+  </div>`;
+}
+
+function showMembersModal() {
+  const t = trip(); if (!t) return;
+  const members = t.members || [];
+  const pills = members.map((m,i)=>`<span class="member-chip">${esc(m)}<span class="rm" onclick="removeMember(${i})">×</span></span>`).join('');
+  openModal(`<h2 style="margin-bottom:6px">旅行成員</h2>
+  <p style="font-size:12px;color:var(--gray-600);margin-bottom:12px">設定成員後，分帳時可選擇誰分攤費用</p>
+  <div id="members-list" class="member-list" style="min-height:32px;margin-bottom:12px">${pills}</div>
+  <div style="display:flex;gap:8px;margin-bottom:16px">
+    <input id="m-newmember" type="text" placeholder="輸入姓名…" style="flex:1;padding:8px 10px;border:1px solid var(--gray-200);border-radius:6px;font-size:13px" onkeydown="if(event.key==='Enter')addMember()">
+    <button class="btn btn-primary" onclick="addMember()" style="white-space:nowrap">+ 新增</button>
+  </div>
+  <div class="modal-actions">
+    <button class="btn btn-primary" onclick="saveMembers()">完成</button>
+    <button class="btn btn-outline" onclick="closeModal()">取消</button>
+  </div>`);
+  setTimeout(()=>document.getElementById('m-newmember')?.focus(),100);
+}
+function addMember() {
+  const inp = document.getElementById('m-newmember');
+  const name = inp.value.trim(); if (!name) return;
+  const list = document.getElementById('members-list');
+  const idx = list.querySelectorAll('.member-chip').length;
+  const chip = document.createElement('span');
+  chip.className = 'member-chip';
+  chip.dataset.name = name;
+  chip.innerHTML = `${esc(name)}<span class="rm" onclick="this.parentElement.remove()">×</span>`;
+  list.appendChild(chip);
+  inp.value = ''; inp.focus();
+}
+function removeMember(i) {
+  const chips = document.getElementById('members-list').querySelectorAll('.member-chip');
+  if (chips[i]) chips[i].remove();
+}
+function saveMembers() {
+  const t = trip(); if (!t) return;
+  const chips = document.getElementById('members-list').querySelectorAll('.member-chip');
+  t.members = Array.from(chips).map(c => c.dataset.name || c.childNodes[0].textContent.trim());
+  save(); closeModal(); renderMembersBar(); renderExpenses();
 }
 
 function renderSelector() {
@@ -600,8 +776,10 @@ function currSym(c) { return {JPY:'¥',TWD:'NT$',KRW:'₩',USD:'$',EUR:'€',HKD
 
 function renderExpenseItem(e, i) {
   const sym = currSym(e.currency||'JPY');
-  const per = e.splitCount>0 ? Math.ceil(Number(e.amount)/Number(e.splitCount)) : 0;
+  const splitWith = e.splitWith?.length ? e.splitWith : (e.splitCount ? Array(e.splitCount).fill('?') : ['?']);
+  const per = splitWith.length > 0 ? Math.ceil(Number(e.amount)/splitWith.length) : 0;
   const receipt = e.receiptPhoto ? `<div class="expense-receipt"><img src="${e.receiptPhoto}" onclick="viewReceipt(${i})" title="查看收據"></div>` : '';
+  const splitters = e.splitWith?.length ? e.splitWith.map(m=>`<span class="member-chip" style="font-size:11px;padding:2px 7px">${esc(m)}</span>`).join('') : `${splitWith.length} 人`;
   const actions = `<div class="expense-actions">
     <button class="btn btn-outline" onclick="showEditExpense(${i})">✏️ 編輯</button>
     <button class="btn btn-outline" style="color:var(--danger)" onclick="deleteExpense(${i})">刪除</button>
@@ -613,8 +791,10 @@ function renderExpenseItem(e, i) {
     </div>
     <div class="expense-meta">
       <span class="expense-meta-item">👤 ${esc(e.paidBy||'?')} 先付</span>
-      <span class="expense-meta-item">👥 ${e.splitCount||1} 人均分</span>
       ${e.date?`<span class="expense-meta-item">📅 ${e.date}</span>`:''}
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin-top:6px">
+      <span style="font-size:12px;color:var(--gray-600)">分攤：</span>${splitters}
     </div>
     <div class="expense-split-badge">每人 ${sym}${per.toLocaleString()}</div>
     ${e.notes?`<div style="margin-top:8px;font-size:12px;color:var(--gray-600)">📝 ${esc(e.notes)}</div>`:''}
@@ -622,18 +802,82 @@ function renderExpenseItem(e, i) {
   </div>`;
 }
 
+function calcSettlement(expenses, members, currency) {
+  // Build balance map
+  const balance = {};
+  // Collect all involved names
+  const allNames = new Set(members);
+  expenses.forEach(e => {
+    if (e.paidBy) allNames.add(e.paidBy);
+    (e.splitWith||[]).forEach(m => allNames.add(m));
+  });
+  allNames.forEach(m => balance[m] = 0);
+
+  expenses.forEach(e => {
+    const amount = Number(e.amount) || 0;
+    const payer = e.paidBy;
+    // Determine who splits: use splitWith if defined, else all members
+    let splitters = e.splitWith?.length ? e.splitWith : (members.length ? members : (payer ? [payer] : []));
+    if (splitters.length === 0) return;
+    const share = amount / splitters.length;
+    if (payer && balance[payer] !== undefined) balance[payer] += amount;
+    splitters.forEach(m => { if (balance[m] !== undefined) balance[m] -= share; });
+  });
+
+  // Debt simplification
+  const debtors = [], creditors = [];
+  allNames.forEach(m => {
+    if (balance[m] < -0.5) debtors.push({ name:m, amt: -balance[m] });
+    else if (balance[m] > 0.5) creditors.push({ name:m, amt: balance[m] });
+  });
+  debtors.sort((a,b)=>b.amt-a.amt);
+  creditors.sort((a,b)=>b.amt-a.amt);
+
+  const transactions = [];
+  let di=0, ci=0;
+  while (di < debtors.length && ci < creditors.length) {
+    const amount = Math.min(debtors[di].amt, creditors[ci].amt);
+    if (amount > 0.5) transactions.push({ from:debtors[di].name, to:creditors[ci].name, amount:Math.round(amount) });
+    debtors[di].amt -= amount;
+    creditors[ci].amt -= amount;
+    if (debtors[di].amt < 0.5) di++;
+    if (creditors[ci].amt < 0.5) ci++;
+  }
+  return { balance, transactions, allNames: [...allNames] };
+}
+
 function renderSettle(list) {
   const ss = document.getElementById('settle-section');
-  const total = list.reduce((s,e)=>s+Number(e.amount),0);
-  const currency = list[0]?.currency||'JPY';
+  const t = trip();
+  const members = t?.members || [];
+  const currency = list[0]?.currency || 'JPY';
   const sym = currSym(currency);
+  const total = list.reduce((s,e)=>s+Number(e.amount),0);
+
+  const { balance, transactions, allNames } = calcSettlement(list, members, currency);
+
+  const txHTML = transactions.length === 0
+    ? `<p style="color:var(--gray-400);font-size:13px;text-align:center;padding:10px 0">✅ 結算完成，大家都不欠錢</p>`
+    : transactions.map(tx=>`<div class="settle-tx">
+        <span><strong>${esc(tx.from)}</strong><span class="arrow">→</span><strong>${esc(tx.to)}</strong></span>
+        <span class="amount">${sym}${tx.amount.toLocaleString()}</span>
+      </div>`).join('');
+
+  const balHTML = allNames.map(m => {
+    const b = Math.round(balance[m]||0);
+    const cls = b>0?'bal-pos':b<0?'bal-neg':'';
+    const sign = b>0?'+':'';
+    return `<div class="settle-balance-row"><span>${esc(m)}</span><span class="${cls}">${sign}${sym}${Math.abs(b).toLocaleString()}</span></div>`;
+  }).join('');
+
   ss.innerHTML = `<div class="settle-card">
-    <h3 style="margin-bottom:14px;font-size:15px">結算總覽</h3>
-    ${list.map(e=>{
-      const per = Math.ceil(Number(e.amount)/(Number(e.splitCount)||1));
-      return `<div class="settle-row"><span>${esc(e.title)} <span style="color:var(--gray-400)">(${esc(e.paidBy||'?')}付)</span></span><span>${sym}${per.toLocaleString()} /人</span></div>`;
-    }).join('')}
-    <div class="settle-row"><span>旅行總花費</span><strong>${sym}${total.toLocaleString()}</strong></div>
+    <h3 style="margin-bottom:4px;font-size:15px">結算</h3>
+    <p style="font-size:12px;color:var(--gray-600);margin-bottom:14px">總花費 ${sym}${total.toLocaleString()}</p>
+    ${txHTML}
+    ${allNames.length>0?`<div style="margin-top:16px;border-top:1px solid var(--gray-200);padding-top:12px">
+      <div style="font-size:11px;color:var(--gray-400);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">各人淨收支</div>
+      ${balHTML}
+    </div>`:''}
   </div>`;
 }
 
@@ -758,11 +1002,39 @@ function shareTool() {
   showShareModal('🔧 分享旅行規劃工具', url, '分享此工具給朋友，他們可以建立自己的旅行規劃。');
 }
 
+function startCollab() {
+  const t = trip(); if (!t) return alert('請先選擇旅行');
+  if (!_db) {
+    openModal(`<h2 style="margin-bottom:10px">✈️ 即時協作分享</h2>
+    <p style="font-size:13px;color:var(--gray-600);margin-bottom:14px">即時協作需要 Firebase 設定。請依以下步驟完成設定：</p>
+    <ol style="font-size:13px;line-height:2;color:var(--gray-800);padding-left:18px">
+      <li>前往 <a href="https://console.firebase.google.com" target="_blank" style="color:var(--primary)">console.firebase.google.com</a> 建立專案</li>
+      <li>新增 Web 應用程式（&lt;/&gt;），複製 firebaseConfig</li>
+      <li>在左側選單 → Realtime Database → 建立資料庫（測試模式）</li>
+      <li>用 IDE 開啟 travel-planner.html，找到 <code>FIREBASE_CONFIG</code>，貼上你的設定</li>
+    </ol>
+    <p style="font-size:12px;color:var(--gray-400);margin-top:12px">設定完成後，此按鈕即可產生可即時同步的協作連結。</p>
+    <div class="modal-actions"><button class="btn btn-outline" onclick="closeModal()">了解</button></div>`);
+    return;
+  }
+  // 已設定 Firebase：建立協作房間
+  const roomId = t.collabRoomId || uid();
+  t.collabRoomId = roomId;
+  save();
+  // 上傳當前資料
+  _db.ref('trips/' + roomId).set(t).then(() => {
+    const url = location.origin + location.pathname + '?collab=' + roomId;
+    startCollabListener(roomId);
+    showShareModal('✈️ 即時協作連結', url,
+      '朋友開啟此連結後，所有編輯<strong>即時同步</strong>，不需要重新分享。<br>連結固定，你也可以用此連結在手機繼續編輯。');
+  }).catch(e => alert('上傳失敗：' + e.message));
+}
+
 function shareTrip() {
   const t = trip(); if (!t) return alert('請先選擇旅行');
   const url = location.origin + location.pathname + '?share#' + encode({ type:'trip', trip:t });
-  showShareModal('✈️ 分享這趟旅行', url,
-    '朋友開啟連結後會自動匯入行程，<strong>可以自由編輯自己的版本</strong>。<br>你修改後可再次點「分享」取得最新連結。');
+  showShareModal('📋 匯出行程連結', url,
+    '朋友開啟後會匯入行程到自己的裝置，<strong>各自獨立編輯</strong>。<br>若要即時協作請使用上方「分享旅行（即時協作）」。');
 }
 
 function shareMyList() {
@@ -975,6 +1247,31 @@ let _ei = null;
 function showAddExpense() { _ei=null; openExpenseModal({}); }
 function showEditExpense(i) { _ei=i; openExpenseModal(trip().expenses[i]); }
 function openExpenseModal(e) {
+  const members = getMembers();
+  const prevSplitWith = e.splitWith || (members.length ? members : []);
+  const memberChecks = members.length > 0
+    ? `<div class="form-group"><label>誰分攤（點選）</label>
+        <div class="member-check-grid" id="m-splitgrid">
+          ${members.map(m=>`<label class="member-check-item ${prevSplitWith.includes(m)?'checked':''}">
+            <input type="checkbox" value="${escAttr(m)}" ${prevSplitWith.includes(m)?'checked':''} onchange="this.closest('.member-check-item').classList.toggle('checked',this.checked);calcPer()">
+            ${esc(m)}
+          </label>`).join('')}
+        </div>
+       </div>`
+    : `<div class="form-row">
+        <div class="form-group"><label>誰先付</label><input id="m-epaid" type="text" placeholder="例：Jennifer" value="${esc(e.paidBy||'')}"></div>
+        <div class="form-group" style="flex:0 0 110px"><label>幾人平分</label><input id="m-esplit" type="number" placeholder="2" min="1" value="${e.splitCount||e.splitWith?.length||''}" oninput="calcPer()"></div>
+       </div>`;
+
+  const payerOptions = members.length > 0
+    ? `<div class="form-group"><label>誰先付</label>
+        <select id="m-epaid">
+          <option value="">— 選擇 —</option>
+          ${members.map(m=>`<option value="${escAttr(m)}" ${e.paidBy===m?'selected':''}>${esc(m)}</option>`).join('')}
+        </select>
+       </div>`
+    : `<div class="form-group"><label>誰先付</label><input id="m-epaid" type="text" placeholder="例：Jennifer" value="${esc(e.paidBy||'')}"></div>`;
+
   openModal(`<h2 style="margin-bottom:14px">${_ei!==null?'編輯費用':'新增費用'}</h2>
   <div class="form-group"><label>收據照片</label>
     <div class="photo-upload-area" id="rcptPhotoArea" onclick="document.getElementById('rcptPhotoFile').click()" style="aspect-ratio:16/6">
@@ -999,10 +1296,8 @@ function openExpenseModal(e) {
       </select>
     </div>
   </div>
-  <div class="form-row">
-    <div class="form-group"><label>誰先付</label><input id="m-epaid" type="text" placeholder="例：Jennifer" value="${esc(e.paidBy||'')}"></div>
-    <div class="form-group" style="flex:0 0 110px"><label>幾人平分</label><input id="m-esplit" type="number" placeholder="2" min="1" value="${e.splitCount||''}" oninput="calcPer()"></div>
-  </div>
+  ${payerOptions}
+  ${memberChecks}
   <div class="calc-badge" id="m-ecalc"></div>
   <div class="form-group"><label>備注（收據翻譯 / 說明）</label><textarea id="m-enotes" placeholder="收據內容中文說明…">${esc(e.notes||'')}</textarea></div>
   <div class="modal-actions">
@@ -1010,18 +1305,29 @@ function openExpenseModal(e) {
     <button class="btn btn-outline" onclick="closeModal()">取消</button>
   </div>`);
   if (e.receiptPhoto) document.getElementById('rcptPhotoArea')._photo = e.receiptPhoto;
-  if (e.amount && e.splitCount) calcPer();
+  calcPer();
 }
+
+function getCheckedSplitters() {
+  const grid = document.getElementById('m-splitgrid');
+  if (!grid) return null;
+  const checked = Array.from(grid.querySelectorAll('input[type=checkbox]:checked')).map(cb=>cb.value);
+  return checked;
+}
+
 function calcPer() {
   const amt = parseFloat(document.getElementById('m-eamount')?.value)||0;
-  const sp = parseInt(document.getElementById('m-esplit')?.value)||0;
   const cur = document.getElementById('m-ecur')?.value||'JPY';
   const badge = document.getElementById('m-ecalc'); if (!badge) return;
+  const splitters = getCheckedSplitters();
+  const sp = splitters ? splitters.length : (parseInt(document.getElementById('m-esplit')?.value)||0);
   if (amt>0 && sp>0) {
     badge.style.display='block';
-    badge.innerHTML = `每人應付 <strong>${currSym(cur)}${Math.ceil(amt/sp).toLocaleString()}</strong>　（${currSym(cur)}${amt.toLocaleString()} ÷ ${sp} 人）`;
+    const names = splitters?.join('、') || `${sp} 人`;
+    badge.innerHTML = `${esc(names)} 各付 <strong>${currSym(cur)}${Math.ceil(amt/sp).toLocaleString()}</strong>`;
   } else badge.style.display='none';
 }
+
 function saveExpenseModal() {
   const t = trip(); if (!t) return;
   const area = document.getElementById('rcptPhotoArea');
@@ -1029,12 +1335,15 @@ function saveExpenseModal() {
   const amount = parseFloat(document.getElementById('m-eamount').value)||0;
   if (!title) return alert('請輸入費用名稱');
   if (!amount) return alert('請輸入金額');
+  const paidByEl = document.getElementById('m-epaid');
+  const paidBy = paidByEl ? (paidByEl.tagName==='SELECT' ? paidByEl.value : paidByEl.value.trim()) : '';
+  const splitWith = getCheckedSplitters() || null;
+  const splitCount = splitWith ? splitWith.length : (parseInt(document.getElementById('m-esplit')?.value)||1);
   const exp = {
     id: _ei!==null ? t.expenses[_ei].id : uid(),
     title, date: document.getElementById('m-edate').value,
     amount, currency: document.getElementById('m-ecur').value,
-    paidBy: document.getElementById('m-epaid').value.trim(),
-    splitCount: parseInt(document.getElementById('m-esplit').value)||1,
+    paidBy, splitWith, splitCount,
     receiptPhoto: area._photo||null,
     notes: document.getElementById('m-enotes').value.trim()
   };
