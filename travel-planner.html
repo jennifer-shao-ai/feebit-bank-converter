@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>旅行規劃 · 飛比特工具箱</title>
+<link rel="icon" href="favicon.svg">
+<script>if(location.search.includes("share"))document.documentElement.classList.add("standalone");</script>
+<link rel="stylesheet" href="style.css">
+<style>
+/* ── TRAVEL PLANNER ── */
+.trip-selector { padding:5px 10px; border:1px solid var(--gray-200); border-radius:6px; font-size:13px; background:white; cursor:pointer; max-width:180px; }
+.tp-tabs { display:flex; border-bottom:2px solid var(--gray-200); margin-bottom:20px; gap:0; }
+.tp-tab { padding:10px 18px; cursor:pointer; font-size:13px; font-weight:500; color:var(--gray-600); border-bottom:2px solid transparent; margin-bottom:-2px; transition:all 0.15s; white-space:nowrap; }
+.tp-tab:hover { color:var(--primary); }
+.tp-tab.active { color:var(--primary); border-bottom-color:var(--primary); }
+.tp-tab-content { display:none; }
+.tp-tab-content.active { display:block; }
+
+/* Day cards */
+.day-card { background:white; border-radius:var(--radius); padding:16px 20px; margin-bottom:16px; box-shadow:0 1px 3px rgba(0,0,0,0.08); }
+.day-header { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+.day-label { background:var(--primary); color:white; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:600; flex-shrink:0; }
+.day-date { color:var(--gray-600); font-size:13px; flex:1; }
+
+/* Spots */
+.spot-list { display:flex; flex-direction:column; gap:10px; }
+.spot-item { border:1px solid var(--gray-200); border-radius:8px; padding:14px 16px; }
+.spot-header { display:flex; align-items:flex-start; gap:12px; }
+.spot-time { font-size:13px; font-weight:700; color:var(--primary); min-width:48px; flex-shrink:0; margin-top:1px; }
+.spot-name { font-weight:600; font-size:14px; }
+.spot-meta { display:flex; gap:12px; margin-top:5px; flex-wrap:wrap; }
+.spot-meta-item { display:flex; align-items:center; gap:4px; font-size:12px; color:var(--gray-600); }
+.spot-meta-item a { color:var(--primary); text-decoration:none; }
+.spot-meta-item a:hover { text-decoration:underline; }
+.spot-tags { display:flex; flex-wrap:wrap; gap:5px; margin-top:8px; }
+.spot-tag { background:var(--primary-light); color:var(--primary-dark); padding:2px 8px; border-radius:4px; font-size:11px; font-weight:500; }
+.spot-tips { margin-top:8px; padding:8px 12px; background:#fffbeb; border-left:3px solid var(--warning); border-radius:0 6px 6px 0; font-size:12px; color:var(--gray-600); line-height:1.5; }
+.spot-notes { margin-top:6px; padding:8px 12px; background:#f0fdf4; border-left:3px solid var(--success); border-radius:0 6px 6px 0; font-size:12px; color:var(--gray-600); line-height:1.5; }
+.spot-actions { display:flex; gap:6px; margin-top:10px; }
+.spot-actions .btn { font-size:12px; padding:4px 10px; }
+
+/* Shopping list */
+.shop-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:14px; }
+.shop-card { background:white; border-radius:var(--radius); padding:14px; box-shadow:0 1px 3px rgba(0,0,0,0.08); position:relative; transition:opacity 0.2s; }
+.shop-card.done { opacity:0.55; }
+.shop-photo { width:100%; aspect-ratio:1; object-fit:cover; border-radius:6px; margin-bottom:10px; background:var(--gray-100); display:flex; align-items:center; justify-content:center; font-size:30px; overflow:hidden; }
+.shop-photo img { width:100%; height:100%; object-fit:cover; }
+.shop-name { font-weight:600; font-size:13px; margin-bottom:5px; line-height:1.3; }
+.shop-where { display:inline-block; background:var(--primary-light); color:var(--primary-dark); padding:2px 7px; border-radius:4px; font-size:11px; font-weight:500; margin-bottom:5px; }
+.shop-price { font-size:12px; color:var(--gray-600); margin-bottom:3px; }
+.shop-notes { font-size:11px; color:var(--gray-400); line-height:1.4; }
+.shop-check { position:absolute; top:10px; right:10px; width:22px; height:22px; border-radius:50%; border:2px solid var(--gray-200); background:white; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:12px; transition:all 0.15s; flex-shrink:0; }
+.shop-check.checked { background:var(--success); border-color:var(--success); color:white; }
+.shop-actions { display:flex; gap:5px; margin-top:8px; }
+.shop-actions .btn { font-size:11px; padding:3px 8px; flex:1; }
+
+/* Expense */
+.expense-item { background:white; border-radius:var(--radius); padding:16px; box-shadow:0 1px 3px rgba(0,0,0,0.08); margin-bottom:10px; }
+.expense-header { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+.expense-amount { font-size:20px; font-weight:700; color:var(--primary); line-height:1; }
+.expense-currency-sym { font-size:12px; color:var(--gray-400); }
+.expense-title { font-weight:600; font-size:14px; flex:1; }
+.expense-meta { display:flex; gap:12px; flex-wrap:wrap; }
+.expense-meta-item { font-size:12px; color:var(--gray-600); }
+.expense-split-badge { display:inline-block; margin-top:8px; background:var(--primary-light); color:var(--primary-dark); padding:4px 12px; border-radius:6px; font-size:13px; font-weight:500; }
+.expense-receipt img { max-width:160px; border-radius:6px; border:1px solid var(--gray-200); margin-top:8px; cursor:pointer; }
+.expense-actions { display:flex; gap:6px; margin-top:10px; }
+.expense-actions .btn { font-size:12px; padding:4px 10px; }
+.settle-card { background:white; border-radius:var(--radius); padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.08); margin-top:20px; }
+.settle-row { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--gray-200); font-size:13px; }
+.settle-row:last-child { border:none; font-weight:600; font-size:14px; }
+
+/* Friend list */
+.friend-section { margin-bottom:28px; }
+.friend-section-header { display:flex; align-items:center; gap:8px; margin-bottom:12px; }
+.friend-section-name { font-weight:600; font-size:15px; }
+.readonly-badge { background:#fef3c7; color:#92400e; padding:2px 7px; border-radius:4px; font-size:11px; font-weight:500; }
+
+/* Empty state */
+.empty-state { text-align:center; padding:48px 24px; color:var(--gray-400); }
+.empty-state .icon { font-size:40px; margin-bottom:12px; }
+.empty-state p { font-size:14px; }
+
+/* Section header */
+.section-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+.section-header h3 { font-size:15px; font-weight:600; }
+
+/* Form */
+.form-row { display:flex; gap:10px; }
+.form-row .form-group { flex:1; }
+.form-group { margin-bottom:12px; }
+.form-group label { display:block; font-size:12px; font-weight:600; margin-bottom:5px; color:var(--gray-600); }
+.form-group input, .form-group select, .form-group textarea {
+  width:100%; padding:8px 10px; border:1px solid var(--gray-200); border-radius:6px; font-size:13px;
+  outline:none; transition:border-color 0.15s; font-family:inherit;
+}
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color:var(--primary); }
+.form-group textarea { min-height:72px; resize:vertical; }
+
+/* Tag input */
+.tag-input-area { display:flex; flex-wrap:wrap; gap:5px; padding:5px 8px; border:1px solid var(--gray-200); border-radius:6px; min-height:36px; align-items:center; cursor:text; }
+.tag-input-area:focus-within { border-color:var(--primary); }
+.tag-input-area input { border:none; outline:none; font-size:13px; flex:1; min-width:80px; padding:2px 4px; font-family:inherit; }
+.tag-pill { background:var(--primary-light); color:var(--primary-dark); padding:2px 6px; border-radius:4px; font-size:12px; display:inline-flex; align-items:center; gap:4px; }
+.tag-pill .rm { cursor:pointer; font-size:14px; line-height:1; color:var(--primary); opacity:0.7; }
+.tag-pill .rm:hover { opacity:1; }
+
+/* Photo upload */
+.photo-upload-area { width:100%; aspect-ratio:16/8; border:2px dashed var(--gray-200); border-radius:8px; display:flex; align-items:center; justify-content:center; cursor:pointer; overflow:hidden; position:relative; background:var(--gray-50); transition:border-color 0.15s; }
+.photo-upload-area:hover { border-color:var(--primary); }
+.photo-upload-area img { width:100%; height:100%; object-fit:contain; }
+.photo-upload-area .ph-label { font-size:13px; color:var(--gray-400); text-align:center; line-height:2; pointer-events:none; }
+.photo-upload-area input[type=file] { position:absolute; inset:0; opacity:0; cursor:pointer; }
+
+/* Calc badge */
+.calc-badge { background:var(--primary-light); color:var(--primary-dark); border-radius:6px; padding:8px 12px; font-size:13px; margin-bottom:12px; display:none; }
+
+/* Readonly mode */
+.readonly-mode .add-btn,
+.readonly-mode .spot-actions,
+.readonly-mode .shop-actions,
+.readonly-mode .expense-actions { display:none !important; }
+.readonly-mode .shop-check { pointer-events:none; }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<div id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand">飛比特 Feebit</div>
+    <div class="sub">營運工具箱</div>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">總覽</div>
+    <a class="nav-item" href="index.html"><span class="icon">🏠</span> 首頁</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">財務</div>
+    <a class="nav-item" href="bank-converter.html"><span class="icon">🏦</span> 帳務轉換</a>
+    <div class="nav-item soon"><span class="icon">💰</span> 定價試算<span class="soon-tag">即將推出</span></div>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">行銷</div>
+    <div class="nav-item soon"><span class="icon">📢</span> 廣告文案<span class="soon-tag">即將推出</span></div>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">客服</div>
+    <div class="nav-item soon"><span class="icon">💬</span> 客服回覆<span class="soon-tag">即將推出</span></div>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">生活</div>
+    <a class="nav-item active" href="travel-planner.html"><span class="icon">✈️</span> 旅行規劃</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">系統</div>
+    <a class="nav-item" href="tools.html"><span class="icon">🔧</span> 使用工具</a>
+  </div>
+  <div class="sidebar-footer">v1.0 · Feebit © 2026</div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <span class="topbar-title">旅行規劃</span>
+      <select id="tripSelector" class="trip-selector" onchange="switchTrip(this.value)"></select>
+      <button class="btn btn-outline add-btn" onclick="showTripModal()" style="font-size:12px;padding:5px 10px">+ 新增旅行</button>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button class="btn-share" id="shareBtn" onclick="shareTrip(this)">🔗 分享行程</button>
+    </div>
+  </div>
+
+  <div class="page" id="mainPage">
+    <div class="tp-tabs">
+      <div class="tp-tab active" onclick="switchTab('itinerary',this)">🗺 行程</div>
+      <div class="tp-tab" onclick="switchTab('shopping',this)">🛍 待買清單</div>
+      <div class="tp-tab" onclick="switchTab('expense',this)">💴 分帳</div>
+      <div class="tp-tab" onclick="switchTab('friends',this)">👥 朋友清單</div>
+    </div>
+
+    <!-- 行程 -->
+    <div id="tab-itinerary" class="tp-tab-content active">
+      <div class="section-header">
+        <h3 id="itinerary-title">選擇或新增旅行</h3>
+        <button class="btn btn-primary add-btn" onclick="addDay()">+ 新增天數</button>
+      </div>
+      <div id="days-container"></div>
+    </div>
+
+    <!-- 待買清單 -->
+    <div id="tab-shopping" class="tp-tab-content">
+      <div class="section-header">
+        <h3>我的待買清單</h3>
+        <button class="btn btn-primary add-btn" onclick="showAddShopItem()">+ 新增商品</button>
+      </div>
+      <div id="shop-grid" class="shop-grid"></div>
+    </div>
+
+    <!-- 分帳 -->
+    <div id="tab-expense" class="tp-tab-content">
+      <div class="section-header">
+        <h3>旅行分帳</h3>
+        <button class="btn btn-primary add-btn" onclick="showAddExpense()">+ 新增費用</button>
+      </div>
+      <div id="expense-list"></div>
+      <div id="settle-section"></div>
+    </div>
+
+    <!-- 朋友清單 -->
+    <div id="tab-friends" class="tp-tab-content">
+      <div class="section-header">
+        <h3>朋友待買清單</h3>
+        <button class="btn btn-primary add-btn" onclick="showAddFriendModal()">+ 新增朋友清單</button>
+      </div>
+      <div style="margin-bottom:16px">
+        <button class="btn btn-outline" onclick="shareMyList()" style="font-size:13px">📤 分享我的待買清單</button>
+      </div>
+      <div id="friends-container"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div id="modal-backdrop" class="modal-backdrop" style="display:none" onclick="closeModal(event)">
+  <div class="modal" id="modal-box" onclick="event.stopPropagation()">
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+// ── STATE ──────────────────────────────────────
+const STORAGE_KEY = 'feebit_travel_v1';
+let S = { trips:[], currentId:null, friends:[] };
+let isShared = false;
+
+function load() {
+  try { const d = localStorage.getItem(STORAGE_KEY); if(d) S = JSON.parse(d); } catch(e){}
+}
+function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(S)); }
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+function trip() { return S.trips.find(t => t.id === S.currentId) || null; }
+
+// ── INIT ───────────────────────────────────────
+function init() {
+  const params = new URLSearchParams(location.search);
+  const hash = location.hash.slice(1);
+
+  if (params.has('share') && hash) {
+    try {
+      const data = JSON.parse(decodeURIComponent(escape(atob(hash))));
+      isShared = true;
+      if (data.type === 'trip') {
+        S.trips = [data.trip];
+        S.currentId = data.trip.id;
+      } else if (data.type === 'list') {
+        // show as friend list view
+        S.friends = [{ name: data.name || '旅伴', listData: data.listData || [] }];
+        isShared = true;
+      }
+      document.getElementById('mainPage').classList.add('readonly-mode');
+      document.querySelector('.add-btn')?.remove();
+      document.getElementById('shareBtn').innerHTML = '👁 唯讀';
+      document.getElementById('shareBtn').onclick = null;
+      document.getElementById('shareBtn').style.cursor = 'default';
+    } catch(e) { isShared = false; }
+  } else {
+    load();
+    if (!S.trips) S.trips = [];
+    if (!S.friends) S.friends = [];
+    if (S.trips.length === 0) {
+      const t = newTripObj('我的第一趟旅行', '', '', '');
+      S.trips.push(t);
+      S.currentId = t.id;
+      save();
+    }
+    if (!S.currentId) S.currentId = S.trips[0].id;
+  }
+  renderAll();
+}
+
+function newTripObj(name, dest, start, end) {
+  const t = { id:uid(), name, destination:dest, startDate:start, endDate:end, days:[], shoppingList:[], expenses:[] };
+  if (start && end) {
+    let d = new Date(start), e = new Date(end);
+    while (d <= e) { t.days.push({ id:uid(), date:d.toISOString().slice(0,10), spots:[] }); d.setDate(d.getDate()+1); }
+  }
+  return t;
+}
+
+// ── RENDER ALL ─────────────────────────────────
+function renderAll() {
+  renderSelector();
+  renderItinerary();
+  renderShopping();
+  renderExpenses();
+  renderFriends();
+}
+
+function renderSelector() {
+  const sel = document.getElementById('tripSelector');
+  sel.innerHTML = S.trips.map(t => `<option value="${t.id}" ${t.id===S.currentId?'selected':''}>${t.name}</option>`).join('');
+  if (isShared) sel.disabled = true;
+}
+
+// ── TABS ───────────────────────────────────────
+function switchTab(name, el) {
+  document.querySelectorAll('.tp-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tp-tab-content').forEach(t=>t.classList.remove('active'));
+  if (el) el.classList.add('active');
+  document.getElementById('tab-'+name).classList.add('active');
+}
+function switchTrip(id) { S.currentId = id; save(); renderAll(); }
+
+// ── ITINERARY ──────────────────────────────────
+function renderItinerary() {
+  const t = trip();
+  const title = document.getElementById('itinerary-title');
+  const cont = document.getElementById('days-container');
+  if (!t) { title.textContent='尚無旅行'; cont.innerHTML='<div class="empty-state"><div class="icon">✈️</div><p>點擊「新增旅行」開始規劃</p></div>'; return; }
+  title.textContent = t.name + (t.destination ? ` · ${t.destination}` : '');
+  if (!t.days || t.days.length===0) { cont.innerHTML='<div class="empty-state"><div class="icon">📅</div><p>點擊「新增天數」開始安排行程</p></div>'; return; }
+  cont.innerHTML = t.days.map((day,di)=>renderDay(day,di)).join('');
+}
+
+function renderDay(day, di) {
+  const spots = day.spots||[];
+  const spotsHTML = spots.length===0
+    ? `<div style="color:var(--gray-400);font-size:13px;padding:6px 0">尚無景點</div>`
+    : spots.map((s,si)=>renderSpot(s,di,si)).join('');
+  const addBtn = isShared ? '' : `<button class="btn btn-outline add-btn" style="font-size:12px;padding:4px 10px" onclick="showSpotModal(${di},null)">+ 景點</button>`;
+  const delBtn = isShared ? '' : `<button class="btn btn-outline add-btn" style="font-size:12px;padding:4px 10px;color:var(--danger);margin-left:4px" onclick="deleteDay(${di})">刪除</button>`;
+  return `<div class="day-card">
+    <div class="day-header">
+      <span class="day-label">Day ${di+1}</span>
+      <span class="day-date">${day.date||'未設定日期'}</span>
+      ${addBtn}${delBtn}
+    </div>
+    <div class="spot-list">${spotsHTML}</div>
+  </div>`;
+}
+
+function renderSpot(s, di, si) {
+  const tags = (s.mustBuy||[]).map(t=>`<span class="spot-tag">🛍 ${t}</span>`).join('');
+  const mapLink = s.mapUrl ? `<span class="spot-meta-item"><a href="${escAttr(s.mapUrl)}" target="_blank" rel="noopener">🗺 地圖</a></span>` : '';
+  const hours = s.openHours ? `<span class="spot-meta-item">🕐 ${esc(s.openHours)}</span>` : '';
+  const tips = s.tips ? `<div class="spot-tips">💡 ${esc(s.tips)}</div>` : '';
+  const notes = s.notes ? `<div class="spot-notes">📝 ${esc(s.notes)}</div>` : '';
+  const actions = isShared ? '' : `<div class="spot-actions">
+    <button class="btn btn-outline" onclick="showSpotModal(${di},${si})">✏️ 編輯</button>
+    <button class="btn btn-outline" style="color:var(--danger)" onclick="deleteSpot(${di},${si})">刪除</button>
+  </div>`;
+  return `<div class="spot-item">
+    <div class="spot-header">
+      <span class="spot-time">${s.time||'--:--'}</span>
+      <div style="flex:1">
+        <div class="spot-name">${esc(s.name||'未命名')}</div>
+        <div class="spot-meta">${hours}${mapLink}</div>
+      </div>
+    </div>
+    ${tags?`<div class="spot-tags">${tags}</div>`:''}
+    ${tips}${notes}${actions}
+  </div>`;
+}
+
+function addDay() {
+  const t = trip(); if (!t) return showTripModal();
+  if (!t.days) t.days=[];
+  t.days.push({ id:uid(), date:'', spots:[] });
+  save(); renderItinerary();
+}
+function deleteDay(di) {
+  const t = trip(); if (!t) return;
+  if (!confirm(`確定刪除 Day ${di+1}？`)) return;
+  t.days.splice(di,1); save(); renderItinerary();
+}
+function deleteSpot(di, si) {
+  const t = trip(); if (!t) return;
+  if (!confirm('確定刪除此景點？')) return;
+  t.days[di].spots.splice(si,1); save(); renderItinerary();
+}
+
+// ── SHOPPING ───────────────────────────────────
+function renderShopping() {
+  const t = trip();
+  const grid = document.getElementById('shop-grid');
+  const list = t?.shoppingList||[];
+  if (list.length===0) { grid.innerHTML='<div class="empty-state" style="grid-column:1/-1"><div class="icon">🛍</div><p>尚無待買商品</p></div>'; return; }
+  grid.innerHTML = list.map((item,i)=>renderShopCard(item,i)).join('');
+}
+
+function renderShopCard(item, i) {
+  const photo = item.photo ? `<img src="${item.photo}">` : '🛍';
+  const actions = isShared ? '' : `<div class="shop-actions">
+    <button class="btn btn-outline" onclick="showEditShopItem(${i})">編輯</button>
+    <button class="btn btn-outline" style="color:var(--danger)" onclick="deleteShopItem(${i})">刪除</button>
+  </div>`;
+  return `<div class="shop-card ${item.done?'done':''}">
+    <div class="shop-photo">${photo}</div>
+    <div class="shop-name">${esc(item.name||'未命名')}</div>
+    ${item.whereToBuy?`<span class="shop-where">📍 ${esc(item.whereToBuy)}</span>`:''}
+    ${item.price?`<div class="shop-price">${esc(item.currency||'')} ${Number(item.price).toLocaleString()}</div>`:''}
+    ${item.notes?`<div class="shop-notes">${esc(item.notes)}</div>`:''}
+    ${actions}
+    <div class="shop-check ${item.done?'checked':''}" onclick="toggleShop(${i})">${item.done?'✓':''}</div>
+  </div>`;
+}
+
+function toggleShop(i) {
+  const t = trip(); if (!t) return;
+  t.shoppingList[i].done = !t.shoppingList[i].done;
+  save(); renderShopping();
+}
+function deleteShopItem(i) {
+  if (!confirm('確定刪除此商品？')) return;
+  trip().shoppingList.splice(i,1); save(); renderShopping();
+}
+
+// ── EXPENSES ───────────────────────────────────
+function renderExpenses() {
+  const t = trip();
+  const list = t?.expenses||[];
+  const el = document.getElementById('expense-list');
+  const ss = document.getElementById('settle-section');
+  if (list.length===0) { el.innerHTML='<div class="empty-state"><div class="icon">💴</div><p>尚無費用記錄</p></div>'; ss.innerHTML=''; return; }
+  el.innerHTML = list.map((e,i)=>renderExpenseItem(e,i)).join('');
+  renderSettle(list);
+}
+
+function currSym(c) { return {JPY:'¥',TWD:'NT$',KRW:'₩',USD:'$',EUR:'€',HKD:'HK$'}[c]||c; }
+
+function renderExpenseItem(e, i) {
+  const sym = currSym(e.currency||'JPY');
+  const per = e.splitCount>0 ? Math.ceil(Number(e.amount)/Number(e.splitCount)) : 0;
+  const receipt = e.receiptPhoto ? `<div class="expense-receipt"><img src="${e.receiptPhoto}" onclick="viewReceipt(${i})" title="查看收據"></div>` : '';
+  const actions = isShared ? '' : `<div class="expense-actions">
+    <button class="btn btn-outline" onclick="showEditExpense(${i})">✏️ 編輯</button>
+    <button class="btn btn-outline" style="color:var(--danger)" onclick="deleteExpense(${i})">刪除</button>
+  </div>`;
+  return `<div class="expense-item">
+    <div class="expense-header">
+      <span class="expense-amount">${sym}${Number(e.amount).toLocaleString()}</span>
+      <span class="expense-title">${esc(e.title||'費用')}</span>
+    </div>
+    <div class="expense-meta">
+      <span class="expense-meta-item">👤 ${esc(e.paidBy||'?')} 先付</span>
+      <span class="expense-meta-item">👥 ${e.splitCount||1} 人均分</span>
+      ${e.date?`<span class="expense-meta-item">📅 ${e.date}</span>`:''}
+    </div>
+    <div class="expense-split-badge">每人 ${sym}${per.toLocaleString()}</div>
+    ${e.notes?`<div style="margin-top:8px;font-size:12px;color:var(--gray-600)">📝 ${esc(e.notes)}</div>`:''}
+    ${receipt}${actions}
+  </div>`;
+}
+
+function renderSettle(list) {
+  const ss = document.getElementById('settle-section');
+  const total = list.reduce((s,e)=>s+Number(e.amount),0);
+  const currency = list[0]?.currency||'JPY';
+  const sym = currSym(currency);
+  ss.innerHTML = `<div class="settle-card">
+    <h3 style="margin-bottom:14px;font-size:15px">結算總覽</h3>
+    ${list.map(e=>{
+      const per = Math.ceil(Number(e.amount)/(Number(e.splitCount)||1));
+      return `<div class="settle-row"><span>${esc(e.title)} <span style="color:var(--gray-400)">(${esc(e.paidBy||'?')}付)</span></span><span>${sym}${per.toLocaleString()} /人</span></div>`;
+    }).join('')}
+    <div class="settle-row"><span>旅行總花費</span><strong>${sym}${total.toLocaleString()}</strong></div>
+  </div>`;
+}
+
+function deleteExpense(i) {
+  if (!confirm('確定刪除此費用？')) return;
+  trip().expenses.splice(i,1); save(); renderExpenses();
+}
+
+function viewReceipt(i) {
+  const e = trip().expenses[i];
+  openModal(`<h2 style="margin-bottom:14px">收據 — ${esc(e.title)}</h2>
+  <img src="${e.receiptPhoto}" style="width:100%;border-radius:8px;margin-bottom:12px">
+  ${e.notes?`<p style="font-size:13px;color:var(--gray-600)">📝 ${esc(e.notes)}</p>`:''}
+  <div class="modal-actions" style="margin-top:16px"><button class="btn btn-outline" onclick="closeModal()">關閉</button></div>`);
+}
+
+// ── FRIENDS ────────────────────────────────────
+function renderFriends() {
+  const cont = document.getElementById('friends-container');
+  if (!S.friends||S.friends.length===0) {
+    cont.innerHTML='<div class="empty-state"><div class="icon">👥</div><p>貼入朋友的分享連結，查看他們的待買清單</p></div>'; return;
+  }
+  cont.innerHTML = S.friends.map((f,fi)=>{
+    const items = f.listData||[];
+    const cards = items.length===0
+      ? '<p style="color:var(--gray-400);font-size:13px">清單為空</p>'
+      : `<div class="shop-grid">${items.map(item=>renderFriendCard(item)).join('')}</div>`;
+    return `<div class="friend-section">
+      <div class="friend-section-header">
+        <span class="friend-section-name">${esc(f.name)}</span>
+        <span class="readonly-badge">唯讀</span>
+        <button class="btn btn-outline" style="font-size:11px;padding:3px 8px;color:var(--danger);margin-left:auto" onclick="removeFriend(${fi})">移除</button>
+      </div>
+      ${cards}
+    </div>`;
+  }).join('');
+}
+
+function renderFriendCard(item) {
+  const photo = item.photo ? `<img src="${item.photo}">` : '🛍';
+  return `<div class="shop-card ${item.done?'done':''}">
+    <div class="shop-photo">${photo}</div>
+    <div class="shop-name">${esc(item.name||'未命名')}</div>
+    ${item.whereToBuy?`<span class="shop-where">📍 ${esc(item.whereToBuy)}</span>`:''}
+    ${item.price?`<div class="shop-price">${esc(item.currency||'')} ${Number(item.price).toLocaleString()}</div>`:''}
+    ${item.notes?`<div class="shop-notes">${esc(item.notes)}</div>`:''}
+    ${item.done?'<div style="color:var(--success);font-size:12px;margin-top:6px;font-weight:500">✅ 已買</div>':''}
+  </div>`;
+}
+
+function removeFriend(fi) {
+  if (!confirm('移除此朋友的清單？')) return;
+  S.friends.splice(fi,1); save(); renderFriends();
+}
+
+// ── SHARE ──────────────────────────────────────
+function encode(data) { return btoa(unescape(encodeURIComponent(JSON.stringify(data)))); }
+
+function shareTrip() {
+  const t = trip(); if (!t) return alert('請先選擇旅行');
+  const url = location.origin + location.pathname + '?share#' + encode({ type:'trip', trip:t });
+  showShareModal('🔗 分享行程連結', url, '朋友開啟後可查看完整行程（唯讀），並可自行編輯自己的待買清單');
+}
+
+function shareMyList() {
+  const t = trip(); if (!t) return alert('請先選擇旅行');
+  const name = prompt('輸入你的名字（朋友會看到）：', '') || '旅伴';
+  if (!name) return;
+  const url = location.origin + location.pathname + '?share#' + encode({ type:'list', name, listData: t.shoppingList||[] });
+  showShareModal('📤 分享待買清單', url, '朋友貼入「朋友清單」後，可查看你的待買清單（唯讀）');
+}
+
+// ── MODALS ─────────────────────────────────────
+function openModal(html) {
+  document.getElementById('modal-body').innerHTML = html;
+  document.getElementById('modal-backdrop').style.display = 'flex';
+}
+function closeModal(e) {
+  if (!e || e.target === document.getElementById('modal-backdrop'))
+    document.getElementById('modal-backdrop').style.display = 'none';
+}
+
+// Share modal
+function showShareModal(title, url, desc) {
+  openModal(`<h2 style="margin-bottom:10px">${title}</h2>
+  <p style="font-size:13px;color:var(--gray-600);margin-bottom:12px">${desc}</p>
+  <div style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:6px;padding:10px;font-size:11px;word-break:break-all;color:var(--gray-800);margin-bottom:14px;line-height:1.5">${url}</div>
+  <div class="modal-actions">
+    <button class="btn btn-primary" id="copyBtn" onclick="doCopy('${url}',this)">📋 複製連結</button>
+    <button class="btn btn-outline" onclick="closeModal()">關閉</button>
+  </div>`);
+}
+function doCopy(url, btn) {
+  navigator.clipboard.writeText(url).then(()=>{ btn.textContent='✅ 已複製'; setTimeout(()=>btn.textContent='📋 複製連結',1800); });
+}
+
+// Trip modal
+function showTripModal() {
+  openModal(`<h2 style="margin-bottom:14px">新增旅行</h2>
+  <div class="form-group"><label>旅行名稱 *</label><input id="m-tname" type="text" placeholder="例：日本東京 2026 春"></div>
+  <div class="form-group"><label>目的地</label><input id="m-tdest" type="text" placeholder="例：東京、大阪"></div>
+  <div class="form-row">
+    <div class="form-group"><label>出發日期</label><input id="m-tstart" type="date"></div>
+    <div class="form-group"><label>回程日期</label><input id="m-tend" type="date"></div>
+  </div>
+  <div class="modal-actions">
+    <button class="btn btn-primary" onclick="saveTripModal()">建立旅行</button>
+    <button class="btn btn-outline" onclick="closeModal()">取消</button>
+  </div>`);
+}
+function saveTripModal() {
+  const name = document.getElementById('m-tname').value.trim();
+  if (!name) return alert('請輸入旅行名稱');
+  const t = newTripObj(name, document.getElementById('m-tdest').value.trim(), document.getElementById('m-tstart').value, document.getElementById('m-tend').value);
+  S.trips.push(t); S.currentId = t.id; save(); closeModal(); renderAll();
+}
+
+// Spot modal
+let _sd = { di:null, si:null };
+function showSpotModal(di, si) {
+  _sd = { di, si };
+  const t = trip(); if (!t) return;
+  const s = si!==null ? t.days[di].spots[si] : {};
+  const mustBuyPills = (s.mustBuy||[]).map(m=>`<span class="tag-pill">${esc(m)}<span class="rm" onclick="removeTag(this)">×</span></span>`).join('');
+  openModal(`<h2 style="margin-bottom:14px">${si!==null?'編輯景點':'新增景點'}</h2>
+  <div class="form-row">
+    <div class="form-group" style="flex:0 0 90px"><label>時間</label><input id="m-stime" type="time" value="${s.time||''}"></div>
+    <div class="form-group"><label>景點名稱 *</label><input id="m-sname" type="text" placeholder="例：淺草寺" value="${esc(s.name||'')}"></div>
+  </div>
+  <div class="form-row">
+    <div class="form-group"><label>營業時間</label><input id="m-shours" type="text" placeholder="09:00–18:00" value="${esc(s.openHours||'')}"></div>
+    <div class="form-group"><label>地圖連結</label><input id="m-smap" type="text" placeholder="Google Maps 連結" value="${esc(s.mapUrl||'')}"></div>
+  </div>
+  <div class="form-group"><label>必買商品（Enter 新增）</label>
+    <div class="tag-input-area" id="mustBuyArea">
+      ${mustBuyPills}
+      <input type="text" id="m-smustbuy" placeholder="輸入商品名稱…" onkeydown="handleTag(event)">
+    </div>
+  </div>
+  <div class="form-group"><label>景點攻略 / 注意事項</label><textarea id="m-stips" placeholder="推薦必拍位置、注意事項…">${esc(s.tips||'')}</textarea></div>
+  <div class="form-group"><label>其他備注</label><textarea id="m-snotes" placeholder="交通方式、行前準備…">${esc(s.notes||'')}</textarea></div>
+  <div class="modal-actions">
+    <button class="btn btn-primary" onclick="saveSpotModal()">儲存</button>
+    <button class="btn btn-outline" onclick="closeModal()">取消</button>
+  </div>`);
+}
+function handleTag(e) {
+  if (e.key!=='Enter') return; e.preventDefault();
+  const inp = document.getElementById('m-smustbuy');
+  const val = inp.value.trim(); if (!val) return;
+  const area = document.getElementById('mustBuyArea');
+  const pill = document.createElement('span');
+  pill.className = 'tag-pill';
+  pill.innerHTML = `${esc(val)}<span class="rm" onclick="removeTag(this)">×</span>`;
+  area.insertBefore(pill, inp); inp.value='';
+}
+function removeTag(el) { el.parentElement.remove(); }
+function saveSpotModal() {
+  const t = trip(); if (!t) return;
+  const { di, si } = _sd;
+  const area = document.getElementById('mustBuyArea');
+  const mustBuy = Array.from(area.querySelectorAll('.tag-pill')).map(p=>p.childNodes[0].textContent.trim());
+  const s = {
+    id: si!==null ? t.days[di].spots[si].id : uid(),
+    time: document.getElementById('m-stime').value,
+    name: document.getElementById('m-sname').value.trim(),
+    openHours: document.getElementById('m-shours').value.trim(),
+    mapUrl: document.getElementById('m-smap').value.trim(),
+    mustBuy,
+    tips: document.getElementById('m-stips').value.trim(),
+    notes: document.getElementById('m-snotes').value.trim()
+  };
+  if (!s.name) return alert('請輸入景點名稱');
+  if (!t.days[di].spots) t.days[di].spots=[];
+  if (si!==null) { t.days[di].spots[si]=s; }
+  else { t.days[di].spots.push(s); t.days[di].spots.sort((a,b)=>(a.time||'').localeCompare(b.time||'')); }
+  save(); closeModal(); renderItinerary();
+}
+
+// Shop item modal
+let _si = null;
+function showAddShopItem() { _si=null; openShopModal({}); }
+function showEditShopItem(i) { _si=i; openShopModal(trip().shoppingList[i]); }
+function openShopModal(item) {
+  openModal(`<h2 style="margin-bottom:14px">${_si!==null?'編輯商品':'新增待買商品'}</h2>
+  <div class="form-group"><label>商品照片</label>
+    <div class="photo-upload-area" id="shopPhotoArea" onclick="document.getElementById('shopPhotoFile').click()">
+      ${item.photo?`<img src="${item.photo}">`:'<div class="ph-label">📷<br>點擊上傳照片</div>'}
+      <input type="file" id="shopPhotoFile" accept="image/*" onchange="previewPhoto(this,'shopPhotoArea')">
+    </div>
+  </div>
+  <div class="form-group"><label>商品名稱 *</label><input id="m-iname" type="text" placeholder="例：SKII 神仙水" value="${esc(item.name||'')}"></div>
+  <div class="form-row">
+    <div class="form-group"><label>在哪可以買</label><input id="m-iwhere" type="text" placeholder="例：藥妝店、免稅店" value="${esc(item.whereToBuy||'')}"></div>
+    <div class="form-group" style="flex:0 0 120px"><label>價格</label><input id="m-iprice" type="number" placeholder="0" value="${item.price||''}"></div>
+  </div>
+  <div class="form-group"><label>備注</label><textarea id="m-inotes" placeholder="可退稅、限量、品項說明…">${esc(item.notes||'')}</textarea></div>
+  <div class="modal-actions">
+    <button class="btn btn-primary" onclick="saveShopModal()">儲存</button>
+    <button class="btn btn-outline" onclick="closeModal()">取消</button>
+  </div>`);
+  if (item.photo) document.getElementById('shopPhotoArea')._photo = item.photo;
+}
+function previewPhoto(input, areaId) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const area = document.getElementById(areaId);
+    area._photo = e.target.result;
+    area.innerHTML = `<img src="${e.target.result}"><input type="file" accept="image/*" onchange="previewPhoto(this,'${areaId}')" style="position:absolute;inset:0;opacity:0;cursor:pointer">`;
+  };
+  reader.readAsDataURL(file);
+}
+function saveShopModal() {
+  const t = trip(); if (!t) return;
+  const area = document.getElementById('shopPhotoArea');
+  const name = document.getElementById('m-iname').value.trim();
+  if (!name) return alert('請輸入商品名稱');
+  const item = {
+    id: _si!==null ? t.shoppingList[_si].id : uid(),
+    name, photo: area._photo||null,
+    whereToBuy: document.getElementById('m-iwhere').value.trim(),
+    price: document.getElementById('m-iprice').value||null,
+    notes: document.getElementById('m-inotes').value.trim(),
+    done: _si!==null ? t.shoppingList[_si].done : false
+  };
+  if (!t.shoppingList) t.shoppingList=[];
+  if (_si!==null) t.shoppingList[_si]=item; else t.shoppingList.push(item);
+  save(); closeModal(); renderShopping();
+}
+
+// Expense modal
+let _ei = null;
+function showAddExpense() { _ei=null; openExpenseModal({}); }
+function showEditExpense(i) { _ei=i; openExpenseModal(trip().expenses[i]); }
+function openExpenseModal(e) {
+  openModal(`<h2 style="margin-bottom:14px">${_ei!==null?'編輯費用':'新增費用'}</h2>
+  <div class="form-group"><label>收據照片</label>
+    <div class="photo-upload-area" id="rcptPhotoArea" onclick="document.getElementById('rcptPhotoFile').click()" style="aspect-ratio:16/6">
+      ${e.receiptPhoto?`<img src="${e.receiptPhoto}">`:'<div class="ph-label">📷 點擊上傳收據照片</div>'}
+      <input type="file" id="rcptPhotoFile" accept="image/*" onchange="previewPhoto(this,'rcptPhotoArea')">
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-group"><label>費用名稱 *</label><input id="m-etitle" type="text" placeholder="例：晚餐、交通、住宿" value="${esc(e.title||'')}"></div>
+    <div class="form-group" style="flex:0 0 130px"><label>日期</label><input id="m-edate" type="date" value="${e.date||''}"></div>
+  </div>
+  <div class="form-row">
+    <div class="form-group"><label>金額 *</label><input id="m-eamount" type="number" placeholder="0" value="${e.amount||''}" oninput="calcPer()"></div>
+    <div class="form-group" style="flex:0 0 110px"><label>幣別</label>
+      <select id="m-ecur" onchange="calcPer()">
+        <option value="JPY" ${(e.currency||'JPY')==='JPY'?'selected':''}>日圓 ¥</option>
+        <option value="TWD" ${e.currency==='TWD'?'selected':''}>台幣 NT$</option>
+        <option value="KRW" ${e.currency==='KRW'?'selected':''}>韓圓 ₩</option>
+        <option value="USD" ${e.currency==='USD'?'selected':''}>美金 $</option>
+        <option value="EUR" ${e.currency==='EUR'?'selected':''}>歐元 €</option>
+        <option value="HKD" ${e.currency==='HKD'?'selected':''}>港幣 HK$</option>
+      </select>
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-group"><label>誰先付</label><input id="m-epaid" type="text" placeholder="例：Jennifer" value="${esc(e.paidBy||'')}"></div>
+    <div class="form-group" style="flex:0 0 110px"><label>幾人平分</label><input id="m-esplit" type="number" placeholder="2" min="1" value="${e.splitCount||''}" oninput="calcPer()"></div>
+  </div>
+  <div class="calc-badge" id="m-ecalc"></div>
+  <div class="form-group"><label>備注（收據翻譯 / 說明）</label><textarea id="m-enotes" placeholder="收據內容中文說明…">${esc(e.notes||'')}</textarea></div>
+  <div class="modal-actions">
+    <button class="btn btn-primary" onclick="saveExpenseModal()">儲存</button>
+    <button class="btn btn-outline" onclick="closeModal()">取消</button>
+  </div>`);
+  if (e.receiptPhoto) document.getElementById('rcptPhotoArea')._photo = e.receiptPhoto;
+  if (e.amount && e.splitCount) calcPer();
+}
+function calcPer() {
+  const amt = parseFloat(document.getElementById('m-eamount')?.value)||0;
+  const sp = parseInt(document.getElementById('m-esplit')?.value)||0;
+  const cur = document.getElementById('m-ecur')?.value||'JPY';
+  const badge = document.getElementById('m-ecalc'); if (!badge) return;
+  if (amt>0 && sp>0) {
+    badge.style.display='block';
+    badge.innerHTML = `每人應付 <strong>${currSym(cur)}${Math.ceil(amt/sp).toLocaleString()}</strong>　（${currSym(cur)}${amt.toLocaleString()} ÷ ${sp} 人）`;
+  } else badge.style.display='none';
+}
+function saveExpenseModal() {
+  const t = trip(); if (!t) return;
+  const area = document.getElementById('rcptPhotoArea');
+  const title = document.getElementById('m-etitle').value.trim();
+  const amount = parseFloat(document.getElementById('m-eamount').value)||0;
+  if (!title) return alert('請輸入費用名稱');
+  if (!amount) return alert('請輸入金額');
+  const exp = {
+    id: _ei!==null ? t.expenses[_ei].id : uid(),
+    title, date: document.getElementById('m-edate').value,
+    amount, currency: document.getElementById('m-ecur').value,
+    paidBy: document.getElementById('m-epaid').value.trim(),
+    splitCount: parseInt(document.getElementById('m-esplit').value)||1,
+    receiptPhoto: area._photo||null,
+    notes: document.getElementById('m-enotes').value.trim()
+  };
+  if (!t.expenses) t.expenses=[];
+  if (_ei!==null) t.expenses[_ei]=exp; else t.expenses.push(exp);
+  save(); closeModal(); renderExpenses();
+}
+
+// Friend modal
+function showAddFriendModal() {
+  openModal(`<h2 style="margin-bottom:10px">新增朋友清單</h2>
+  <p style="font-size:13px;color:var(--gray-600);margin-bottom:14px">請朋友點擊「分享我的待買清單」，將連結傳給你，貼入下方</p>
+  <div class="form-group"><label>朋友的分享連結</label>
+    <textarea id="m-furl" placeholder="https://jennifer-shao-ai.github.io/feebit/travel-planner.html?share#…" style="min-height:80px"></textarea>
+  </div>
+  <div class="modal-actions">
+    <button class="btn btn-primary" onclick="saveFriendModal()">新增</button>
+    <button class="btn btn-outline" onclick="closeModal()">取消</button>
+  </div>`);
+}
+function saveFriendModal() {
+  const url = document.getElementById('m-furl').value.trim();
+  if (!url) return alert('請貼入分享連結');
+  try {
+    const hi = url.indexOf('#'); if (hi===-1) throw 0;
+    const data = JSON.parse(decodeURIComponent(escape(atob(url.slice(hi+1)))));
+    if (data.type!=='list') return alert('這是行程連結，不是清單連結。請請朋友點「分享我的待買清單」');
+    if (!S.friends) S.friends=[];
+    S.friends.push({ name: data.name||'朋友', listData: data.listData||[] });
+    save(); closeModal(); renderFriends();
+    switchTab('friends', document.querySelectorAll('.tp-tab')[3]);
+  } catch(e) { alert('連結格式錯誤，請確認是正確的分享連結'); }
+}
+
+// ── HELPERS ────────────────────────────────────
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function escAttr(s) { return String(s).replace(/"/g,'&quot;'); }
+
+// ── START ──────────────────────────────────────
+init();
+</script>
+</body>
+</html>
