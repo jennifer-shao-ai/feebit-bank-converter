@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>研發筆記 — 飛比特</title>
+<link rel="icon" href="favicon.svg">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+/* ── 研發筆記 layout ── */
+.rn-layout { display: flex; gap: 0; height: calc(100vh - 52px); overflow: hidden; }
+
+/* Left panel: notebook + note list */
+.rn-left { width: 260px; flex-shrink: 0; border-right: 1px solid var(--gray-200); display: flex; flex-direction: column; background: white; }
+.rn-left-top { padding: 12px; border-bottom: 1px solid var(--gray-200); }
+.rn-notebook-select { width: 100%; padding: 7px 10px; border: 1px solid var(--gray-200); border-radius: var(--radius); font-size: 13px; background: var(--gray-50); cursor: pointer; }
+.rn-notebook-select:focus { outline: none; border-color: var(--primary); }
+.btn-nb { width: 100%; margin-top: 6px; padding: 6px; border-radius: var(--radius); border: 1px dashed var(--gray-400); background: white; color: var(--gray-600); font-size: 12px; cursor: pointer; }
+.btn-nb:hover { border-color: var(--primary); color: var(--primary); }
+
+.rn-search { padding: 8px 12px; border-bottom: 1px solid var(--gray-200); }
+.rn-search input { width: 100%; padding: 6px 10px; border: 1px solid var(--gray-200); border-radius: var(--radius); font-size: 13px; outline: none; }
+.rn-search input:focus { border-color: var(--primary); }
+
+.rn-note-list { flex: 1; overflow-y: auto; padding: 8px; }
+.note-item { padding: 10px 12px; border-radius: var(--radius); cursor: pointer; margin-bottom: 4px; border: 1px solid transparent; }
+.note-item:hover { background: var(--gray-50); }
+.note-item.active { background: var(--primary-light); border-color: var(--primary); }
+.note-item-title { font-size: 13px; font-weight: 600; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.note-item-meta { font-size: 11px; color: var(--gray-400); display: flex; gap: 6px; align-items: center; }
+.source-badge { font-size: 10px; padding: 1px 5px; border-radius: 3px; font-weight: 600; }
+.badge-url { background: #dbeafe; color: #1d4ed8; }
+.badge-image { background: #fce7f3; color: #9d174d; }
+.badge-youtube { background: #fee2e2; color: #991b1b; }
+.badge-manual { background: #d1fae5; color: #065f46; }
+.rn-empty { text-align: center; color: var(--gray-400); font-size: 13px; padding: 40px 20px; }
+
+/* Right panel: note viewer */
+.rn-right { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: var(--gray-50); }
+.rn-right-toolbar { background: white; border-bottom: 1px solid var(--gray-200); padding: 10px 16px; display: flex; align-items: center; gap: 8px; }
+.rn-right-toolbar .note-source-url { font-size: 12px; color: var(--primary); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rn-right-toolbar .note-source-url a { color: var(--primary); text-decoration: none; }
+.rn-right-toolbar .note-source-url a:hover { text-decoration: underline; }
+.rn-viewer { flex: 1; overflow-y: auto; padding: 24px; }
+.rn-viewer-title { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+.rn-viewer-date { font-size: 12px; color: var(--gray-400); margin-bottom: 20px; }
+.rn-viewer-summary { background: var(--primary-light); border-left: 3px solid var(--primary); padding: 12px 16px; border-radius: 0 var(--radius) var(--radius) 0; margin-bottom: 20px; font-size: 14px; line-height: 1.6; white-space: pre-wrap; }
+.rn-viewer-content { font-size: 14px; line-height: 1.8; color: var(--gray-800); white-space: pre-wrap; word-break: break-word; background: white; padding: 20px; border-radius: var(--radius); box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+.rn-placeholder { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--gray-400); gap: 12px; }
+.rn-placeholder .ph-icon { font-size: 48px; }
+.rn-placeholder p { font-size: 14px; }
+
+/* Add note modal */
+.add-type-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+.type-btn { padding: 14px; border: 2px solid var(--gray-200); border-radius: var(--radius); cursor: pointer; text-align: center; background: white; transition: all 0.15s; }
+.type-btn:hover, .type-btn.selected { border-color: var(--primary); background: var(--primary-light); }
+.type-btn .tb-icon { font-size: 24px; display: block; margin-bottom: 6px; }
+.type-btn .tb-label { font-size: 13px; font-weight: 600; color: var(--gray-800); }
+.type-btn .tb-desc { font-size: 11px; color: var(--gray-600); margin-top: 2px; }
+.input-section { display: none; }
+.input-section.active { display: block; }
+.form-label { font-size: 13px; font-weight: 500; color: var(--gray-600); margin-bottom: 6px; display: block; }
+.form-input { width: 100%; padding: 9px 12px; border: 1px solid var(--gray-200); border-radius: var(--radius); font-size: 14px; outline: none; transition: border-color 0.15s; }
+.form-input:focus { border-color: var(--primary); }
+.drop-area { border: 2px dashed var(--gray-200); border-radius: var(--radius); padding: 32px; text-align: center; cursor: pointer; transition: all 0.2s; }
+.drop-area:hover, .drop-area.dragover { border-color: var(--primary); background: var(--primary-light); }
+.drop-area .da-icon { font-size: 32px; display: block; margin-bottom: 8px; }
+.drop-area p { font-size: 13px; color: var(--gray-600); }
+.progress-bar { height: 4px; background: var(--gray-200); border-radius: 2px; margin-top: 10px; overflow: hidden; }
+.progress-bar-fill { height: 100%; background: var(--primary); border-radius: 2px; transition: width 0.3s; width: 0%; }
+.ocr-status { font-size: 12px; color: var(--gray-600); margin-top: 6px; text-align: center; }
+.fetched-preview { background: var(--gray-50); border-radius: var(--radius); padding: 12px; max-height: 120px; overflow-y: auto; font-size: 12px; color: var(--gray-600); line-height: 1.5; margin-top: 10px; display: none; }
+
+/* Notebook modal */
+.nb-form { display: flex; flex-direction: column; gap: 10px; }
+.emoji-picker { display: flex; gap: 8px; flex-wrap: wrap; padding: 10px; background: var(--gray-50); border-radius: var(--radius); }
+.emoji-btn { width: 32px; height: 32px; border: none; background: transparent; font-size: 18px; cursor: pointer; border-radius: 6px; }
+.emoji-btn:hover, .emoji-btn.selected { background: var(--primary-light); }
+
+/* Toast */
+#toast { position: fixed; bottom: 24px; right: 24px; background: var(--gray-800); color: white; padding: 10px 18px; border-radius: var(--radius); font-size: 13px; z-index: 9999; display: none; animation: fadeIn 0.2s; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Loading spinner */
+.spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.6s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.btn-sm { padding: 5px 10px; font-size: 12px; }
+.btn-danger { background: var(--danger); color: white; }
+</style>
+</head>
+<body>
+
+<!-- ── SIDEBAR ── -->
+<div id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand">飛比特 Feebit</div>
+    <div class="sub">營運工具箱</div>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">總覽</div>
+    <a class="nav-item" href="index.html"><span class="icon">🏠</span> 首頁</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">財務</div>
+    <a class="nav-item" href="bank-converter.html"><span class="icon">🏦</span> 帳務轉換</a>
+    <div class="nav-item soon"><span class="icon">💰</span> 定價試算<span class="soon-tag">即將推出</span></div>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">行銷</div>
+    <div class="nav-item soon"><span class="icon">📢</span> 廣告文案<span class="soon-tag">即將推出</span></div>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">客服</div>
+    <div class="nav-item soon"><span class="icon">💬</span> 客服回覆<span class="soon-tag">即將推出</span></div>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">研發</div>
+    <a class="nav-item active" href="research-notes.html"><span class="icon">📚</span> 研發筆記</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">生活</div>
+    <a class="nav-item" href="travel-planner.html"><span class="icon">✈️</span> 旅行規劃</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">系統</div>
+    <a class="nav-item" href="tools.html"><span class="icon">🔧</span> 使用工具</a>
+  </div>
+  <div class="sidebar-footer">v1.0 · Feebit © 2026</div>
+</div>
+
+<!-- ── MAIN ── -->
+<div id="main">
+  <div class="topbar">
+    <span class="topbar-title">研發筆記</span>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button class="btn btn-outline btn-sm" id="btn-add-note" style="display:none;">＋ 新增資料</button>
+      <span class="topbar-badge">飛比特營運工具箱</span>
+    </div>
+  </div>
+
+  <div class="rn-layout">
+    <!-- Left panel -->
+    <div class="rn-left">
+      <div class="rn-left-top">
+        <select class="rn-notebook-select" id="notebook-select">
+          <option value="">-- 選擇筆記本 --</option>
+        </select>
+        <button class="btn-nb" id="btn-new-notebook">＋ 建立新筆記本</button>
+      </div>
+      <div class="rn-search">
+        <input type="text" id="search-input" placeholder="🔍 搜尋筆記...">
+      </div>
+      <div class="rn-note-list" id="note-list">
+        <div class="rn-empty">選擇筆記本後<br>即可查看筆記</div>
+      </div>
+    </div>
+
+    <!-- Right panel -->
+    <div class="rn-right">
+      <div id="rn-right-toolbar" class="rn-right-toolbar" style="display:none;">
+        <div class="note-source-url" id="note-source-display"></div>
+        <button class="btn btn-outline btn-sm" id="btn-ai-summarize">✨ AI 整理</button>
+        <button class="btn btn-outline btn-sm" id="btn-delete-note" style="color:var(--danger);border-color:var(--danger);">🗑 刪除</button>
+      </div>
+      <div class="rn-viewer" id="rn-viewer">
+        <div class="rn-placeholder">
+          <span class="ph-icon">📚</span>
+          <p>建立筆記本並新增資料開始使用</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL: 建立筆記本 ── -->
+<div class="modal-backdrop" id="modal-notebook" style="display:none;">
+  <div class="modal" style="width:400px;">
+    <h2 style="margin-bottom:16px;">建立筆記本</h2>
+    <div class="nb-form">
+      <div>
+        <label class="form-label">名稱</label>
+        <input class="form-input" type="text" id="nb-name" placeholder="例：夏季新品研發">
+      </div>
+      <div>
+        <label class="form-label">說明（選填）</label>
+        <input class="form-input" type="text" id="nb-desc" placeholder="這本筆記的主題...">
+      </div>
+      <div>
+        <label class="form-label">圖示</label>
+        <div class="emoji-picker" id="emoji-picker">
+          <button class="emoji-btn selected" data-emoji="📓">📓</button>
+          <button class="emoji-btn" data-emoji="📦">📦</button>
+          <button class="emoji-btn" data-emoji="🧴">🧴</button>
+          <button class="emoji-btn" data-emoji="💄">💄</button>
+          <button class="emoji-btn" data-emoji="👗">👗</button>
+          <button class="emoji-btn" data-emoji="🛍">🛍</button>
+          <button class="emoji-btn" data-emoji="🏷">🏷</button>
+          <button class="emoji-btn" data-emoji="🔬">🔬</button>
+          <button class="emoji-btn" data-emoji="📊">📊</button>
+          <button class="emoji-btn" data-emoji="💡">💡</button>
+          <button class="emoji-btn" data-emoji="🎨">🎨</button>
+          <button class="emoji-btn" data-emoji="🌿">🌿</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" id="btn-save-notebook">建立</button>
+      <button class="btn btn-outline" onclick="closeModal('modal-notebook')">取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL: 新增資料 ── -->
+<div class="modal-backdrop" id="modal-add-note" style="display:none;">
+  <div class="modal" style="width:540px;">
+    <h2 style="margin-bottom:16px;">新增資料</h2>
+
+    <div class="add-type-grid">
+      <button class="type-btn selected" data-type="url">
+        <span class="tb-icon">🌐</span>
+        <div class="tb-label">網頁 URL</div>
+        <div class="tb-desc">抓取網頁文字內容</div>
+      </button>
+      <button class="type-btn" data-type="youtube">
+        <span class="tb-icon">▶️</span>
+        <div class="tb-label">YouTube</div>
+        <div class="tb-desc">擷取影片字幕整理</div>
+      </button>
+      <button class="type-btn" data-type="image">
+        <span class="tb-icon">🖼</span>
+        <div class="tb-label">圖片 / 文件</div>
+        <div class="tb-desc">OCR 辨識圖中文字</div>
+      </button>
+      <button class="type-btn" data-type="manual">
+        <span class="tb-icon">✏️</span>
+        <div class="tb-label">手動輸入</div>
+        <div class="tb-desc">直接貼上或輸入文字</div>
+      </button>
+    </div>
+
+    <!-- URL -->
+    <div class="input-section active" id="section-url">
+      <label class="form-label">網址</label>
+      <input class="form-input" type="url" id="input-url" placeholder="https://...">
+      <div class="fetched-preview" id="url-preview"></div>
+    </div>
+
+    <!-- YouTube -->
+    <div class="input-section" id="section-youtube">
+      <label class="form-label">YouTube 網址</label>
+      <input class="form-input" type="url" id="input-youtube" placeholder="https://www.youtube.com/watch?v=...">
+      <div class="fetched-preview" id="yt-preview"></div>
+    </div>
+
+    <!-- Image -->
+    <div class="input-section" id="section-image">
+      <div class="drop-area" id="drop-area">
+        <span class="da-icon">🖼</span>
+        <p>拖曳圖片至此，或點此選擇</p>
+        <p style="font-size:11px;margin-top:4px;color:var(--gray-400)">支援 JPG、PNG、PDF</p>
+        <input type="file" id="file-input" accept="image/*,.pdf" style="display:none;">
+      </div>
+      <div class="progress-bar" id="ocr-progress-bar" style="display:none;"><div class="progress-bar-fill" id="ocr-fill"></div></div>
+      <div class="ocr-status" id="ocr-status"></div>
+      <div class="fetched-preview" id="img-preview"></div>
+    </div>
+
+    <!-- Manual -->
+    <div class="input-section" id="section-manual">
+      <label class="form-label">標題</label>
+      <input class="form-input" type="text" id="input-manual-title" placeholder="筆記標題" style="margin-bottom:10px;">
+      <label class="form-label">內容</label>
+      <textarea class="form-input" id="input-manual-content" rows="6" placeholder="貼上或輸入文字..." style="resize:vertical;"></textarea>
+    </div>
+
+    <div class="modal-actions" style="margin-top:16px;">
+      <button class="btn btn-primary" id="btn-save-note">儲存</button>
+      <button class="btn btn-outline" onclick="closeModal('modal-add-note')">取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+// ── CONFIG ──
+const SUPABASE_URL = 'https://tokhhoyzztaynppcatci.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRva2hob3l6enRheW5wcGNhdGNpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMDAyODMsImV4cCI6MjA5MDg3NjI4M30.PQB4lJGF3OMatv5wIedCu3zIWq0urrFbniBRYTbNtUU';
+const EDGE_BASE = `${SUPABASE_URL}/functions/v1`;
+
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ── STATE ──
+let notebooks = [];
+let notes = [];
+let currentNotebook = null;
+let currentNote = null;
+let selectedType = 'url';
+let selectedEmoji = '📓';
+let fetchedContent = '';
+let fetchedTitle = '';
+let ocrText = '';
+
+// ── INIT ──
+async function init() {
+  await loadNotebooks();
+  setupEventListeners();
+}
+
+// ── SUPABASE CALLS ──
+async function loadNotebooks() {
+  const { data, error } = await db.from('notebooks').select('*').order('created_at', { ascending: false });
+  if (error) { showToast('載入失敗: ' + error.message); return; }
+  notebooks = data || [];
+  renderNotebookSelect();
+}
+
+async function loadNotes(notebookId, searchQuery = '') {
+  let query = db.from('notes').select('*').eq('notebook_id', notebookId).order('created_at', { ascending: false });
+  if (searchQuery) {
+    query = query.or(`title.ilike.%${searchQuery}%,content.ilike.%${searchQuery}%`);
+  }
+  const { data, error } = await query;
+  if (error) { showToast('載入筆記失敗'); return; }
+  notes = data || [];
+  renderNoteList();
+}
+
+async function saveNotebook(name, desc, emoji) {
+  const { data, error } = await db.from('notebooks').insert({ name, description: desc, emoji }).select().single();
+  if (error) { showToast('建立失敗: ' + error.message); return; }
+  notebooks.unshift(data);
+  renderNotebookSelect();
+  document.getElementById('notebook-select').value = data.id;
+  currentNotebook = data;
+  document.getElementById('btn-add-note').style.display = '';
+  notes = [];
+  renderNoteList();
+  showToast('✅ 筆記本已建立');
+}
+
+async function saveNote(noteData) {
+  const { data, error } = await db.from('notes').insert({ ...noteData, notebook_id: currentNotebook.id }).select().single();
+  if (error) { showToast('儲存失敗: ' + error.message); return; }
+  notes.unshift(data);
+  renderNoteList();
+  selectNote(data);
+  showToast('✅ 已儲存');
+}
+
+async function deleteNote(id) {
+  const { error } = await db.from('notes').delete().eq('id', id);
+  if (error) { showToast('刪除失敗'); return; }
+  notes = notes.filter(n => n.id !== id);
+  currentNote = null;
+  renderNoteList();
+  renderViewer(null);
+  showToast('🗑 已刪除');
+}
+
+async function updateNoteSummary(id, summary) {
+  const { error } = await db.from('notes').update({ summary }).eq('id', id);
+  if (error) { showToast('更新失敗'); return; }
+  const note = notes.find(n => n.id === id);
+  if (note) { note.summary = summary; renderViewer(note); }
+}
+
+// ── EDGE FUNCTIONS ──
+async function callEdgeFunction(fnName, body) {
+  const res = await fetch(`${EDGE_BASE}/${fnName}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+    },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(err);
+  }
+  return res.json();
+}
+
+// ── RENDER ──
+function renderNotebookSelect() {
+  const sel = document.getElementById('notebook-select');
+  sel.innerHTML = '<option value="">-- 選擇筆記本 --</option>';
+  notebooks.forEach(nb => {
+    const opt = document.createElement('option');
+    opt.value = nb.id;
+    opt.textContent = `${nb.emoji} ${nb.name}`;
+    sel.appendChild(opt);
+  });
+}
+
+function renderNoteList() {
+  const list = document.getElementById('note-list');
+  if (!notes.length) {
+    list.innerHTML = '<div class="rn-empty">此筆記本還沒有資料<br>點上方「新增資料」開始</div>';
+    return;
+  }
+  list.innerHTML = notes.map(n => `
+    <div class="note-item ${currentNote?.id === n.id ? 'active' : ''}" data-id="${n.id}">
+      <div class="note-item-title">${escHtml(n.title)}</div>
+      <div class="note-item-meta">
+        <span class="source-badge badge-${n.source_type}">${sourceLabel(n.source_type)}</span>
+        ${formatDate(n.created_at)}
+      </div>
+    </div>
+  `).join('');
+
+  list.querySelectorAll('.note-item').forEach(el => {
+    el.addEventListener('click', () => {
+      const note = notes.find(n => n.id === el.dataset.id);
+      if (note) selectNote(note);
+    });
+  });
+}
+
+function selectNote(note) {
+  currentNote = note;
+  renderNoteList();
+  renderViewer(note);
+}
+
+function renderViewer(note) {
+  const toolbar = document.getElementById('rn-right-toolbar');
+  const viewer = document.getElementById('rn-viewer');
+  const sourceDisplay = document.getElementById('note-source-display');
+
+  if (!note) {
+    toolbar.style.display = 'none';
+    viewer.innerHTML = '<div class="rn-placeholder"><span class="ph-icon">📋</span><p>選擇一筆資料查看內容</p></div>';
+    return;
+  }
+
+  toolbar.style.display = '';
+  if (note.source_url) {
+    sourceDisplay.innerHTML = `來源：<a href="${escHtml(note.source_url)}" target="_blank" rel="noopener">${escHtml(note.source_url)}</a>`;
+  } else {
+    sourceDisplay.innerHTML = `<span style="color:var(--gray-400)">${sourceLabel(note.source_type)}</span>`;
+  }
+
+  viewer.innerHTML = `
+    <div class="rn-viewer-title">${escHtml(note.title)}</div>
+    <div class="rn-viewer-date">${new Date(note.created_at).toLocaleString('zh-TW')} · ${sourceLabel(note.source_type)}</div>
+    ${note.summary ? `<div class="rn-viewer-summary"><strong>✨ AI 整理摘要</strong><br><br>${escHtml(note.summary)}</div>` : ''}
+    <div class="rn-viewer-content">${escHtml(note.content || '（無內容）')}</div>
+  `;
+}
+
+// ── EVENT LISTENERS ──
+function setupEventListeners() {
+  // Notebook select
+  document.getElementById('notebook-select').addEventListener('change', async e => {
+    const id = e.target.value;
+    if (!id) {
+      currentNotebook = null;
+      notes = [];
+      renderNoteList();
+      renderViewer(null);
+      document.getElementById('btn-add-note').style.display = 'none';
+      return;
+    }
+    currentNotebook = notebooks.find(nb => nb.id === id);
+    document.getElementById('btn-add-note').style.display = '';
+    await loadNotes(id);
+  });
+
+  // New notebook
+  document.getElementById('btn-new-notebook').addEventListener('click', () => {
+    document.getElementById('nb-name').value = '';
+    document.getElementById('nb-desc').value = '';
+    selectedEmoji = '📓';
+    document.querySelectorAll('.emoji-btn').forEach(b => b.classList.toggle('selected', b.dataset.emoji === '📓'));
+    openModal('modal-notebook');
+  });
+
+  // Emoji picker
+  document.getElementById('emoji-picker').addEventListener('click', e => {
+    const btn = e.target.closest('.emoji-btn');
+    if (!btn) return;
+    document.querySelectorAll('.emoji-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    selectedEmoji = btn.dataset.emoji;
+  });
+
+  // Save notebook
+  document.getElementById('btn-save-notebook').addEventListener('click', async () => {
+    const name = document.getElementById('nb-name').value.trim();
+    if (!name) { showToast('請輸入筆記本名稱'); return; }
+    await saveNotebook(name, document.getElementById('nb-desc').value.trim(), selectedEmoji);
+    closeModal('modal-notebook');
+  });
+
+  // Add note
+  document.getElementById('btn-add-note').addEventListener('click', () => {
+    resetAddModal();
+    openModal('modal-add-note');
+  });
+
+  // Type selector
+  document.querySelectorAll('.type-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      selectedType = btn.dataset.type;
+      document.querySelectorAll('.input-section').forEach(s => s.classList.remove('active'));
+      document.getElementById(`section-${selectedType}`).classList.add('active');
+    });
+  });
+
+  // File drop area
+  const dropArea = document.getElementById('drop-area');
+  dropArea.addEventListener('click', () => document.getElementById('file-input').click());
+  dropArea.addEventListener('dragover', e => { e.preventDefault(); dropArea.classList.add('dragover'); });
+  dropArea.addEventListener('dragleave', () => dropArea.classList.remove('dragover'));
+  dropArea.addEventListener('drop', e => {
+    e.preventDefault();
+    dropArea.classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (file) runOCR(file);
+  });
+  document.getElementById('file-input').addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (file) runOCR(file);
+  });
+
+  // Save note
+  document.getElementById('btn-save-note').addEventListener('click', handleSaveNote);
+
+  // Delete note
+  document.getElementById('btn-delete-note').addEventListener('click', () => {
+    if (!currentNote) return;
+    if (!confirm('確定刪除這筆資料？')) return;
+    deleteNote(currentNote.id);
+  });
+
+  // AI summarize
+  document.getElementById('btn-ai-summarize').addEventListener('click', handleAISummarize);
+
+  // Search
+  let searchTimer;
+  document.getElementById('search-input').addEventListener('input', e => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+      if (currentNotebook) loadNotes(currentNotebook.id, e.target.value.trim());
+    }, 400);
+  });
+
+  // Close modals on backdrop click
+  document.querySelectorAll('.modal-backdrop').forEach(bd => {
+    bd.addEventListener('click', e => {
+      if (e.target === bd) bd.style.display = 'none';
+    });
+  });
+}
+
+// ── HANDLERS ──
+async function handleSaveNote() {
+  const btn = document.getElementById('btn-save-note');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>';
+
+  try {
+    if (selectedType === 'url') {
+      const url = document.getElementById('input-url').value.trim();
+      if (!url) { showToast('請輸入網址'); return; }
+      let content = fetchedContent;
+      let title = fetchedTitle;
+      if (!content) {
+        showToast('擷取中...');
+        const res = await callEdgeFunction('scrape-url', { url });
+        content = res.content;
+        title = res.title || url;
+      }
+      await saveNote({ title, content, source_url: url, source_type: 'url' });
+
+    } else if (selectedType === 'youtube') {
+      const url = document.getElementById('input-youtube').value.trim();
+      if (!url) { showToast('請輸入 YouTube 網址'); return; }
+      let content = fetchedContent;
+      let title = fetchedTitle;
+      if (!content) {
+        const res = await callEdgeFunction('youtube-transcript', { url });
+        content = res.transcript;
+        title = res.title || 'YouTube 影片';
+      }
+      await saveNote({ title, content, source_url: url, source_type: 'youtube' });
+
+    } else if (selectedType === 'image') {
+      if (!ocrText) { showToast('請先上傳圖片並等待辨識完成'); return; }
+      const filename = document.getElementById('file-input').files[0]?.name || '圖片';
+      await saveNote({ title: filename, content: ocrText, source_type: 'image' });
+
+    } else if (selectedType === 'manual') {
+      const title = document.getElementById('input-manual-title').value.trim();
+      const content = document.getElementById('input-manual-content').value.trim();
+      if (!title) { showToast('請輸入標題'); return; }
+      await saveNote({ title, content, source_type: 'manual' });
+    }
+    closeModal('modal-add-note');
+  } catch (err) {
+    showToast('錯誤: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '儲存';
+  }
+}
+
+async function handleAISummarize() {
+  if (!currentNote) return;
+  const btn = document.getElementById('btn-ai-summarize');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner" style="border-top-color:var(--primary);border-color:var(--gray-200);border-top-color:var(--primary);"></span> AI 整理中';
+  try {
+    const res = await callEdgeFunction('ai-summarize', { content: currentNote.content, title: currentNote.title });
+    await updateNoteSummary(currentNote.id, res.summary);
+    showToast('✨ AI 整理完成');
+  } catch (err) {
+    showToast('AI 整理失敗: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '✨ AI 整理';
+  }
+}
+
+// ── OCR ──
+async function runOCR(file) {
+  ocrText = '';
+  const progressBar = document.getElementById('ocr-progress-bar');
+  const fill = document.getElementById('ocr-fill');
+  const status = document.getElementById('ocr-status');
+  const preview = document.getElementById('img-preview');
+
+  progressBar.style.display = 'block';
+  status.textContent = '準備辨識...';
+  preview.style.display = 'none';
+
+  const worker = await Tesseract.createWorker(['chi_tra', 'eng'], 1, {
+    logger: m => {
+      if (m.status === 'recognizing text') {
+        const pct = Math.round(m.progress * 100);
+        fill.style.width = pct + '%';
+        status.textContent = `辨識中 ${pct}%...`;
+      }
+    }
+  });
+
+  try {
+    const { data: { text } } = await worker.recognize(file);
+    ocrText = text.trim();
+    status.textContent = `✅ 辨識完成，共 ${ocrText.length} 字`;
+    preview.style.display = 'block';
+    preview.textContent = ocrText.slice(0, 300) + (ocrText.length > 300 ? '...' : '');
+  } catch (e) {
+    status.textContent = '辨識失敗，請重試';
+  } finally {
+    await worker.terminate();
+  }
+}
+
+// ── URL FETCH (preview) ──
+document.getElementById('input-url').addEventListener('blur', async function() {
+  const url = this.value.trim();
+  if (!url || !url.startsWith('http')) return;
+  const preview = document.getElementById('url-preview');
+  preview.style.display = 'block';
+  preview.textContent = '擷取中...';
+  fetchedContent = '';
+  fetchedTitle = '';
+  try {
+    const res = await callEdgeFunction('scrape-url', { url });
+    fetchedContent = res.content;
+    fetchedTitle = res.title || url;
+    preview.textContent = fetchedContent.slice(0, 300) + '...';
+  } catch(e) {
+    preview.textContent = '⚠️ 無法擷取，儲存時會再試一次';
+  }
+});
+
+document.getElementById('input-youtube').addEventListener('blur', async function() {
+  const url = this.value.trim();
+  if (!url || !url.includes('youtube')) return;
+  const preview = document.getElementById('yt-preview');
+  preview.style.display = 'block';
+  preview.textContent = '擷取字幕中...';
+  fetchedContent = '';
+  fetchedTitle = '';
+  try {
+    const res = await callEdgeFunction('youtube-transcript', { url });
+    fetchedContent = res.transcript;
+    fetchedTitle = res.title || 'YouTube 影片';
+    preview.textContent = fetchedContent.slice(0, 300) + '...';
+  } catch(e) {
+    preview.textContent = '⚠️ 無法取得字幕（可能沒有字幕或為私人影片）';
+  }
+});
+
+// ── HELPERS ──
+function resetAddModal() {
+  selectedType = 'url';
+  fetchedContent = '';
+  fetchedTitle = '';
+  ocrText = '';
+  document.querySelectorAll('.type-btn').forEach(b => b.classList.toggle('selected', b.dataset.type === 'url'));
+  document.querySelectorAll('.input-section').forEach(s => s.classList.remove('active'));
+  document.getElementById('section-url').classList.add('active');
+  document.getElementById('input-url').value = '';
+  document.getElementById('input-youtube').value = '';
+  document.getElementById('input-manual-title').value = '';
+  document.getElementById('input-manual-content').value = '';
+  document.getElementById('url-preview').style.display = 'none';
+  document.getElementById('yt-preview').style.display = 'none';
+  document.getElementById('img-preview').style.display = 'none';
+  document.getElementById('ocr-status').textContent = '';
+  document.getElementById('ocr-progress-bar').style.display = 'none';
+  document.getElementById('file-input').value = '';
+}
+
+function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+function escHtml(str) { return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function sourceLabel(type) { return { url:'網頁', image:'圖片', youtube:'YouTube', manual:'手動' }[type] || type; }
+function formatDate(iso) { return new Date(iso).toLocaleDateString('zh-TW'); }
+
+function showToast(msg, duration = 2500) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.display = 'block';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => { t.style.display = 'none'; }, duration);
+}
+
+init();
+</script>
+</body>
+</html>
