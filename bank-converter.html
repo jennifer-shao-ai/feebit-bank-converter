@@ -102,6 +102,11 @@
     </div>
 
     <div id="result-section" style="display:none">
+      <div id="alert-resume" class="alert alert-warning" style="display:none">
+        <span>💾</span>
+        <span>有未完成的分類進度</span>
+        <button class="btn btn-primary" onclick="resumeSession()" style="margin-left:auto">繼續分類</button>
+      </div>
       <div id="alert-unknown" class="alert alert-warning" style="display:none">
         <span>⚠️</span>
         <span><strong id="unknown-count">0</strong> 筆交易無法自動分類</span>
@@ -211,9 +216,20 @@
       <input type="checkbox" id="modal-remember" checked>
       <label for="modal-remember">記住此規則，相同摘要＋來源代號自動套用</label>
     </div>
+    <div id="split-section" style="display:none;margin-top:16px;border-top:1px solid var(--gray-200);padding-top:16px">
+      <div style="font-size:13px;font-weight:600;margin-bottom:8px">拆分金額 <span style="color:var(--gray-400);font-weight:400">（合計需等於原始金額）</span></div>
+      <div id="split-rows"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+        <button class="btn btn-outline" style="padding:4px 10px;font-size:12px" onclick="addSplitRow()">＋ 新增行</button>
+        <span style="font-size:12px;color:var(--gray-600)">剩餘：<strong id="split-remaining">0</strong></span>
+      </div>
+      <button class="btn btn-primary" style="width:100%;margin-top:12px" onclick="confirmSplit()">確認拆分</button>
+    </div>
     <div class="modal-actions">
       <button class="btn btn-primary" onclick="confirmCategory()">確認</button>
+      <button class="btn btn-outline" onclick="toggleSplit()">拆分此筆</button>
       <button class="btn btn-outline" onclick="skipCategory()">跳過此筆</button>
+      <button class="btn btn-outline" onclick="saveAndClose()" style="margin-left:auto">暫存並關閉</button>
     </div>
   </div>
 </div>
@@ -267,6 +283,9 @@ const DEFAULT_RULES = [
   { summary: '00000', payeeKey: 'SHOPEE', type: '收入', main: '賣場/通路銷售', sub: '蝦皮商城/一般/寶媽', payee: 'SHOPEE' },
   { summary: '匯款',  payeeKey: '寶雅',   type: '收入', main: '賣場/通路銷售', sub: 'POYA寶雅',          payee: '寶雅連鎖' },
   { summary: '匯款',  payeeKey: '富邦媒', type: '收入', main: '賣場/通路銷售', sub: 'MOMO',              payee: '富邦媒體' },
+  { summary: '勞保', contains: true, payeeKey: '', type: '支出', main: '薪資/外包', sub: '', payee: '' },
+  { summary: '健保', contains: true, payeeKey: '', type: '支出', main: '薪資/外包', sub: '', payee: '' },
+  { summary: '勞退', contains: true, payeeKey: '', type: '支出', main: '薪資/外包', sub: '', payee: '' },
 ];
 function getRules() {
   try { const s = localStorage.getItem(KEY_RULES); return s ? JSON.parse(s) : [...DEFAULT_RULES]; }
@@ -282,8 +301,9 @@ function upsertRule(rule) {
 }
 function findRule(summary, payeeCode) {
   const rules = getRules(); const s = summary.trim(); const p = payeeCode.trim();
-  for (const r of rules) { if (r.summary === s && r.payeeKey && p.includes(r.payeeKey)) return r; }
-  for (const r of rules) { if (r.summary === s && !r.payeeKey) return r; }
+  for (const r of rules) { if (!r.contains && r.summary === s && r.payeeKey && p.includes(r.payeeKey)) return r; }
+  for (const r of rules) { if (!r.contains && r.summary === s && !r.payeeKey) return r; }
+  for (const r of rules) { if (r.contains && s.includes(r.summary)) return r; }
   return null;
 }
 
@@ -436,6 +456,8 @@ function showModal(tx) {
   document.getElementById('modal-sub').value = '';
   document.getElementById('modal-payee').value = tx.payeeCode || '';
   document.getElementById('modal-remember').checked = true;
+  document.getElementById('split-section').style.display = 'none';
+  splitTx = null;
   document.getElementById('modal-backdrop').style.display = 'flex';
 }
 function handleMainChange() {
@@ -514,6 +536,7 @@ function downloadCSV() {
   const blob = new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
   a.download = `feebit_${new Date().toISOString().slice(0,10).replace(/-/g,'')}.csv`; a.click();
+  localStorage.removeItem(KEY_SESSION);
 }
 
 // ── RULES MGMT ───────────────────────────────────────────────
@@ -547,14 +570,98 @@ dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
 dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('dragover'); const f=e.dataTransfer.files[0]; if(f) handleFile(f); });
 
 function resetUpload() {
+  localStorage.removeItem(KEY_SESSION);
   document.getElementById('upload-section').style.display = 'block';
   document.getElementById('result-section').style.display = 'none';
   document.getElementById('fileInput').value = ''; transactions = [];
 }
 
+// ── SESSION ───────────────────────────────────────────────────
+const KEY_SESSION = 'feebit_session_v1';
+function saveAndClose() {
+  localStorage.setItem(KEY_SESSION, JSON.stringify({ transactions, savedAt: Date.now() }));
+  document.getElementById('modal-backdrop').style.display = 'none';
+  renderAll(); showResumeAlert();
+}
+function getSavedSession() {
+  try { return JSON.parse(localStorage.getItem(KEY_SESSION)); } catch { return null; }
+}
+function showResumeAlert() {
+  const el = document.getElementById('alert-resume');
+  if (el) el.style.display = getSavedSession() ? 'flex' : 'none';
+}
+function resumeSession() {
+  const sess = getSavedSession();
+  if (!sess) return;
+  transactions = sess.transactions;
+  unknownQueue = transactions.filter(t => t.needsCat); currentIdx = 0;
+  localStorage.removeItem(KEY_SESSION);
+  document.getElementById('upload-section').style.display = 'none';
+  document.getElementById('result-section').style.display = 'block';
+  renderAll();
+  if (unknownQueue.length) showModal(unknownQueue[0]);
+}
+
+// ── SPLIT ─────────────────────────────────────────────────────
+let splitTx = null;
+function toggleSplit() {
+  const sec = document.getElementById('split-section');
+  if (sec.style.display !== 'none') { sec.style.display = 'none'; splitTx = null; return; }
+  splitTx = unknownQueue[currentIdx];
+  sec.style.display = 'block';
+  document.getElementById('split-rows').innerHTML = '';
+  addSplitRow(); addSplitRow();
+  updateSplitRemaining();
+}
+function addSplitRow() {
+  const mainOpts = Object.keys(CATEGORY_MAP).map(k => `<option>${k}</option>`).join('');
+  const row = document.createElement('div');
+  row.style.cssText = 'display:grid;grid-template-columns:90px 1fr 1fr 28px;gap:6px;margin-bottom:6px;align-items:center';
+  row.innerHTML = `<input type="number" class="split-amount" placeholder="金額" oninput="updateSplitRemaining()" style="padding:6px 8px;border:1px solid var(--gray-200);border-radius:6px;font-size:13px">
+    <select class="split-main" onchange="updateSplitSubDropdown(this)" style="padding:6px 8px;border:1px solid var(--gray-200);border-radius:6px;font-size:13px"><option value="">-- 主分類 --</option>${mainOpts}</select>
+    <select class="split-sub" style="padding:6px 8px;border:1px solid var(--gray-200);border-radius:6px;font-size:13px"><option value="">-- 子分類 --</option></select>
+    <button onclick="removeSplitRow(this)" style="border:none;background:none;cursor:pointer;color:var(--gray-400);font-size:18px;padding:0">✕</button>`;
+  document.getElementById('split-rows').appendChild(row);
+}
+function removeSplitRow(btn) { btn.closest('div').remove(); updateSplitRemaining(); }
+function updateSplitSubDropdown(sel) {
+  const subSel = sel.parentElement.querySelector('.split-sub');
+  const subs = CATEGORY_MAP[sel.value] || [];
+  subSel.innerHTML = '<option value="">-- 子分類 --</option>' + subs.map(s => `<option>${s}</option>`).join('');
+}
+function updateSplitRemaining() {
+  if (!splitTx) return;
+  const total = Array.from(document.querySelectorAll('.split-amount')).reduce((s, el) => s + (parseFloat(el.value)||0), 0);
+  const rem = splitTx.amount - total;
+  const el = document.getElementById('split-remaining');
+  el.textContent = rem.toLocaleString();
+  el.style.color = rem === 0 ? 'var(--success)' : rem < 0 ? 'var(--danger)' : 'var(--gray-600)';
+}
+function confirmSplit() {
+  const rows = document.querySelectorAll('#split-rows > div');
+  const parts = [];
+  for (const row of rows) {
+    const amt = parseFloat(row.querySelector('.split-amount').value)||0;
+    const main = row.querySelector('.split-main').value;
+    const sub = row.querySelector('.split-sub').value;
+    if (!amt || !main) { alert('請填寫每行的金額與主分類'); return; }
+    parts.push({ amt, main, sub });
+  }
+  const total = parts.reduce((s, p) => s + p.amt, 0);
+  if (Math.abs(total - splitTx.amount) > 0.01) { alert(`合計 ${total.toLocaleString()} ≠ 原始 ${splitTx.amount.toLocaleString()}`); return; }
+  const idx = transactions.indexOf(splitTx);
+  const entries = parts.map((p, i) => ({ ...splitTx, amount: p.amt, main: p.main, sub: p.sub, needsCat: false, description: splitTx.description + ` [拆分${i+1}/${parts.length}]` }));
+  transactions.splice(idx, 1, ...entries);
+  document.getElementById('split-section').style.display = 'none'; splitTx = null;
+  unknownQueue = transactions.filter(t => t.needsCat);
+  currentIdx = Math.min(currentIdx, unknownQueue.length - 1);
+  nextOrClose();
+}
+
 // ── INIT ─────────────────────────────────────────────────────
 if (!localStorage.getItem(KEY_RULES)) saveRulesStore(DEFAULT_RULES);
 if (!localStorage.getItem(KEY_ACCOUNTS)) saveAccountsStore(DEFAULT_ACCOUNTS);
+showResumeAlert();
 </script>
 <script>function copyShare(b){navigator.clipboard.writeText(location.origin+location.pathname+"?share").then(()=>{b.textContent="✅ 已複製";setTimeout(()=>b.innerHTML="🔗 分享",1500)});}</script>
 <script>
