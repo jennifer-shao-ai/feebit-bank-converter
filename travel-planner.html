@@ -116,6 +116,35 @@
 /* Calc badge */
 .calc-badge { background:var(--primary-light); color:var(--primary-dark); border-radius:6px; padding:8px 12px; font-size:13px; margin-bottom:12px; display:none; }
 
+/* Spot photo */
+.spot-photo { width:100%; max-height:160px; object-fit:cover; border-radius:6px; margin-bottom:10px; display:block; }
+
+/* Location filter */
+.loc-filter-bar { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:14px; align-items:center; }
+.loc-chip { display:inline-flex; align-items:center; gap:4px; padding:4px 10px; border-radius:20px; border:1px solid var(--gray-200); background:white; font-size:12px; font-weight:500; cursor:pointer; transition:all 0.15s; color:var(--gray-600); }
+.loc-chip:hover { border-color:var(--primary); color:var(--primary); }
+.loc-chip.active { background:var(--primary); color:white; border-color:var(--primary); }
+.loc-chip.all { background:var(--gray-800); color:white; border-color:var(--gray-800); }
+
+/* Location select combo */
+.loc-combo { display:flex; gap:6px; align-items:center; }
+.loc-combo select { flex:1; }
+
+/* Trip dropdown menu */
+.trip-menu-wrap { position:relative; display:inline-block; }
+.trip-menu { position:absolute; top:calc(100% + 4px); left:0; background:white; border:1px solid var(--gray-200); border-radius:8px; box-shadow:0 4px 16px rgba(0,0,0,0.12); z-index:300; min-width:140px; overflow:hidden; }
+.trip-menu-item { display:flex; align-items:center; gap:8px; padding:10px 14px; font-size:13px; cursor:pointer; color:var(--gray-800); white-space:nowrap; }
+.trip-menu-item:hover { background:var(--gray-50); }
+.trip-menu-item.danger { color:var(--danger); }
+.trip-menu-item + .trip-menu-item { border-top:1px solid var(--gray-100); }
+
+/* Share dropdown */
+.share-menu-wrap { position:relative; }
+.share-menu { position:absolute; top:calc(100% + 4px); right:0; background:white; border:1px solid var(--gray-200); border-radius:8px; box-shadow:0 4px 16px rgba(0,0,0,0.12); z-index:300; min-width:160px; overflow:hidden; }
+.share-menu-item { display:flex; align-items:center; gap:8px; padding:11px 14px; font-size:13px; cursor:pointer; color:var(--gray-800); white-space:nowrap; }
+.share-menu-item:hover { background:var(--gray-50); }
+.share-menu-item + .share-menu-item { border-top:1px solid var(--gray-100); }
+
 
 /* ── TOPBAR 3-col layout ── */
 .tp-bar { flex-wrap:nowrap; gap:10px; padding:0 20px; }
@@ -183,7 +212,7 @@
   <div class="sidebar-section">
     <div class="sidebar-label">財務</div>
     <a class="nav-item" href="bank-converter.html"><span class="icon">🏦</span> 帳務轉換</a>
-    <div class="nav-item soon"><span class="icon">💰</span> 定價試算<span class="soon-tag">即將推出</span></div>
+    <div class="nav-item soon"><span class="icon">💰</span> 定價試算<span class="soon-tag">即將���出</span></div>
   </div>
   <div class="sidebar-section">
     <div class="sidebar-label">行銷</div>
@@ -217,10 +246,24 @@
     </div>
     <div class="tp-bar-center">
       <select id="tripSelector" class="trip-selector" onchange="switchTrip(this.value)"></select>
+      <div class="trip-menu-wrap">
+        <button class="btn btn-outline" onclick="toggleTripMenu(event)" style="font-size:13px;padding:5px 10px" title="旅程管理">⋯</button>
+        <div class="trip-menu" id="trip-menu" style="display:none">
+          <div class="trip-menu-item" onclick="renameTripModal();closeTripMenu()">✏️ 編輯名稱</div>
+          <div class="trip-menu-item" onclick="copyTrip();closeTripMenu()">📋 複製清單</div>
+          <div class="trip-menu-item danger" onclick="deleteTrip();closeTripMenu()">🗑 刪除清單</div>
+        </div>
+      </div>
       <button class="btn btn-outline add-btn" onclick="showTripModal()" style="font-size:12px;padding:5px 10px;white-space:nowrap">+ 新增旅行</button>
     </div>
     <div class="tp-bar-right">
-      <button class="btn-share" id="shareBtn" onclick="shareTrip(this)">🔗 分享</button>
+      <div class="share-menu-wrap">
+        <button class="btn-share" onclick="toggleShareMenu(event)">🔗 分享 ▾</button>
+        <div class="share-menu" id="share-menu" style="display:none">
+          <div class="share-menu-item" onclick="shareTool();closeShareMenu()">🔧 分享這個工具</div>
+          <div class="share-menu-item" onclick="shareTrip();closeShareMenu()">✈️ 分享這趟旅行</div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -247,6 +290,7 @@
         <h3>我的待買清單</h3>
         <button class="btn btn-primary add-btn" onclick="showAddShopItem()">+ 新增商品</button>
       </div>
+      <div id="location-filter"></div>
       <div id="shop-grid" class="shop-grid"></div>
     </div>
 
@@ -433,11 +477,13 @@ function renderSpot(s, di, si) {
   const hours = s.openHours ? `<span class="spot-meta-item">🕐 ${esc(s.openHours)}</span>` : '';
   const tips = s.tips ? `<div class="spot-tips">💡 ${esc(s.tips)}</div>` : '';
   const notes = s.notes ? `<div class="spot-notes">📝 ${esc(s.notes)}</div>` : '';
+  const photo = s.photo ? `<img class="spot-photo" src="${s.photo}">` : '';
   const actions = `<div class="spot-actions">
     <button class="btn btn-outline" onclick="showSpotModal(${di},${si})">✏️ 編輯</button>
     <button class="btn btn-outline" style="color:var(--danger)" onclick="deleteSpot(${di},${si})">刪除</button>
   </div>`;
   return `<div class="spot-item">
+    ${photo}
     <div class="spot-header">
       <span class="spot-time">${s.time||'--:--'}</span>
       <div style="flex:1">
@@ -468,12 +514,48 @@ function deleteSpot(di, si) {
 }
 
 // ── SHOPPING ───────────────────────────────────
+let _locFilter = new Set(); // 空 = 顯示全部
+
+function getLocations() {
+  const t = trip(); if (!t) return [];
+  if (!t.locations) t.locations = [];
+  // 從既有商品自動補齊地點
+  (t.shoppingList||[]).forEach(item => {
+    if (item.whereToBuy && !t.locations.includes(item.whereToBuy))
+      t.locations.push(item.whereToBuy);
+  });
+  return t.locations;
+}
+
+function toggleLocFilter(loc) {
+  if (_locFilter.has(loc)) _locFilter.delete(loc);
+  else _locFilter.add(loc);
+  renderShopping();
+}
+
+function renderLocationFilter() {
+  const locs = getLocations();
+  const el = document.getElementById('location-filter');
+  if (!el) return;
+  if (locs.length === 0) { el.innerHTML = ''; return; }
+  const allActive = _locFilter.size === 0;
+  el.innerHTML = `<div class="loc-filter-bar">
+    <span style="font-size:12px;color:var(--gray-400);flex-shrink:0">地點：</span>
+    <span class="loc-chip all ${allActive?'active':''}" onclick="_locFilter.clear();renderShopping()">全部</span>
+    ${locs.map(l=>`<span class="loc-chip ${_locFilter.has(l)?'active':''}" onclick="toggleLocFilter('${escAttr(l)}')">${esc(l)}</span>`).join('')}
+  </div>`;
+}
+
 function renderShopping() {
   const t = trip();
   const grid = document.getElementById('shop-grid');
   const list = t?.shoppingList||[];
+  renderLocationFilter();
+  const filtered = _locFilter.size===0 ? list : list.filter((_,i)=>_locFilter.has(list[i].whereToBuy||''));
   if (list.length===0) { grid.innerHTML='<div class="empty-state" style="grid-column:1/-1"><div class="icon">🛍</div><p>尚無待買商品</p></div>'; return; }
-  grid.innerHTML = list.map((item,i)=>renderShopCard(item,i)).join('');
+  if (filtered.length===0) { grid.innerHTML='<div class="empty-state" style="grid-column:1/-1"><div class="icon">🔍</div><p>此地點沒有待買商品</p></div>'; return; }
+  // render with original index for edit/delete
+  grid.innerHTML = filtered.map(item => renderShopCard(item, list.indexOf(item))).join('');
 }
 
 function renderShopCard(item, i) {
@@ -607,13 +689,79 @@ function removeFriend(fi) {
   S.friends.splice(fi,1); save(); renderFriends();
 }
 
+// ── TRIP MANAGEMENT ────────────────────────────
+function toggleTripMenu(e) {
+  e.stopPropagation();
+  const m = document.getElementById('trip-menu');
+  const isOpen = m.style.display !== 'none';
+  closeShareMenu(); closeTripMenu();
+  if (!isOpen) m.style.display = 'block';
+}
+function closeTripMenu() { document.getElementById('trip-menu').style.display = 'none'; }
+
+function renameTripModal() {
+  const t = trip(); if (!t) return;
+  openModal(`<h2 style="margin-bottom:14px">編輯旅行名稱</h2>
+  <div class="form-group"><label>旅行名稱 *</label><input id="m-rename" type="text" value="${esc(t.name)}"></div>
+  <div class="form-group"><label>目的地</label><input id="m-redest" type="text" value="${esc(t.destination||'')}"></div>
+  <div class="modal-actions">
+    <button class="btn btn-primary" onclick="saveRename()">儲存</button>
+    <button class="btn btn-outline" onclick="closeModal()">取消</button>
+  </div>`);
+  setTimeout(()=>document.getElementById('m-rename')?.focus(),100);
+}
+function saveRename() {
+  const t = trip(); if (!t) return;
+  const name = document.getElementById('m-rename').value.trim();
+  if (!name) return alert('請輸入旅行名稱');
+  t.name = name;
+  t.destination = document.getElementById('m-redest').value.trim();
+  save(); closeModal(); renderAll();
+}
+
+function deleteTrip() {
+  const t = trip(); if (!t) return;
+  if (!confirm(`確定刪除「${t.name}」？此操作無法復原。`)) return;
+  S.trips = S.trips.filter(x => x.id !== t.id);
+  S.currentId = S.trips[0]?.id || null;
+  if (S.trips.length === 0) {
+    const nt = newTripObj('我的旅行', '', '', '');
+    S.trips.push(nt); S.currentId = nt.id;
+  }
+  save(); renderAll();
+}
+
+function copyTrip() {
+  const t = trip(); if (!t) return;
+  const copy = JSON.parse(JSON.stringify(t));
+  copy.id = uid();
+  copy.name = t.name + '（複本）';
+  S.trips.push(copy); S.currentId = copy.id;
+  save(); renderAll();
+  setTimeout(()=>{ const el = document.getElementById('tripSelector'); if(el) el.value = copy.id; },50);
+}
+
 // ── SHARE ──────────────────────────────────────
 function encode(data) { return btoa(unescape(encodeURIComponent(JSON.stringify(data)))); }
+
+function toggleShareMenu(e) {
+  e.stopPropagation();
+  const m = document.getElementById('share-menu');
+  const isOpen = m.style.display !== 'none';
+  closeTripMenu(); closeShareMenu();
+  if (!isOpen) m.style.display = 'block';
+}
+function closeShareMenu() { document.getElementById('share-menu').style.display = 'none'; }
+
+function shareTool() {
+  const url = location.origin + location.pathname;
+  showShareModal('🔧 分享旅行規劃工具', url, '分享此工具給朋友，他們可以建立自己的旅行規劃。');
+}
 
 function shareTrip() {
   const t = trip(); if (!t) return alert('請先選擇旅行');
   const url = location.origin + location.pathname + '?share#' + encode({ type:'trip', trip:t });
-  showShareModal('🔗 分享行程', url,
+  showShareModal('✈️ 分享這趟旅行', url,
     '朋友開啟連結後會自動匯入行程，<strong>可以自由編輯自己的版本</strong>。<br>你修改後可再次點「分享」取得最新連結。');
 }
 
@@ -679,6 +827,12 @@ function showSpotModal(di, si) {
   const s = si!==null ? t.days[di].spots[si] : {};
   const mustBuyPills = (s.mustBuy||[]).map(m=>`<span class="tag-pill">${esc(m)}<span class="rm" onclick="removeTag(this)">×</span></span>`).join('');
   openModal(`<h2 style="margin-bottom:14px">${si!==null?'編輯景點':'新增景點'}</h2>
+  <div class="form-group"><label>景點照片</label>
+    <div class="photo-upload-area" id="spotPhotoArea" onclick="document.getElementById('spotPhotoFile').click()" style="aspect-ratio:16/7">
+      ${s.photo?`<img src="${s.photo}">`:'<div class="ph-label">📷 點擊上傳照片（選填）</div>'}
+      <input type="file" id="spotPhotoFile" accept="image/*" onchange="previewPhoto(this,'spotPhotoArea')">
+    </div>
+  </div>
   <div class="form-row">
     <div class="form-group" style="flex:0 0 90px"><label>時間</label><input id="m-stime" type="time" value="${s.time||''}"></div>
     <div class="form-group"><label>景點名稱 *</label><input id="m-sname" type="text" placeholder="例：淺草寺" value="${esc(s.name||'')}"></div>
@@ -694,11 +848,12 @@ function showSpotModal(di, si) {
     </div>
   </div>
   <div class="form-group"><label>景點攻略 / 注意事項</label><textarea id="m-stips" placeholder="推薦必拍位置、注意事項…">${esc(s.tips||'')}</textarea></div>
-  <div class="form-group"><label>其他備注</label><textarea id="m-snotes" placeholder="交通方式、行前準備…">${esc(s.notes||'')}</textarea></div>
+  <div class="form-group"><label>圖片備注</label><textarea id="m-snotes" placeholder="交通方式、行前準備、圖片說明…">${esc(s.notes||'')}</textarea></div>
   <div class="modal-actions">
     <button class="btn btn-primary" onclick="saveSpotModal()">儲存</button>
     <button class="btn btn-outline" onclick="closeModal()">取消</button>
   </div>`);
+  if (s.photo) document.getElementById('spotPhotoArea')._photo = s.photo;
 }
 function handleTag(e) {
   if (e.key!=='Enter') return; e.preventDefault();
@@ -716,6 +871,7 @@ function saveSpotModal() {
   const { di, si } = _sd;
   const area = document.getElementById('mustBuyArea');
   const mustBuy = Array.from(area.querySelectorAll('.tag-pill')).map(p=>p.childNodes[0].textContent.trim());
+  const spotPhotoArea = document.getElementById('spotPhotoArea');
   const s = {
     id: si!==null ? t.days[di].spots[si].id : uid(),
     time: document.getElementById('m-stime').value,
@@ -723,6 +879,7 @@ function saveSpotModal() {
     openHours: document.getElementById('m-shours').value.trim(),
     mapUrl: document.getElementById('m-smap').value.trim(),
     mustBuy,
+    photo: spotPhotoArea?._photo || null,
     tips: document.getElementById('m-stips').value.trim(),
     notes: document.getElementById('m-snotes').value.trim()
   };
@@ -747,7 +904,16 @@ function openShopModal(item) {
   </div>
   <div class="form-group"><label>商品名稱 *</label><input id="m-iname" type="text" placeholder="例：SKII 神仙水" value="${esc(item.name||'')}"></div>
   <div class="form-row">
-    <div class="form-group"><label>在哪可以買</label><input id="m-iwhere" type="text" placeholder="例：藥妝店、免稅店" value="${esc(item.whereToBuy||'')}"></div>
+    <div class="form-group"><label>購買地點</label>
+      <div class="loc-combo">
+        <select id="m-iwhere-sel" onchange="handleLocSelect(this)">
+          <option value="">— 選擇地點 —</option>
+          ${getLocations().map(l=>`<option value="${escAttr(l)}" ${item.whereToBuy===l?'selected':''}>${esc(l)}</option>`).join('')}
+          <option value="__new__">＋ 新增地點…</option>
+        </select>
+      </div>
+      <input id="m-iwhere" type="text" placeholder="地點名稱" value="${esc(item.whereToBuy||'')}" style="margin-top:6px;display:${item.whereToBuy&&!getLocations().includes(item.whereToBuy)?'block':'none'}">
+    </div>
     <div class="form-group" style="flex:0 0 120px"><label>價格</label><input id="m-iprice" type="number" placeholder="0" value="${item.price||''}"></div>
   </div>
   <div class="form-group"><label>備注</label><textarea id="m-inotes" placeholder="可退稅、限量、品項說明…">${esc(item.notes||'')}</textarea></div>
@@ -767,15 +933,34 @@ function previewPhoto(input, areaId) {
   };
   reader.readAsDataURL(file);
 }
+function handleLocSelect(sel) {
+  const inp = document.getElementById('m-iwhere');
+  if (sel.value === '__new__') {
+    inp.style.display = 'block';
+    inp.value = '';
+    inp.focus();
+    sel.value = '';
+  } else {
+    inp.style.display = 'none';
+    inp.value = sel.value;
+  }
+}
+
 function saveShopModal() {
   const t = trip(); if (!t) return;
   const area = document.getElementById('shopPhotoArea');
   const name = document.getElementById('m-iname').value.trim();
   if (!name) return alert('請輸入商品名稱');
+  const sel = document.getElementById('m-iwhere-sel');
+  const inpWhere = document.getElementById('m-iwhere');
+  const whereToBuy = (sel.value && sel.value !== '__new__') ? sel.value : inpWhere.value.trim();
+  // 新地點自動加入 trip.locations
+  if (!t.locations) t.locations = [];
+  if (whereToBuy && !t.locations.includes(whereToBuy)) t.locations.push(whereToBuy);
   const item = {
     id: _si!==null ? t.shoppingList[_si].id : uid(),
     name, photo: area._photo||null,
-    whereToBuy: document.getElementById('m-iwhere').value.trim(),
+    whereToBuy,
     price: document.getElementById('m-iprice').value||null,
     notes: document.getElementById('m-inotes').value.trim(),
     done: _si!==null ? t.shoppingList[_si].done : false
@@ -887,6 +1072,9 @@ function saveFriendModal() {
 // ── HELPERS ────────────────────────────────────
 function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function escAttr(s) { return String(s).replace(/"/g,'&quot;'); }
+
+// ── GLOBAL CLICK CLOSE MENUS ───────────────────
+document.addEventListener('click', () => { closeTripMenu(); closeShareMenu(); });
 
 // ── START ──────────────────────────────────────
 init();
