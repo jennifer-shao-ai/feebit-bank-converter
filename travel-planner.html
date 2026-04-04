@@ -116,20 +116,22 @@
 /* Calc badge */
 .calc-badge { background:var(--primary-light); color:var(--primary-dark); border-radius:6px; padding:8px 12px; font-size:13px; margin-bottom:12px; display:none; }
 
-/* Readonly mode */
-.readonly-mode .add-btn,
-.readonly-mode .spot-actions,
-.readonly-mode .shop-actions,
-.readonly-mode .expense-actions { display:none !important; }
-.readonly-mode .shop-check { pointer-events:none; }
+
+/* ── TOPBAR 3-col layout ── */
+.tp-bar { flex-wrap:nowrap; gap:10px; padding:0 20px; }
+.tp-bar-left { display:flex; align-items:center; gap:8px; flex-shrink:0; }
+.tp-bar-center { display:flex; align-items:center; gap:8px; flex:1; min-width:0; }
+.tp-bar-center select { min-width:0; flex:1; max-width:200px; }
+.tp-bar-right { display:flex; align-items:center; flex-shrink:0; }
 
 /* ── MOBILE ── */
 @media (max-width:768px) {
-  /* Topbar 2-row layout */
-  .topbar { flex-direction:column; align-items:stretch; height:auto; padding:10px 14px; gap:6px; }
-  .tp-topbar-row1 { display:flex; align-items:center; justify-content:space-between; }
-  .tp-topbar-row2 { display:flex; align-items:center; gap:8px; }
-  .tp-topbar-row2 select { flex:1; min-width:0; }
+  /* Topbar: left+right on row 1, center wraps to row 2 */
+  .tp-bar { flex-wrap:wrap; padding:8px 14px; gap:6px; height:auto; min-height:52px; }
+  .tp-bar-left { flex:1; }
+  .tp-bar-right { flex-shrink:0; }
+  .tp-bar-center { order:10; width:100%; }
+  .tp-bar-center select { max-width:none; flex:1; }
   /* Tabs horizontal scroll */
   .tp-tabs { overflow-x:auto; -webkit-overflow-scrolling:touch; flex-wrap:nowrap; scrollbar-width:none; }
   .tp-tabs::-webkit-scrollbar { display:none; }
@@ -208,17 +210,17 @@
 
 <!-- MAIN -->
 <div id="main">
-  <div class="topbar">
-    <div class="tp-topbar-row1">
-      <div style="display:flex;align-items:center;gap:8px">
-        <button class="btn-hamburger" onclick="openSidebar()">☰</button>
-        <span class="topbar-title">旅行規劃</span>
-      </div>
-      <button class="btn-share" id="shareBtn" onclick="shareTrip(this)">🔗 分享</button>
+  <div class="topbar tp-bar">
+    <div class="tp-bar-left">
+      <button class="btn-hamburger" onclick="openSidebar()">☰</button>
+      <span class="topbar-title">旅行規劃</span>
     </div>
-    <div class="tp-topbar-row2">
+    <div class="tp-bar-center">
       <select id="tripSelector" class="trip-selector" onchange="switchTrip(this.value)"></select>
       <button class="btn btn-outline add-btn" onclick="showTripModal()" style="font-size:12px;padding:5px 10px;white-space:nowrap">+ 新增旅行</button>
+    </div>
+    <div class="tp-bar-right">
+      <button class="btn-share" id="shareBtn" onclick="shareTrip(this)">🔗 分享</button>
     </div>
   </div>
 
@@ -293,8 +295,6 @@ function closeSidebar() {
 // ── STATE ──────────────────────────────────────
 const STORAGE_KEY = 'feebit_travel_v1';
 let S = { trips:[], currentId:null, friends:[] };
-let isShared = false;
-
 function load() {
   try { const d = localStorage.getItem(STORAGE_KEY); if(d) S = JSON.parse(d); } catch(e){}
 }
@@ -308,23 +308,41 @@ function init() {
   const hash = location.hash.slice(1);
 
   if (params.has('share') && hash) {
+    // 分享連結：匯入資料到本機，完全可編輯
     try {
       const data = JSON.parse(decodeURIComponent(escape(atob(hash))));
-      isShared = true;
+      load(); // 先載入本機已有的資料
+      if (!S.trips) S.trips = [];
+      if (!S.friends) S.friends = [];
+
       if (data.type === 'trip') {
-        S.trips = [data.trip];
+        // 若本機已有同 id 的旅行，直接切換；否則匯入
+        const existing = S.trips.find(t => t.id === data.trip.id);
+        if (!existing) {
+          S.trips.unshift(data.trip);
+        }
         S.currentId = data.trip.id;
+        save();
+        // 提示使用者：已匯入、可自由編輯、分享更新後連結
+        showImportBanner(data.trip.name);
       } else if (data.type === 'list') {
-        // show as friend list view
-        S.friends = [{ name: data.name || '旅伴', listData: data.listData || [] }];
-        isShared = true;
+        // 清單分享：加入朋友清單
+        const already = S.friends.find(f => f._shareId === data._shareId);
+        if (!already && data._shareId) {
+          S.friends.push({ name: data.name || '旅伴', listData: data.listData || [], _shareId: data._shareId });
+          save();
+        }
+        if (!S.currentId && S.trips.length > 0) S.currentId = S.trips[0].id;
+        // 切換到朋友清單 tab
+        setTimeout(() => switchTab('friends', document.querySelectorAll('.tp-tab')[3]), 100);
       }
-      document.getElementById('mainPage').classList.add('readonly-mode');
-      document.querySelector('.add-btn')?.remove();
-      document.getElementById('shareBtn').innerHTML = '👁 唯讀';
-      document.getElementById('shareBtn').onclick = null;
-      document.getElementById('shareBtn').style.cursor = 'default';
-    } catch(e) { isShared = false; }
+    } catch(e) {
+      load();
+      if (!S.trips) S.trips = [];
+      if (!S.friends) S.friends = [];
+    }
+    // 清掉 URL 的 hash，避免重新整理重複匯入
+    history.replaceState(null, '', location.pathname + '?share');
   } else {
     load();
     if (!S.trips) S.trips = [];
@@ -338,6 +356,14 @@ function init() {
     if (!S.currentId) S.currentId = S.trips[0].id;
   }
   renderAll();
+}
+
+function showImportBanner(tripName) {
+  const banner = document.createElement('div');
+  banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#16a34a;color:white;text-align:center;padding:10px 16px;font-size:13px;font-weight:500;display:flex;align-items:center;justify-content:center;gap:12px;';
+  banner.innerHTML = `✅ 已匯入「${esc(tripName)}」，你可以自由編輯！<button onclick="this.parentElement.remove()" style="background:rgba(255,255,255,0.25);border:none;color:white;padding:3px 10px;border-radius:4px;cursor:pointer;font-size:12px">關閉</button>`;
+  document.body.prepend(banner);
+  setTimeout(() => banner.remove(), 5000);
 }
 
 function newTripObj(name, dest, start, end) {
@@ -361,7 +387,7 @@ function renderAll() {
 function renderSelector() {
   const sel = document.getElementById('tripSelector');
   sel.innerHTML = S.trips.map(t => `<option value="${t.id}" ${t.id===S.currentId?'selected':''}>${t.name}</option>`).join('');
-  if (isShared) sel.disabled = true;
+  // selector always enabled
 }
 
 // ── TABS ───────────────────────────────────────
@@ -389,8 +415,8 @@ function renderDay(day, di) {
   const spotsHTML = spots.length===0
     ? `<div style="color:var(--gray-400);font-size:13px;padding:6px 0">尚無景點</div>`
     : spots.map((s,si)=>renderSpot(s,di,si)).join('');
-  const addBtn = isShared ? '' : `<button class="btn btn-outline add-btn" style="font-size:12px;padding:4px 10px" onclick="showSpotModal(${di},null)">+ 景點</button>`;
-  const delBtn = isShared ? '' : `<button class="btn btn-outline add-btn" style="font-size:12px;padding:4px 10px;color:var(--danger);margin-left:4px" onclick="deleteDay(${di})">刪除</button>`;
+  const addBtn = `<button class="btn btn-outline add-btn" style="font-size:12px;padding:4px 10px" onclick="showSpotModal(${di},null)">+ 景點</button>`;
+  const delBtn = `<button class="btn btn-outline add-btn" style="font-size:12px;padding:4px 10px;color:var(--danger);margin-left:4px" onclick="deleteDay(${di})">刪除</button>`;
   return `<div class="day-card">
     <div class="day-header">
       <span class="day-label">Day ${di+1}</span>
@@ -407,7 +433,7 @@ function renderSpot(s, di, si) {
   const hours = s.openHours ? `<span class="spot-meta-item">🕐 ${esc(s.openHours)}</span>` : '';
   const tips = s.tips ? `<div class="spot-tips">💡 ${esc(s.tips)}</div>` : '';
   const notes = s.notes ? `<div class="spot-notes">📝 ${esc(s.notes)}</div>` : '';
-  const actions = isShared ? '' : `<div class="spot-actions">
+  const actions = `<div class="spot-actions">
     <button class="btn btn-outline" onclick="showSpotModal(${di},${si})">✏️ 編輯</button>
     <button class="btn btn-outline" style="color:var(--danger)" onclick="deleteSpot(${di},${si})">刪除</button>
   </div>`;
@@ -452,7 +478,7 @@ function renderShopping() {
 
 function renderShopCard(item, i) {
   const photo = item.photo ? `<img src="${item.photo}">` : '🛍';
-  const actions = isShared ? '' : `<div class="shop-actions">
+  const actions = `<div class="shop-actions">
     <button class="btn btn-outline" onclick="showEditShopItem(${i})">編輯</button>
     <button class="btn btn-outline" style="color:var(--danger)" onclick="deleteShopItem(${i})">刪除</button>
   </div>`;
@@ -494,7 +520,7 @@ function renderExpenseItem(e, i) {
   const sym = currSym(e.currency||'JPY');
   const per = e.splitCount>0 ? Math.ceil(Number(e.amount)/Number(e.splitCount)) : 0;
   const receipt = e.receiptPhoto ? `<div class="expense-receipt"><img src="${e.receiptPhoto}" onclick="viewReceipt(${i})" title="查看收據"></div>` : '';
-  const actions = isShared ? '' : `<div class="expense-actions">
+  const actions = `<div class="expense-actions">
     <button class="btn btn-outline" onclick="showEditExpense(${i})">✏️ 編輯</button>
     <button class="btn btn-outline" style="color:var(--danger)" onclick="deleteExpense(${i})">刪除</button>
   </div>`;
@@ -587,15 +613,17 @@ function encode(data) { return btoa(unescape(encodeURIComponent(JSON.stringify(d
 function shareTrip() {
   const t = trip(); if (!t) return alert('請先選擇旅行');
   const url = location.origin + location.pathname + '?share#' + encode({ type:'trip', trip:t });
-  showShareModal('🔗 分享行程連結', url, '朋友開啟後可查看完整行程（唯讀），並可自行編輯自己的待買清單');
+  showShareModal('🔗 分享行程', url,
+    '朋友開啟連結後會自動匯入行程，<strong>可以自由編輯自己的版本</strong>。<br>你修改後可再次點「分享」取得最新連結。');
 }
 
 function shareMyList() {
   const t = trip(); if (!t) return alert('請先選擇旅行');
   const name = prompt('輸入你的名字（朋友會看到）：', '') || '旅伴';
   if (!name) return;
-  const url = location.origin + location.pathname + '?share#' + encode({ type:'list', name, listData: t.shoppingList||[] });
-  showShareModal('📤 分享待買清單', url, '朋友貼入「朋友清單」後，可查看你的待買清單（唯讀）');
+  const shareId = uid();
+  const url = location.origin + location.pathname + '?share#' + encode({ type:'list', name, _shareId: shareId, listData: t.shoppingList||[] });
+  showShareModal('📤 分享待買清單', url, '朋友開啟後會自動加到「朋友清單」分頁（唯讀）。你更新清單後可再次點「分享」取得最新連結。');
 }
 
 // ── MODALS ─────────────────────────────────────
