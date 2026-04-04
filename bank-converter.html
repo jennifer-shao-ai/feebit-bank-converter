@@ -299,11 +299,11 @@ function upsertRule(rule) {
   if (idx >= 0) rules[idx] = rule; else rules.push(rule);
   saveRulesStore(rules);
 }
-function findRule(summary, payeeCode) {
-  const rules = getRules(); const s = summary.trim(); const p = payeeCode.trim();
+function findRule(summary, payeeCode, fullText) {
+  const rules = getRules(); const s = summary.trim(); const p = payeeCode.trim(); const f = (fullText||'').trim();
   for (const r of rules) { if (!r.contains && r.summary === s && r.payeeKey && p.includes(r.payeeKey)) return r; }
   for (const r of rules) { if (!r.contains && r.summary === s && !r.payeeKey) return r; }
-  for (const r of rules) { if (r.contains && s.includes(r.summary)) return r; }
+  for (const r of rules) { if (r.contains && (s.includes(r.summary) || f.includes(r.summary))) return r; }
   return null;
 }
 
@@ -344,7 +344,8 @@ function parseTWD2601(text) {
     const summary   = (f[C.SUM]||'').trim();
     const payeeCode = (f[C.PAYEE]||'').trim();
     const note      = (f[C.NOTE]||'') + (f[C.MEMO] ? ' '+f[C.MEMO] : '');
-    const rule      = findRule(summary, payeeCode);
+    const fullText  = [summary, payeeCode, note.trim()].join(' ');
+    const rule      = findRule(summary, payeeCode, fullText);
     const descParts = [summary, payeeCode, note.trim()].filter(s => s && s !== '00000000');
     result.push({
       date: rocToAd(f[C.TX_DT]), accountNum: f[C.ACC],
