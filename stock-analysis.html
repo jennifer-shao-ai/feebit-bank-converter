@@ -7,6 +7,9 @@
 <link rel="icon" href="favicon.svg">
 <script>if(location.search.includes("share"))document.documentElement.classList.add("standalone");</script>
 <link rel="stylesheet" href="style.css">
+<!-- Firebase SDK (Realtime Database) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <style>
 #stock-dropzone { border: 2px dashed var(--gray-200); border-radius: var(--radius); padding: 48px 24px; text-align: center; cursor: pointer; transition: all 0.2s; background: white; margin-bottom: 20px; }
 #stock-dropzone:hover, #stock-dropzone.dragover { border-color: var(--primary); background: var(--primary-light); }
@@ -198,11 +201,49 @@ let stockSortDir = 'asc';
 const KEY_HIDDEN = 'feebit_hidden_codes';
 const KEY_ORDER  = 'feebit_order_qty';
 
+// ── Firebase 跨瀏覽器同步（隱藏商品）
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyDeJOndThLbBxeVwZ6tAPTpbg5gmmhPRpg",
+  authDomain: "jennifer-travel.firebaseapp.com",
+  databaseURL: "https://jennifer-travel-default-rtdb.firebaseio.com",
+  projectId: "jennifer-travel",
+  storageBucket: "jennifer-travel.firebasestorage.app",
+  messagingSenderId: "226431059637",
+  appId: "1:226431059637:web:ca13d5e86396e45b9160fc"
+};
+let _fbDb = null;
+const FB_HIDDEN_PATH = 'feebit/stock_hidden_codes';
+
+function initStockFirebase() {
+  if (_fbDb) return;
+  try {
+    // 若 travel-planner 也在同頁則 app 已存在，用 getApp 取
+    let app;
+    try { app = firebase.app('stock-analysis'); } catch(e) {
+      app = firebase.initializeApp(FIREBASE_CONFIG, 'stock-analysis');
+    }
+    _fbDb = firebase.database(app);
+    // 監聽遠端變更（其他瀏覽器改動時自動更新）
+    _fbDb.ref(FB_HIDDEN_PATH).on('value', snap => {
+      const codes = snap.val() || [];
+      localStorage.setItem(KEY_HIDDEN, JSON.stringify(codes));
+      stockRender();
+    });
+  } catch(e) { console.warn('Firebase init failed, fallback to localStorage:', e); }
+}
+
 function getHiddenCodes() {
   try { return new Set(JSON.parse(localStorage.getItem(KEY_HIDDEN)) || []); }
   catch(e) { return new Set(); }
 }
-function saveHiddenCodes(set) { localStorage.setItem(KEY_HIDDEN, JSON.stringify([...set])); }
+function saveHiddenCodes(set) {
+  const arr = [...set];
+  localStorage.setItem(KEY_HIDDEN, JSON.stringify(arr));
+  // 同步到 Firebase
+  if (_fbDb) {
+    _fbDb.ref(FB_HIDDEN_PATH).set(arr).catch(e => console.warn('Firebase write error:', e));
+  }
+}
 function getOrderQty() { try { return JSON.parse(localStorage.getItem(KEY_ORDER)) || {}; } catch(e) { return {}; } }
 function saveOrderQty(obj) { localStorage.setItem(KEY_ORDER, JSON.stringify(obj)); }
 function onOrderInput(code, val) { const obj = getOrderQty(); if (val === '') delete obj[code]; else obj[code] = val; saveOrderQty(obj); }
@@ -336,7 +377,13 @@ function stockRender() {
   let products = [...stockProducts];
   const dir = stockSortDir === 'asc' ? 1 : -1;
   if (stockSortKey === 'code')    products.sort((a,b) => a.code.localeCompare(b.code) * dir);
-  else if (stockSortKey === 'name')    products.sort((a,b) => a.name.localeCompare(b.name, 'zh-TW') * dir);
+  else if (stockSortKey === 'name')    products.sort((a,b) => {
+    // 英文/數字開頭排在中文前面，讓 A-Z 時 A 確實在最前
+    const isCJK = s => /^[\u4e00-\u9fff\u3400-\u4dbf]/.test(s);
+    const ac = isCJK(a.name), bc = isCJK(b.name);
+    if (ac !== bc) return (ac ? 1 : -1) * dir;
+    return a.name.localeCompare(b.name, 'zh-TW') * dir;
+  });
   else if (stockSortKey === 'safety')  products.sort((a,b) => ((a.safety ?? -1) - (b.safety ?? -1)) * dir);
   else if (stockSortKey === 'qty')     products.sort((a,b) => ((a.qty ?? -1) - (b.qty ?? -1)) * dir);
   else if (stockSortKey === 'suggest') products.sort((a,b) => ((typeof a.suggest === 'number' ? a.suggest : -1) - (typeof b.suggest === 'number' ? b.suggest : -1)) * dir);
@@ -435,6 +482,9 @@ function stockDownloadCSV() {
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
   a.download = `feebit_stock_${new Date().toISOString().slice(0,10).replace(/-/g,'')}.csv`; a.click();
 }
+
+// 初始化 Firebase 跨瀏覽器同步
+initStockFirebase();
 
 // ── DRAG & DROP ──────────────────────────────────────────────────
 const sdz = document.getElementById('stock-dropzone');
