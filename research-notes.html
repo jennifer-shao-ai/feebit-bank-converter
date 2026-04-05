@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>研發筆記 — 飛比特</title>
 <link rel="icon" href="favicon.svg">
-<script>if(location.search.includes("share"))document.documentElement.classList.add("standalone");</script>
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -90,12 +89,25 @@
 
 .btn-sm { padding: 5px 10px; font-size: 12px; }
 .btn-danger { background: var(--danger); color: white; }
+
+/* Input queue */
+.queue-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+.queue-item { display: flex; align-items: center; gap: 8px; padding: 7px 10px; background: var(--gray-50); border-radius: var(--radius); border: 1px solid var(--gray-200); font-size: 12px; }
+.queue-item-label { flex: 1; color: var(--gray-700); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.queue-item-remove { border: none; background: transparent; color: var(--gray-400); cursor: pointer; font-size: 14px; line-height: 1; padding: 0 2px; }
+.queue-item-remove:hover { color: var(--danger); }
+
+/* Viewer tabs */
+.viewer-tabs { display: flex; margin-bottom: 16px; border-bottom: 2px solid var(--gray-200); }
+.vtab-btn { padding: 8px 16px; font-size: 13px; font-weight: 500; border: none; background: transparent; cursor: pointer; color: var(--gray-500); border-bottom: 2px solid transparent; margin-bottom: -2px; transition: color 0.15s; }
+.vtab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+.vtab-btn:hover:not(.active) { color: var(--gray-700); }
+
+/* Synthesis */
+.synthesis-placeholder { text-align: center; color: var(--gray-400); font-size: 14px; padding: 60px 20px; line-height: 2; }
 </style>
 </head>
 <body>
-
-<!-- ── SIDEBAR OVERLAY ── -->
-<div id="sidebar-overlay" onclick="closeSidebar()"></div>
 
 <!-- ── SIDEBAR ── -->
 <div id="sidebar">
@@ -132,19 +144,18 @@
     <div class="sidebar-label">系統</div>
     <a class="nav-item" href="tools.html"><span class="icon">🔧</span> 使用工具</a>
   </div>
-  <div class="sidebar-footer">v1.1 · Feebit © 2026</div>
+  <div class="sidebar-footer">v1.2 · Feebit © 2026</div>
 </div>
 
 <!-- ── MAIN ── -->
 <div id="main">
   <div class="topbar">
-    <div style="display:flex;align-items:center;gap:8px">
-      <button class="btn-hamburger" onclick="openSidebar()">☰</button>
-      <span class="topbar-title">研發筆記</span>
-    </div>
+    <span class="topbar-title">研發筆記</span>
+    <span style="font-size:11px;color:var(--gray-400);margin-left:4px">v1.2</span>
     <div style="display:flex;gap:8px;align-items:center;">
+      <button class="btn btn-outline btn-sm" id="btn-synthesize" style="display:none;">🔗 整合摘要</button>
       <button class="btn btn-outline btn-sm" id="btn-add-note" style="display:none;">＋ 新增資料</button>
-      <button class="btn-share" onclick="copyShare(this)">🔗 分享</button>
+      <span class="topbar-badge">飛比特營運工具箱</span>
     </div>
   </div>
 
@@ -222,8 +233,19 @@
 
 <!-- ── MODAL: 新增資料 ── -->
 <div class="modal-backdrop" id="modal-add-note" style="display:none;">
-  <div class="modal" style="width:540px;">
+  <div class="modal" style="width:560px;max-height:90vh;overflow-y:auto;">
     <h2 style="margin-bottom:16px;">新增資料</h2>
+
+    <!-- Queue -->
+    <div id="input-queue-section" style="display:none;margin-bottom:12px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <span style="font-size:13px;font-weight:600;color:var(--gray-700);">已加入佇列</span>
+        <span id="queue-count-badge" style="font-size:12px;background:var(--primary-light);color:var(--primary);padding:1px 8px;border-radius:10px;font-weight:600;">0</span>
+      </div>
+      <div class="queue-list" id="input-queue-list"></div>
+      <hr style="border:none;border-top:1px solid var(--gray-200);margin:12px 0;">
+      <div style="font-size:12px;font-weight:600;color:var(--gray-500);margin-bottom:10px;">繼續新增</div>
+    </div>
 
     <div class="add-type-grid">
       <button class="type-btn selected" data-type="url">
@@ -284,7 +306,8 @@
     </div>
 
     <div class="modal-actions" style="margin-top:16px;">
-      <button class="btn btn-primary" id="btn-save-note">儲存</button>
+      <button class="btn btn-primary" id="btn-batch-save" disabled>全部儲存（<span id="save-count">0</span> 筆）</button>
+      <button class="btn btn-outline" id="btn-add-to-queue">＋ 加入清單</button>
       <button class="btn btn-outline" onclick="closeModal('modal-add-note')">取消</button>
     </div>
   </div>
@@ -312,6 +335,8 @@ let selectedEmoji = '📓';
 let fetchedContent = '';
 let fetchedTitle = '';
 let ocrText = '';
+let inputQueue = [];
+let viewMode = 'note'; // 'note' | 'synthesis'
 
 // ── INIT ──
 async function init() {
@@ -345,6 +370,7 @@ async function saveNotebook(name, desc, emoji) {
   renderNotebookSelect();
   document.getElementById('notebook-select').value = data.id;
   currentNotebook = data;
+  document.getElementById('btn-synthesize').style.display = '';
   document.getElementById('btn-add-note').style.display = '';
   notes = [];
   renderNoteList();
@@ -358,6 +384,13 @@ async function saveNote(noteData) {
   renderNoteList();
   selectNote(data);
   showToast('✅ 已儲存');
+}
+
+async function saveNoteSilent(noteData) {
+  const { data, error } = await db.from('notes').insert({ ...noteData, notebook_id: currentNotebook.id }).select().single();
+  if (error) throw new Error(error.message);
+  notes.unshift(data);
+  return data;
 }
 
 async function deleteNote(id) {
@@ -374,7 +407,7 @@ async function updateNoteSummary(id, summary) {
   const { error } = await db.from('notes').update({ summary }).eq('id', id);
   if (error) { showToast('更新失敗'); return; }
   const note = notes.find(n => n.id === id);
-  if (note) { note.summary = summary; renderViewer(note); }
+  if (note) { note.summary = summary; if (currentNote?.id === id) renderViewer(note); }
 }
 
 // ── EDGE FUNCTIONS ──
@@ -432,8 +465,13 @@ function renderNoteList() {
 
 function selectNote(note) {
   currentNote = note;
+  viewMode = 'note';
   renderNoteList();
   renderViewer(note);
+  if (currentNotebook) {
+    document.getElementById('btn-synthesize').style.display = '';
+    document.getElementById('btn-add-note').style.display = '';
+  }
 }
 
 function renderViewer(note) {
@@ -448,18 +486,42 @@ function renderViewer(note) {
   }
 
   toolbar.style.display = '';
+  document.getElementById('btn-ai-summarize').style.display = '';
+  document.getElementById('btn-delete-note').style.display = '';
+
   if (note.source_url) {
     sourceDisplay.innerHTML = `來源：<a href="${escHtml(note.source_url)}" target="_blank" rel="noopener">${escHtml(note.source_url)}</a>`;
   } else {
     sourceDisplay.innerHTML = `<span style="color:var(--gray-400)">${sourceLabel(note.source_type)}</span>`;
   }
 
+  const hasSummary = !!note.summary;
   viewer.innerHTML = `
     <div class="rn-viewer-title">${escHtml(note.title)}</div>
     <div class="rn-viewer-date">${new Date(note.created_at).toLocaleString('zh-TW')} · ${sourceLabel(note.source_type)}</div>
-    ${note.summary ? `<div class="rn-viewer-summary"><strong>✨ AI 整理摘要</strong><br><br>${escHtml(note.summary)}</div>` : ''}
-    <div class="rn-viewer-content">${escHtml(note.content || '（無內容）')}</div>
+    <div class="viewer-tabs">
+      <button class="vtab-btn ${hasSummary ? 'active' : ''}" data-tab="summary">✨ AI 摘要</button>
+      <button class="vtab-btn ${!hasSummary ? 'active' : ''}" data-tab="content">📄 原始內容</button>
+    </div>
+    <div id="vtab-summary" style="display:${hasSummary ? 'block' : 'none'};">
+      ${note.summary
+        ? `<div class="rn-viewer-summary">${escHtml(note.summary)}</div>`
+        : `<div class="synthesis-placeholder" style="padding:40px 20px;">尚未產生 AI 摘要<br>點工具列「✨ AI 整理」開始</div>`
+      }
+    </div>
+    <div id="vtab-content" style="display:${!hasSummary ? 'block' : 'none'};">
+      <div class="rn-viewer-content">${escHtml(note.content || '（無內容）')}</div>
+    </div>
   `;
+  viewer.querySelectorAll('.vtab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      viewer.querySelectorAll('.vtab-btn').forEach(b => b.classList.remove('active'));
+      viewer.querySelector('#vtab-summary').style.display = 'none';
+      viewer.querySelector('#vtab-content').style.display = 'none';
+      btn.classList.add('active');
+      viewer.querySelector(`#vtab-${btn.dataset.tab}`).style.display = 'block';
+    });
+  });
 }
 
 // ── EVENT LISTENERS ──
@@ -472,10 +534,12 @@ function setupEventListeners() {
       notes = [];
       renderNoteList();
       renderViewer(null);
+      document.getElementById('btn-synthesize').style.display = 'none';
       document.getElementById('btn-add-note').style.display = 'none';
       return;
     }
     currentNotebook = notebooks.find(nb => nb.id === id);
+    document.getElementById('btn-synthesize').style.display = '';
     document.getElementById('btn-add-note').style.display = '';
     await loadNotes(id);
   });
@@ -539,8 +603,14 @@ function setupEventListeners() {
     if (file) runOCR(file);
   });
 
-  // Save note
-  document.getElementById('btn-save-note').addEventListener('click', handleSaveNote);
+  // Add to queue
+  document.getElementById('btn-add-to-queue').addEventListener('click', addToQueue);
+
+  // Batch save
+  document.getElementById('btn-batch-save').addEventListener('click', handleBatchSave);
+
+  // Synthesize notebook
+  document.getElementById('btn-synthesize').addEventListener('click', handleSynthesizeNotebook);
 
   // Delete note
   document.getElementById('btn-delete-note').addEventListener('click', () => {
@@ -569,11 +639,47 @@ function setupEventListeners() {
   });
 }
 
-// ── HANDLERS ──
-async function handleSaveNote() {
-  const btn = document.getElementById('btn-save-note');
+// ── QUEUE ──
+function renderQueue() {
+  const section = document.getElementById('input-queue-section');
+  const list = document.getElementById('input-queue-list');
+  const badge = document.getElementById('queue-count-badge');
+  const saveCount = document.getElementById('save-count');
+  const saveBtn = document.getElementById('btn-batch-save');
+  const typeIcon = { url: '🌐', youtube: '▶️', image: '🖼', manual: '✏️' };
+
+  if (!inputQueue.length) {
+    section.style.display = 'none';
+    saveBtn.disabled = true;
+    if (saveCount) saveCount.textContent = '0';
+    return;
+  }
+  section.style.display = 'block';
+  badge.textContent = inputQueue.length;
+  if (saveCount) saveCount.textContent = inputQueue.length;
+  saveBtn.disabled = false;
+
+  list.innerHTML = inputQueue.map((item, i) => `
+    <div class="queue-item">
+      <span>${typeIcon[item.type] || '📄'}</span>
+      <span class="source-badge badge-${item.type}">${sourceLabel(item.type)}</span>
+      <span class="queue-item-label">${escHtml(item.label)}</span>
+      <button class="queue-item-remove" data-idx="${i}" title="移除">✕</button>
+    </div>
+  `).join('');
+  list.querySelectorAll('.queue-item-remove').forEach(btn => {
+    btn.addEventListener('click', () => {
+      inputQueue.splice(parseInt(btn.dataset.idx), 1);
+      renderQueue();
+    });
+  });
+}
+
+async function addToQueue() {
+  const btn = document.getElementById('btn-add-to-queue');
   btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span>';
+  const origText = btn.textContent;
+  btn.innerHTML = '<span class="spinner" style="border-top-color:var(--primary);border-color:var(--gray-200);border-top-color:var(--primary);"></span>';
 
   try {
     if (selectedType === 'url') {
@@ -587,7 +693,10 @@ async function handleSaveNote() {
         content = res.content;
         title = res.title || url;
       }
-      await saveNote({ title, content, source_url: url, source_type: 'url' });
+      inputQueue.push({ type: 'url', url, content, title, label: title || url });
+      fetchedContent = ''; fetchedTitle = '';
+      document.getElementById('input-url').value = '';
+      document.getElementById('url-preview').style.display = 'none';
 
     } else if (selectedType === 'youtube') {
       const url = document.getElementById('input-youtube').value.trim();
@@ -595,30 +704,128 @@ async function handleSaveNote() {
       let content = fetchedContent;
       let title = fetchedTitle;
       if (!content) {
+        showToast('擷取字幕中...');
         const res = await callEdgeFunction('youtube-transcript', { url });
         content = res.transcript;
         title = res.title || 'YouTube 影片';
       }
-      await saveNote({ title, content, source_url: url, source_type: 'youtube' });
+      inputQueue.push({ type: 'youtube', url, content, title, label: title || url });
+      fetchedContent = ''; fetchedTitle = '';
+      document.getElementById('input-youtube').value = '';
+      document.getElementById('yt-preview').style.display = 'none';
 
     } else if (selectedType === 'image') {
       if (!ocrText) { showToast('請先上傳圖片並等待辨識完成'); return; }
       const filename = document.getElementById('file-input').files[0]?.name || '圖片';
-      await saveNote({ title: filename, content: ocrText, source_type: 'image' });
+      inputQueue.push({ type: 'image', content: ocrText, title: filename, label: filename });
+      ocrText = '';
+      document.getElementById('file-input').value = '';
+      document.getElementById('img-preview').style.display = 'none';
+      document.getElementById('ocr-status').textContent = '';
+      document.getElementById('ocr-progress-bar').style.display = 'none';
 
     } else if (selectedType === 'manual') {
       const title = document.getElementById('input-manual-title').value.trim();
       const content = document.getElementById('input-manual-content').value.trim();
       if (!title) { showToast('請輸入標題'); return; }
-      await saveNote({ title, content, source_type: 'manual' });
+      inputQueue.push({ type: 'manual', content, title, label: title });
+      document.getElementById('input-manual-title').value = '';
+      document.getElementById('input-manual-content').value = '';
     }
-    closeModal('modal-add-note');
-  } catch (err) {
+    renderQueue();
+    showToast('✅ 已加入清單');
+  } catch(err) {
     showToast('錯誤: ' + err.message);
   } finally {
     btn.disabled = false;
-    btn.textContent = '儲存';
+    btn.textContent = origText;
   }
+}
+
+async function handleBatchSave() {
+  if (!inputQueue.length) { showToast('清單是空的'); return; }
+  const btn = document.getElementById('btn-batch-save');
+  btn.disabled = true;
+  let saved = 0;
+  const total = inputQueue.length;
+  for (let i = 0; i < total; i++) {
+    const item = inputQueue[i];
+    btn.innerHTML = `<span class="spinner"></span> 儲存 ${i + 1}/${total}`;
+    try {
+      await saveNoteSilent({ title: item.title, content: item.content, source_url: item.url || null, source_type: item.type });
+      saved++;
+    } catch(err) {
+      showToast(`第 ${i + 1} 筆失敗`);
+    }
+  }
+  renderNoteList();
+  if (saved > 0) {
+    const lastNote = notes[0];
+    if (lastNote) selectNote(lastNote);
+  }
+  showToast(`✅ 已儲存 ${saved}/${total} 筆`);
+  inputQueue = [];
+  closeModal('modal-add-note');
+  btn.disabled = false;
+  btn.innerHTML = '全部儲存（<span id="save-count">0</span> 筆）';
+}
+
+// ── SYNTHESIS ──
+async function handleSynthesizeNotebook() {
+  if (!currentNotebook) return;
+  if (!notes.length) { showToast('筆記本還沒有資料'); return; }
+  const btn = document.getElementById('btn-synthesize');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner" style="border-top-color:var(--primary);border-color:var(--gray-200);border-top-color:var(--primary);"></span> 整合中';
+
+  try {
+    const combined = notes.map((n, i) =>
+      `【資料 ${i + 1}：${n.title}】\n來源：${sourceLabel(n.source_type)}${n.source_url ? ' (' + n.source_url + ')' : ''}\n\n${(n.content || '').slice(0, 2000)}`
+    ).join('\n\n────────\n\n');
+
+    const res = await callEdgeFunction('ai-summarize', {
+      content: combined,
+      title: `整合摘要 — ${currentNotebook.emoji} ${currentNotebook.name}（共 ${notes.length} 筆資料）`
+    });
+    localStorage.setItem(`nb-syn-${currentNotebook.id}`, JSON.stringify({
+      synthesis: res.summary,
+      noteCount: notes.length,
+      updatedAt: new Date().toISOString()
+    }));
+    renderSynthesisView();
+    showToast('✨ 整合摘要完成');
+  } catch(err) {
+    showToast('整合失敗: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '🔗 整合摘要';
+  }
+}
+
+function renderSynthesisView() {
+  viewMode = 'synthesis';
+  currentNote = null;
+  renderNoteList();
+
+  const toolbar = document.getElementById('rn-right-toolbar');
+  const sourceDisplay = document.getElementById('note-source-display');
+  const viewer = document.getElementById('rn-viewer');
+
+  toolbar.style.display = '';
+  document.getElementById('btn-ai-summarize').style.display = 'none';
+  document.getElementById('btn-delete-note').style.display = 'none';
+  sourceDisplay.innerHTML = `<span style="color:var(--gray-600);font-weight:600;">📊 整合摘要 — ${escHtml(currentNotebook.emoji + ' ' + currentNotebook.name)}</span>`;
+
+  const stored = JSON.parse(localStorage.getItem(`nb-syn-${currentNotebook.id}`) || 'null');
+  if (!stored) {
+    viewer.innerHTML = `<div class="synthesis-placeholder">🔗<br><br>點上方「整合摘要」按鈕<br>AI 將綜合整理本筆記本所有 <strong>${notes.length}</strong> 筆資料的重點</div>`;
+    return;
+  }
+  viewer.innerHTML = `
+    <div class="rn-viewer-title">📊 ${escHtml(currentNotebook.emoji)} ${escHtml(currentNotebook.name)} 整合摘要</div>
+    <div class="rn-viewer-date">最後更新：${new Date(stored.updatedAt).toLocaleString('zh-TW')} · 共整合 ${stored.noteCount} 筆資料</div>
+    <div class="rn-viewer-summary" style="white-space:pre-wrap;">${escHtml(stored.synthesis)}</div>
+  `;
 }
 
 async function handleAISummarize() {
@@ -712,6 +919,8 @@ document.getElementById('input-youtube').addEventListener('blur', async function
 
 // ── HELPERS ──
 function resetAddModal() {
+  inputQueue = [];
+  renderQueue();
   selectedType = 'url';
   fetchedContent = '';
   fetchedTitle = '';
@@ -744,10 +953,6 @@ function showToast(msg, duration = 2500) {
   clearTimeout(t._timer);
   t._timer = setTimeout(() => { t.style.display = 'none'; }, duration);
 }
-
-function openSidebar() { document.getElementById('sidebar').classList.add('open'); document.getElementById('sidebar-overlay').classList.add('show'); }
-function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebar-overlay').classList.remove('show'); }
-function copyShare(b) { navigator.clipboard.writeText(location.origin+location.pathname+'?share').then(()=>{b.textContent='✅ 已複製';setTimeout(()=>b.innerHTML='🔗 分享',1500)}); }
 
 init();
 </script>
