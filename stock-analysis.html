@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>庫存訂貨分析 · 飛比特工具箱</title>
+<link rel="icon" href="favicon.svg">
+<script>if(location.search.includes("share"))document.documentElement.classList.add("standalone");</script>
+<link rel="stylesheet" href="style.css">
+<style>
+#stock-dropzone { border: 2px dashed var(--gray-200); border-radius: var(--radius); padding: 48px 24px; text-align: center; cursor: pointer; transition: all 0.2s; background: white; margin-bottom: 20px; }
+#stock-dropzone:hover, #stock-dropzone.dragover { border-color: var(--primary); background: var(--primary-light); }
+.stock-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; margin-bottom: 16px; }
+.stat-card { background: white; border-radius: var(--radius); padding: 14px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+.stat-card .stat-num { font-size: 26px; font-weight: 700; }
+.stat-card .stat-label { font-size: 11px; color: var(--gray-600); margin-top: 4px; line-height: 1.3; }
+.stock-legend { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+.legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; padding: 4px 10px; border-radius: 4px; }
+.dot { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; }
+.row-red    td { background: #ffe5e5; }
+.row-blue   td { background: #dbeeff; }
+.row-orange td { background: #fff0db; }
+.row-yellow td { background: #fffde7; }
+.row-purple td { color: #7c3aed; font-weight: 700; }
+.row-hidden td { opacity: 0.45; }
+.stock-sort { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.sort-btn { padding: 4px 12px; border-radius: var(--radius); border: 1px solid var(--gray-200); cursor: pointer; font-size: 12px; background: white; color: var(--gray-600); transition: all 0.15s; }
+.sort-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+.sort-btn:hover:not(.active) { background: var(--gray-100); }
+h2 { font-size: 16px; font-weight: 600; }
+.card { background: white; border-radius: var(--radius); padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+.card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: var(--radius); border: none; cursor: pointer; font-size: 14px; font-weight: 500; transition: opacity 0.15s; }
+.btn:hover { opacity: 0.85; }
+.btn-outline { background: white; color: var(--gray-800); border: 1px solid var(--gray-200); }
+.btn-success { background: var(--success); color: white; }
+.btn-upload { display: inline-block; margin-top: 14px; padding: 8px 20px; background: var(--primary); color: white; border-radius: var(--radius); font-size: 14px; }
+.dz-icon { font-size: 40px; margin-bottom: 10px; }
+.table-wrapper { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { background: var(--gray-50); padding: 10px 12px; text-align: left; font-weight: 600; border-bottom: 2px solid var(--gray-200); white-space: nowrap; }
+td { padding: 8px 12px; border-bottom: 1px solid var(--gray-200); white-space: nowrap; }
+tr:hover td { background: var(--gray-50); }
+</style>
+</head>
+<body>
+
+<!-- ── SIDEBAR OVERLAY ── -->
+<div id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<!-- ── SIDEBAR ── -->
+<div id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand">飛比特 Feebit</div>
+    <div class="sub">營運工具箱</div>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">總覽</div>
+    <a class="nav-item" href="index.html"><span class="icon">🏠</span> 首頁</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">財務</div>
+    <a class="nav-item" href="bank-converter.html"><span class="icon">🏦</span> 帳務轉換</a>
+    <div class="nav-item soon"><span class="icon">💰</span> 定價試算<span class="soon-tag">即將推出</span></div>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">行銷</div>
+    <div class="nav-item soon"><span class="icon">📢</span> 廣告文案<span class="soon-tag">即將推出</span></div>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">客服</div>
+    <div class="nav-item soon"><span class="icon">💬</span> 客服回覆<span class="soon-tag">即將推出</span></div>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">庫存</div>
+    <a class="nav-item active" href="stock-analysis.html"><span class="icon">📦</span> 庫存訂貨分析</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">研發</div>
+    <a class="nav-item" href="research-notes.html"><span class="icon">📚</span> 研發筆記</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">生活</div>
+    <a class="nav-item" href="travel-planner.html"><span class="icon">✈️</span> 旅行規劃</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">系統</div>
+    <a class="nav-item" href="tools.html"><span class="icon">🔧</span> 使用工具</a>
+  </div>
+  <div class="sidebar-footer">v1.1 · Feebit © 2026</div>
+</div>
+
+<!-- ── MAIN ── -->
+<div id="main">
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:8px">
+      <button class="btn-hamburger" onclick="openSidebar()">☰</button>
+      <span class="topbar-title">庫存訂貨分析</span>
+      <span class="topbar-badge">庫存工具</span>
+    </div>
+    <button class="btn-share" onclick="copyShare(this)">🔗 分享</button>
+  </div>
+
+  <div class="page">
+
+    <div id="stock-upload-section">
+      <div id="stock-dropzone" onclick="document.getElementById('stockFileInput').click()">
+        <div class="dz-icon">📊</div>
+        <h2>拖曳 全產品總表 CSV 到這裡</h2>
+        <p style="color:var(--gray-600);margin-top:6px;font-size:13px">自動過濾套組商品 · UTF-8 / Big5 自動偵測</p>
+        <div class="btn-upload">選擇檔案</div>
+        <input type="file" id="stockFileInput" accept=".csv" onchange="stockHandleFile(this.files[0])" style="display:none">
+      </div>
+    </div>
+
+    <div id="stock-result-section" style="display:none">
+      <div class="stock-stats" id="stock-stats"></div>
+      <div class="stock-legend">
+        <div class="legend-item" style="background:#ffe5e5"><div class="dot" style="background:#FF5252"></div>庫存為 0</div>
+        <div class="legend-item" style="background:#dbeeff"><div class="dot" style="background:#64B5F6"></div>低於安全庫存</div>
+        <div class="legend-item" style="background:#fff0db"><div class="dot" style="background:#FFB74D"></div>低於 20</div>
+        <div class="legend-item" style="background:#fffde7"><div class="dot" style="background:#FFF176;border:1px solid #ddd"></div>低於 50</div>
+        <div class="legend-item" style="border:1px solid #e9d5ff"><span style="color:#7c3aed;font-weight:700;font-size:13px">A</span>&nbsp;未設安全庫存且低於 10（文字紫色）</div>
+      </div>
+      <div class="stock-sort">
+        <span style="color:var(--gray-600);font-size:12px">排序：</span>
+        <button class="sort-btn active" id="sort-btn-default" onclick="stockSetSort('')">預設</button>
+        <button class="sort-btn" id="sort-btn-code" onclick="stockSetSort('code')">貨號 A→Z</button>
+        <button class="sort-btn" id="sort-btn-name" onclick="stockSetSort('name')">品名 A→Z</button>
+        <button class="sort-btn" id="sort-btn-qty" onclick="stockSetSort('qty')">庫存量 大→小</button>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <h2>庫存訂貨分析 <span id="stock-count" style="color:var(--gray-600);font-weight:400;font-size:13px"></span></h2>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-outline" id="btn-show-hidden" onclick="stockToggleShowHidden()" style="font-size:12px">顯示已隱藏 (0)</button>
+            <button class="btn btn-outline" onclick="stockReset()">↩ 重新上傳</button>
+            <button class="btn btn-success" onclick="stockDownloadCSV()">⬇ 下載 CSV</button>
+          </div>
+        </div>
+        <div class="table-wrapper">
+          <table>
+            <thead><tr>
+              <th>商品代號</th><th>商品名稱</th><th style="text-align:right">安全庫存</th>
+              <th>販售狀態</th><th>庫位</th>
+              <th style="text-align:right">數量</th>
+              <th style="text-align:right">建議訂購</th>
+              <th style="text-align:right">實際訂購</th>
+              <th>操作</th>
+            </tr></thead>
+            <tbody id="stock-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+function openSidebar() { document.getElementById('sidebar').classList.add('open'); document.getElementById('sidebar-overlay').classList.add('show'); }
+function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebar-overlay').classList.remove('show'); }
+function copyShare(b) { navigator.clipboard.writeText(location.origin+location.pathname+'?share').then(()=>{b.textContent='✅ 已複製';setTimeout(()=>b.innerHTML='🔗 分享',1500)}); }
+
+// ── STOCK ANALYSIS ────────────────────────────────────────────────
+let stockProducts = [];
+let stockSortKey = '';
+let stockShowHidden = false;
+const KEY_HIDDEN = 'feebit_hidden_codes';
+
+function getHiddenCodes() {
+  try { return new Set(JSON.parse(localStorage.getItem(KEY_HIDDEN)) || []); }
+  catch(e) { return new Set(); }
+}
+function saveHiddenCodes(set) { localStorage.setItem(KEY_HIDDEN, JSON.stringify([...set])); }
+function toggleHidden(code) {
+  const s = getHiddenCodes();
+  if (s.has(code)) s.delete(code); else s.add(code);
+  saveHiddenCodes(s);
+  stockRender();
+}
+function stockToggleShowHidden() {
+  stockShowHidden = !stockShowHidden;
+  stockRender();
+}
+function stockSetSort(key) {
+  stockSortKey = key;
+  document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById(key === '' ? 'sort-btn-default' : 'sort-btn-' + key);
+  if (btn) btn.classList.add('active');
+  stockRender();
+}
+function stockIsBundle(code) {
+  code = String(code || '').trim();
+  return code.length === 8 && code[2] === '9';
+}
+function stockIsExcluded(code) {
+  const c = String(code || '').trim();
+  if (!c) return false;
+  const upper = c.toUpperCase();
+  if (upper[0] === 'X' || upper[0] === 'Z') return true;
+  if (/-[9QL]$/i.test(c)) return true;
+  return false;
+}
+function stockCleanNum(val) {
+  if (val === null || val === undefined || val === '') return null;
+  const s = String(val).trim().replace(/\.+$/, '');
+  if (s === '' || s === '-') return null;
+  const n = parseFloat(s);
+  return isNaN(n) ? null : n;
+}
+function stockSuggestOrder(safety, qty) {
+  if (!safety || safety <= 0) return '';
+  qty = qty === null ? 0 : qty;
+  if (qty < safety) return Math.max(Math.round(safety * 2 - qty), Math.round(safety));
+  return 0;
+}
+function stockGetColor(qty, safety) {
+  const q = qty === null ? 0 : qty;
+  if (q <= 0) return 'red';
+  if (safety && safety > 0 && q < safety) return 'blue';
+  if (q < 20) return 'orange';
+  if (q < 50) return 'yellow';
+  return '';
+}
+function stockIsPurple(qty, safety) {
+  const q = qty === null ? 0 : qty;
+  return (!safety || safety <= 0) && q < 10;
+}
+function stockParseLine(line) {
+  const fields = []; let cur = ''; let inQ = false;
+  for (const ch of line) {
+    if (ch === '"') { inQ = !inQ; }
+    else if (ch === ',' && !inQ) { fields.push(cur.replace(/^=?"?/, '').replace(/"$/, '').trim()); cur = ''; }
+    else { cur += ch; }
+  }
+  fields.push(cur.replace(/^=?"?/, '').replace(/"$/, '').trim());
+  return fields;
+}
+async function stockHandleFile(file) {
+  if (!file) return;
+  try {
+    const buf = await file.arrayBuffer();
+    let text = '';
+    for (const enc of ['utf-8', 'big5']) {
+      try { const t = new TextDecoder(enc).decode(buf); if (/[\u4e00-\u9fff]/.test(t)) { text = t; break; } } catch(e) {}
+    }
+    if (!text) text = new TextDecoder('utf-8', {fatal: false}).decode(buf);
+    text = text.replace(/^\uFEFF/, '');
+    const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    if (!lines.length) { alert('無法解析檔案'); return; }
+    stockProducts = [];
+    for (let i = 1; i < lines.length; i++) {
+      const f = stockParseLine(lines[i]);
+      if (f.length < 8) continue;
+      const code = (f[0] || '').trim();
+      if (!code) continue;
+      if (stockIsBundle(code)) continue;
+      if (stockIsExcluded(code)) continue;
+      const qty = stockCleanNum(f[7]);
+      const safety = stockCleanNum(f[2]);
+      stockProducts.push({
+        code, name: f[1] || '', safety, ean: f[3] || '',
+        status: f[4] || '', status2: f[5] || '', loc: f[6] || '',
+        qty, update: f[8] || '', create: f[9] || '',
+        suggest: stockSuggestOrder(safety, qty),
+        color: stockGetColor(qty, safety),
+        isPurple: stockIsPurple(qty, safety),
+      });
+    }
+    if (!stockProducts.length) { alert('未找到有效商品資料，請確認 CSV 格式'); return; }
+    document.getElementById('stock-upload-section').style.display = 'none';
+    document.getElementById('stock-result-section').style.display = 'block';
+    stockRender();
+  } catch(e) { alert('讀取失敗：' + e.message); }
+}
+function stockRender() {
+  const hiddenCodes = getHiddenCodes();
+  const counts = { red: 0, blue: 0, orange: 0, yellow: 0, purple: 0, ok: 0 };
+  const tbody = document.getElementById('stock-body'); tbody.innerHTML = '';
+  let products = [...stockProducts];
+  if (stockSortKey === 'code') products.sort((a,b) => a.code.localeCompare(b.code));
+  else if (stockSortKey === 'name') products.sort((a,b) => a.name.localeCompare(b.name, 'zh-TW'));
+  else if (stockSortKey === 'qty') products.sort((a,b) => (b.qty ?? -1) - (a.qty ?? -1));
+  const visible = products.filter(p => !hiddenCodes.has(p.code));
+  const hidden  = products.filter(p =>  hiddenCodes.has(p.code));
+  for (const p of visible) {
+    counts[p.color || 'ok']++;
+    if (p.isPurple) counts['purple']++;
+    const tr = document.createElement('tr');
+    const classes = [];
+    if (p.color) classes.push('row-' + p.color);
+    if (p.isPurple) classes.push('row-purple');
+    tr.className = classes.join(' ');
+    tr.innerHTML = `<td style="font-family:monospace;font-size:12px">${p.code}</td>
+      <td>${p.name}</td>
+      <td style="text-align:right">${p.safety === null ? '' : p.safety}</td>
+      <td>${p.status}</td><td>${p.loc}</td>
+      <td style="text-align:right;font-weight:600">${p.qty === null ? '' : p.qty}</td>
+      <td style="text-align:right;color:var(--primary);font-weight:600">${p.suggest}</td>
+      <td style="text-align:right"><input type="number" min="0" style="width:72px;padding:4px 6px;border:1px solid var(--gray-200);border-radius:4px;font-size:13px;text-align:right" placeholder="0"></td>
+      <td><button onclick="toggleHidden('${p.code.replace(/'/g,"\\'")}')" style="padding:2px 8px;font-size:11px;border:1px solid var(--gray-200);border-radius:4px;cursor:pointer;background:white;color:var(--gray-600)">隱藏</button></td>`;
+    tbody.appendChild(tr);
+  }
+  if (stockShowHidden && hidden.length > 0) {
+    const sepTr = document.createElement('tr');
+    sepTr.innerHTML = `<td colspan="9" style="background:var(--gray-100);color:var(--gray-400);font-size:11px;text-align:center;padding:6px">── 已隱藏商品 (${hidden.length}) ──</td>`;
+    tbody.appendChild(sepTr);
+    for (const p of hidden) {
+      const tr = document.createElement('tr');
+      tr.className = 'row-hidden';
+      tr.innerHTML = `<td style="font-family:monospace;font-size:12px">${p.code}</td>
+        <td>${p.name}</td>
+        <td style="text-align:right">${p.safety === null ? '' : p.safety}</td>
+        <td>${p.status}</td><td>${p.loc}</td>
+        <td style="text-align:right">${p.qty === null ? '' : p.qty}</td>
+        <td></td><td></td>
+        <td><button onclick="toggleHidden('${p.code.replace(/'/g,"\\'")}')" style="padding:2px 8px;font-size:11px;border:1px solid var(--gray-200);border-radius:4px;cursor:pointer;background:white;color:var(--primary)">取消隱藏</button></td>`;
+      tbody.appendChild(tr);
+    }
+  }
+  const btnHidden = document.getElementById('btn-show-hidden');
+  if (btnHidden) {
+    btnHidden.textContent = stockShowHidden ? `隱藏已隱藏 (${hidden.length})` : `顯示已隱藏 (${hidden.length})`;
+    btnHidden.style.display = hidden.length === 0 && !stockShowHidden ? 'none' : '';
+  }
+  document.getElementById('stock-count').textContent = `共 ${visible.length} 筆商品`;
+  const statDef = [
+    { color: '#FF5252', label: '庫存為 0',     key: 'red' },
+    { color: '#64B5F6', label: '低於安全庫存', key: 'blue' },
+    { color: '#FFB74D', label: '低於 20',       key: 'orange' },
+    { color: '#b45309', label: '低於 50',       key: 'yellow' },
+    { color: '#7c3aed', label: '未設且低於 10', key: 'purple' },
+    { color: '#16a34a', label: '庫存正常',      key: 'ok' },
+  ];
+  document.getElementById('stock-stats').innerHTML = statDef.map(s =>
+    `<div class="stat-card" style="border-top:3px solid ${s.color}">
+      <div class="stat-num" style="color:${s.color}">${counts[s.key]}</div>
+      <div class="stat-label">${s.label}</div></div>`
+  ).join('');
+}
+function stockReset() {
+  document.getElementById('stock-upload-section').style.display = 'block';
+  document.getElementById('stock-result-section').style.display = 'none';
+  document.getElementById('stockFileInput').value = '';
+  stockProducts = []; stockSortKey = ''; stockShowHidden = false;
+  document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+  const defBtn = document.getElementById('sort-btn-default');
+  if (defBtn) defBtn.classList.add('active');
+}
+function stockDownloadCSV() {
+  const hiddenCodes = getHiddenCodes();
+  const headers = ['商品代號','商品名稱','安全庫存','販售狀態','庫位','數量','建議訂購數量','實際訂購數量'];
+  const esc = v => { const s = String(v ?? ''); return (s.includes(',') || s.includes('"') || s.includes('\n')) ? `"${s.replace(/"/g,'""')}"` : s; };
+  const visibleProducts = stockProducts.filter(p => !hiddenCodes.has(p.code));
+  const visibleRows = Array.from(document.querySelectorAll('#stock-body tr')).filter(tr => !tr.classList.contains('row-hidden') && tr.cells.length > 2);
+  const data = visibleProducts.map((p, i) => {
+    const input = visibleRows[i] ? visibleRows[i].querySelector('input') : null;
+    return [p.code, p.name, p.safety ?? '', p.status, p.loc, p.qty ?? '', p.suggest, input ? input.value : ''];
+  });
+  const csv = [headers, ...data].map(r => r.map(esc).join(',')).join('\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = `feebit_stock_${new Date().toISOString().slice(0,10).replace(/-/g,'')}.csv`; a.click();
+}
+
+// ── DRAG & DROP ──────────────────────────────────────────────────
+const sdz = document.getElementById('stock-dropzone');
+sdz.addEventListener('dragover',  e => { e.preventDefault(); sdz.classList.add('dragover'); });
+sdz.addEventListener('dragleave', () => sdz.classList.remove('dragover'));
+sdz.addEventListener('drop', e => { e.preventDefault(); sdz.classList.remove('dragover'); const f=e.dataTransfer.files[0]; if(f) stockHandleFile(f); });
+</script>
+</body>
+</html>
