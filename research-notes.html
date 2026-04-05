@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>研發筆記 — 飛比特</title>
 <link rel="icon" href="favicon.svg">
+<script>if(location.search.includes("share"))document.documentElement.classList.add("standalone");</script>
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -93,6 +94,9 @@
 </head>
 <body>
 
+<!-- ── SIDEBAR OVERLAY ── -->
+<div id="sidebar-overlay" onclick="closeSidebar()"></div>
+
 <!-- ── SIDEBAR ── -->
 <div id="sidebar">
   <div class="sidebar-logo">
@@ -128,16 +132,19 @@
     <div class="sidebar-label">系統</div>
     <a class="nav-item" href="tools.html"><span class="icon">🔧</span> 使用工具</a>
   </div>
-  <div class="sidebar-footer">v1.0 · Feebit © 2026</div>
+  <div class="sidebar-footer">v1.1 · Feebit © 2026</div>
 </div>
 
 <!-- ── MAIN ── -->
 <div id="main">
   <div class="topbar">
-    <span class="topbar-title">研發筆記</span>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button class="btn-hamburger" onclick="openSidebar()">☰</button>
+      <span class="topbar-title">研發筆記</span>
+    </div>
     <div style="display:flex;gap:8px;align-items:center;">
       <button class="btn btn-outline btn-sm" id="btn-add-note" style="display:none;">＋ 新增資料</button>
-      <span class="topbar-badge">飛比特營運工具箱</span>
+      <button class="btn-share" onclick="copyShare(this)">🔗 分享</button>
     </div>
   </div>
 
@@ -737,6 +744,10 @@ function showToast(msg, duration = 2500) {
   clearTimeout(t._timer);
   t._timer = setTimeout(() => { t.style.display = 'none'; }, duration);
 }
+
+function openSidebar() { document.getElementById('sidebar').classList.add('open'); document.getElementById('sidebar-overlay').classList.add('show'); }
+function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebar-overlay').classList.remove('show'); }
+function copyShare(b) { navigator.clipboard.writeText(location.origin+location.pathname+'?share').then(()=>{b.textContent='✅ 已複製';setTimeout(()=>b.innerHTML='🔗 分享',1500)}); }
 
 init();
 </script>

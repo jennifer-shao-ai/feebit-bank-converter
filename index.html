@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>飛比特 營運工具箱</title>
 <link rel="icon" href="favicon.svg">
+<script>if(location.search.includes("share"))document.documentElement.classList.add("standalone");</script>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -71,7 +72,7 @@
     </a>
   </div>
 
-  <div class="sidebar-footer">v1.0 · Feebit © 2026</div>
+  <div class="sidebar-footer">v1.1 · Feebit © 2026</div>
 </div>
 
 <!-- ── SIDEBAR OVERLAY ── -->
@@ -84,7 +85,7 @@
       <button class="btn-hamburger" onclick="openSidebar()">☰</button>
       <span class="topbar-title">首頁</span>
     </div>
-    <span class="topbar-badge">飛比特營運工具箱</span>
+    <button class="btn-share" onclick="copyShare(this)">🔗 分享</button>
   </div>
 
   <div class="page">
@@ -151,6 +152,7 @@
 <script>
 function openSidebar() { document.getElementById('sidebar').classList.add('open'); document.getElementById('sidebar-overlay').classList.add('show'); }
 function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebar-overlay').classList.remove('show'); }
+function copyShare(b) { navigator.clipboard.writeText(location.origin+location.pathname+'?share').then(()=>{b.textContent='✅ 已複製';setTimeout(()=>b.innerHTML='🔗 分享',1500)}); }
 </script>
 </body>
 </html>
