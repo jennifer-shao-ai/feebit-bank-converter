@@ -23,10 +23,20 @@
 .row-yellow td { background: #fffde7; }
 .row-purple td { color: #7c3aed; font-weight: 700; }
 .row-hidden td { opacity: 0.45; }
-.stock-sort { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
-.sort-btn { padding: 4px 12px; border-radius: var(--radius); border: 1px solid var(--gray-200); cursor: pointer; font-size: 12px; background: white; color: var(--gray-600); transition: all 0.15s; }
-.sort-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
-.sort-btn:hover:not(.active) { background: var(--gray-100); }
+th.sortable { cursor: pointer; user-select: none; }
+th.sortable:hover { background: var(--gray-100); }
+.th-inner { display: inline-flex; align-items: center; gap: 4px; width: 100%; }
+.th-inner.right { justify-content: flex-end; }
+.th-sort { display: inline-flex; flex-direction: column; line-height: 1; flex-shrink: 0; }
+.th-sort .arr { font-size: 8px; color: var(--gray-300); line-height: 1.3; }
+th.sort-asc .arr-up { color: var(--primary); }
+th.sort-desc .arr-dn { color: var(--primary); }
+.search-input { padding: 7px 12px; border: 1px solid var(--gray-200); border-radius: var(--radius); font-size: 13px; outline: none; width: 240px; }
+.search-input:focus { border-color: var(--primary); }
+.batch-bar { display: none; align-items: center; gap: 8px; padding: 6px 12px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--radius); font-size: 12px; }
+.batch-bar.visible { display: flex; }
+th.th-check { width: 36px; padding: 10px 8px; text-align: center; }
+td.td-check { padding: 8px; text-align: center; }
 h2 { font-size: 16px; font-weight: 600; }
 .card { background: white; border-radius: var(--radius); padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
 .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
@@ -87,7 +97,7 @@ tr:hover td { background: var(--gray-50); }
     <div class="sidebar-label">系統</div>
     <a class="nav-item" href="tools.html"><span class="icon">🔧</span> 使用工具</a>
   </div>
-  <div class="sidebar-footer">v1.1 · Feebit © 2026</div>
+  <div class="sidebar-footer">v1.3 · Feebit © 2026</div>
 </div>
 
 <!-- ── MAIN ── -->
@@ -122,33 +132,52 @@ tr:hover td { background: var(--gray-50); }
         <div class="legend-item" style="background:#fffde7"><div class="dot" style="background:#FFF176;border:1px solid #ddd"></div>低於 50</div>
         <div class="legend-item" style="border:1px solid #e9d5ff"><span style="color:#7c3aed;font-weight:700;font-size:13px">A</span>&nbsp;未設安全庫存且低於 10（文字紫色）</div>
       </div>
-      <div class="stock-sort">
-        <span style="color:var(--gray-600);font-size:12px">排序：</span>
-        <button class="sort-btn active" id="sort-btn-default" onclick="stockSetSort('')">預設</button>
-        <button class="sort-btn" id="sort-btn-code" onclick="stockSetSort('code')">貨號 A→Z</button>
-        <button class="sort-btn" id="sort-btn-name" onclick="stockSetSort('name')">品名 A→Z</button>
-        <button class="sort-btn" id="sort-btn-qty" onclick="stockSetSort('qty')">庫存量 大→小</button>
-      </div>
       <div class="card">
         <div class="card-header">
           <h2>庫存訂貨分析 <span id="stock-count" style="color:var(--gray-600);font-weight:400;font-size:13px"></span></h2>
           <div style="display:flex;gap:8px">
-            <button class="btn btn-outline" id="btn-show-hidden" onclick="stockToggleShowHidden()" style="font-size:12px">顯示已隱藏 (0)</button>
+            <button class="btn btn-outline" id="btn-show-hidden" onclick="document.getElementById('stock-hidden-card').scrollIntoView({behavior:'smooth'})" style="font-size:12px;display:none">隱藏商品列表 (0)</button>
             <button class="btn btn-outline" onclick="stockReset()">↩ 重新上傳</button>
             <button class="btn btn-success" onclick="stockDownloadCSV()">⬇ 下載 CSV</button>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+          <input type="text" id="stock-search" class="search-input" placeholder="搜尋商品代號或品名..." oninput="stockRender()">
+          <div class="batch-bar" id="batch-bar">
+            <span id="batch-count" style="color:#1d4ed8;font-weight:600">已選 0 筆</span>
+            <button onclick="stockBatchHide()" style="padding:3px 10px;font-size:12px;border:1px solid #1d4ed8;border-radius:4px;cursor:pointer;background:white;color:#1d4ed8">隱藏選取</button>
+            <button onclick="stockClearSelection()" style="padding:3px 10px;font-size:12px;border:1px solid var(--gray-200);border-radius:4px;cursor:pointer;background:white;color:var(--gray-600)">取消選取</button>
           </div>
         </div>
         <div class="table-wrapper">
           <table>
             <thead><tr>
-              <th>商品代號</th><th>商品名稱</th><th style="text-align:right">安全庫存</th>
+              <th class="th-check"><input type="checkbox" id="check-all" onchange="stockToggleAll(this.checked)" style="cursor:pointer"></th>
+              <th class="sortable" id="th-code" onclick="stockToggleSort('code')"><div class="th-inner">商品代號<span class="th-sort"><span class="arr arr-up">▲</span><span class="arr arr-dn">▼</span></span></div></th>
+              <th class="sortable" id="th-name" onclick="stockToggleSort('name')"><div class="th-inner">商品名稱<span class="th-sort"><span class="arr arr-up">▲</span><span class="arr arr-dn">▼</span></span></div></th>
+              <th class="sortable" id="th-safety" onclick="stockToggleSort('safety')" style="text-align:right"><div class="th-inner right">安全庫存<span class="th-sort"><span class="arr arr-up">▲</span><span class="arr arr-dn">▼</span></span></div></th>
               <th>販售狀態</th><th>庫位</th>
-              <th style="text-align:right">數量</th>
-              <th style="text-align:right">建議訂購</th>
+              <th class="sortable" id="th-qty" onclick="stockToggleSort('qty')" style="text-align:right"><div class="th-inner right">數量<span class="th-sort"><span class="arr arr-up">▲</span><span class="arr arr-dn">▼</span></span></div></th>
+              <th class="sortable" id="th-suggest" onclick="stockToggleSort('suggest')" style="text-align:right"><div class="th-inner right">建議訂購<span class="th-sort"><span class="arr arr-up">▲</span><span class="arr arr-dn">▼</span></span></div></th>
               <th style="text-align:right">實際訂購</th>
               <th>操作</th>
             </tr></thead>
             <tbody id="stock-body"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card" id="stock-hidden-card" style="display:none">
+        <div class="card-header">
+          <h2>隱藏商品列表 <span id="hidden-count" style="color:var(--gray-600);font-weight:400;font-size:13px"></span></h2>
+          <button class="btn btn-outline" onclick="stockClearAllHidden()" style="font-size:12px;color:#dc2626;border-color:#fca5a5">清除全部隱藏</button>
+        </div>
+        <div class="table-wrapper">
+          <table>
+            <thead><tr>
+              <th>商品代號</th><th>商品名稱</th><th style="text-align:right">安全庫存</th>
+              <th>販售狀態</th><th>庫位</th><th style="text-align:right">數量</th><th>操作</th>
+            </tr></thead>
+            <tbody id="hidden-body"></tbody>
           </table>
         </div>
       </div>
@@ -165,29 +194,55 @@ function copyShare(b) { navigator.clipboard.writeText(location.origin+location.p
 // ── STOCK ANALYSIS ────────────────────────────────────────────────
 let stockProducts = [];
 let stockSortKey = '';
-let stockShowHidden = false;
+let stockSortDir = 'asc';
 const KEY_HIDDEN = 'feebit_hidden_codes';
+const KEY_ORDER  = 'feebit_order_qty';
 
 function getHiddenCodes() {
   try { return new Set(JSON.parse(localStorage.getItem(KEY_HIDDEN)) || []); }
   catch(e) { return new Set(); }
 }
 function saveHiddenCodes(set) { localStorage.setItem(KEY_HIDDEN, JSON.stringify([...set])); }
+function getOrderQty() { try { return JSON.parse(localStorage.getItem(KEY_ORDER)) || {}; } catch(e) { return {}; } }
+function saveOrderQty(obj) { localStorage.setItem(KEY_ORDER, JSON.stringify(obj)); }
+function onOrderInput(code, val) { const obj = getOrderQty(); if (val === '') delete obj[code]; else obj[code] = val; saveOrderQty(obj); }
+function stockUpdateBatchBar() {
+  const checked = document.querySelectorAll('.row-check:checked');
+  const bar = document.getElementById('batch-bar');
+  const countEl = document.getElementById('batch-count');
+  if (bar) { if (checked.length > 0) { bar.classList.add('visible'); countEl.textContent = `已選 ${checked.length} 筆`; } else { bar.classList.remove('visible'); } }
+  const all = document.querySelectorAll('.row-check');
+  const ca = document.getElementById('check-all');
+  if (ca) { ca.checked = all.length > 0 && checked.length === all.length; ca.indeterminate = checked.length > 0 && checked.length < all.length; }
+}
+function stockToggleAll(checked) { document.querySelectorAll('.row-check').forEach(cb => cb.checked = checked); stockUpdateBatchBar(); }
+function stockBatchHide() {
+  const checked = document.querySelectorAll('.row-check:checked');
+  if (!checked.length) return;
+  const s = getHiddenCodes();
+  checked.forEach(cb => s.add(cb.dataset.code));
+  saveHiddenCodes(s);
+  stockRender();
+}
+function stockClearSelection() { document.querySelectorAll('.row-check').forEach(cb => cb.checked = false); stockUpdateBatchBar(); }
 function toggleHidden(code) {
   const s = getHiddenCodes();
   if (s.has(code)) s.delete(code); else s.add(code);
   saveHiddenCodes(s);
   stockRender();
 }
-function stockToggleShowHidden() {
-  stockShowHidden = !stockShowHidden;
+function stockToggleSort(key) {
+  if (stockSortKey === key) {
+    stockSortDir = stockSortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    stockSortKey = key;
+    stockSortDir = 'asc';
+  }
   stockRender();
 }
-function stockSetSort(key) {
-  stockSortKey = key;
-  document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
-  const btn = document.getElementById(key === '' ? 'sort-btn-default' : 'sort-btn-' + key);
-  if (btn) btn.classList.add('active');
+function stockClearAllHidden() {
+  if (!confirm('確定要取消全部隱藏嗎？')) return;
+  saveHiddenCodes(new Set());
   stockRender();
 }
 function stockIsBundle(code) {
@@ -279,11 +334,25 @@ function stockRender() {
   const counts = { red: 0, blue: 0, orange: 0, yellow: 0, purple: 0, ok: 0 };
   const tbody = document.getElementById('stock-body'); tbody.innerHTML = '';
   let products = [...stockProducts];
-  if (stockSortKey === 'code') products.sort((a,b) => a.code.localeCompare(b.code));
-  else if (stockSortKey === 'name') products.sort((a,b) => a.name.localeCompare(b.name, 'zh-TW'));
-  else if (stockSortKey === 'qty') products.sort((a,b) => (b.qty ?? -1) - (a.qty ?? -1));
-  const visible = products.filter(p => !hiddenCodes.has(p.code));
-  const hidden  = products.filter(p =>  hiddenCodes.has(p.code));
+  const dir = stockSortDir === 'asc' ? 1 : -1;
+  if (stockSortKey === 'code')    products.sort((a,b) => a.code.localeCompare(b.code) * dir);
+  else if (stockSortKey === 'name')    products.sort((a,b) => a.name.localeCompare(b.name, 'zh-TW') * dir);
+  else if (stockSortKey === 'safety')  products.sort((a,b) => ((a.safety ?? -1) - (b.safety ?? -1)) * dir);
+  else if (stockSortKey === 'qty')     products.sort((a,b) => ((a.qty ?? -1) - (b.qty ?? -1)) * dir);
+  else if (stockSortKey === 'suggest') products.sort((a,b) => ((typeof a.suggest === 'number' ? a.suggest : -1) - (typeof b.suggest === 'number' ? b.suggest : -1)) * dir);
+  // Update sort header arrows
+  ['code','name','safety','qty','suggest'].forEach(k => {
+    const th = document.getElementById('th-' + k);
+    if (th) { th.classList.remove('sort-asc','sort-desc'); if (stockSortKey === k) th.classList.add('sort-' + stockSortDir); }
+  });
+  const allVisible = products.filter(p => !hiddenCodes.has(p.code));
+  const hidden     = products.filter(p =>  hiddenCodes.has(p.code));
+  const q = (document.getElementById('stock-search')?.value || '').trim().toLowerCase();
+  const visible = q ? allVisible.filter(p => p.code.toLowerCase().includes(q) || p.name.toLowerCase().includes(q)) : allVisible;
+  const orderQtys = getOrderQty();
+  // Reset batch bar & check-all since rows are rebuilt
+  const batchBar = document.getElementById('batch-bar'); if (batchBar) batchBar.classList.remove('visible');
+  const ca = document.getElementById('check-all'); if (ca) { ca.checked = false; ca.indeterminate = false; }
   for (const p of visible) {
     counts[p.color || 'ok']++;
     if (p.isPurple) counts['purple']++;
@@ -292,20 +361,26 @@ function stockRender() {
     if (p.color) classes.push('row-' + p.color);
     if (p.isPurple) classes.push('row-purple');
     tr.className = classes.join(' ');
-    tr.innerHTML = `<td style="font-family:monospace;font-size:12px">${p.code}</td>
+    const safeCode = p.code.replace(/'/g,"\\'");
+    tr.innerHTML = `<td class="td-check"><input type="checkbox" class="row-check" data-code="${p.code}" onchange="stockUpdateBatchBar()" style="cursor:pointer"></td>
+      <td style="font-family:monospace;font-size:12px">${p.code}</td>
       <td>${p.name}</td>
       <td style="text-align:right">${p.safety === null ? '' : p.safety}</td>
       <td>${p.status}</td><td>${p.loc}</td>
       <td style="text-align:right;font-weight:600">${p.qty === null ? '' : p.qty}</td>
       <td style="text-align:right;color:var(--primary);font-weight:600">${p.suggest}</td>
-      <td style="text-align:right"><input type="number" min="0" style="width:72px;padding:4px 6px;border:1px solid var(--gray-200);border-radius:4px;font-size:13px;text-align:right" placeholder="0"></td>
-      <td><button onclick="toggleHidden('${p.code.replace(/'/g,"\\'")}')" style="padding:2px 8px;font-size:11px;border:1px solid var(--gray-200);border-radius:4px;cursor:pointer;background:white;color:var(--gray-600)">隱藏</button></td>`;
+      <td style="text-align:right"><input type="number" min="0" value="${orderQtys[p.code] || ''}" style="width:72px;padding:4px 6px;border:1px solid var(--gray-200);border-radius:4px;font-size:13px;text-align:right" placeholder="0" oninput="onOrderInput('${safeCode}',this.value)"></td>
+      <td><button onclick="toggleHidden('${safeCode}')" style="padding:2px 8px;font-size:11px;border:1px solid var(--gray-200);border-radius:4px;cursor:pointer;background:white;color:var(--gray-600)">隱藏</button></td>`;
     tbody.appendChild(tr);
   }
-  if (stockShowHidden && hidden.length > 0) {
-    const sepTr = document.createElement('tr');
-    sepTr.innerHTML = `<td colspan="9" style="background:var(--gray-100);color:var(--gray-400);font-size:11px;text-align:center;padding:6px">── 已隱藏商品 (${hidden.length}) ──</td>`;
-    tbody.appendChild(sepTr);
+  // Render hidden card
+  const hiddenCard = document.getElementById('stock-hidden-card');
+  const hiddenBody = document.getElementById('hidden-body');
+  const hiddenCountEl = document.getElementById('hidden-count');
+  if (hiddenCard) hiddenCard.style.display = hidden.length > 0 ? 'block' : 'none';
+  if (hiddenCountEl) hiddenCountEl.textContent = `共 ${hidden.length} 筆`;
+  if (hiddenBody) {
+    hiddenBody.innerHTML = '';
     for (const p of hidden) {
       const tr = document.createElement('tr');
       tr.className = 'row-hidden';
@@ -314,17 +389,17 @@ function stockRender() {
         <td style="text-align:right">${p.safety === null ? '' : p.safety}</td>
         <td>${p.status}</td><td>${p.loc}</td>
         <td style="text-align:right">${p.qty === null ? '' : p.qty}</td>
-        <td></td><td></td>
-        <td><button onclick="toggleHidden('${p.code.replace(/'/g,"\\'")}')" style="padding:2px 8px;font-size:11px;border:1px solid var(--gray-200);border-radius:4px;cursor:pointer;background:white;color:var(--primary)">取消隱藏</button></td>`;
-      tbody.appendChild(tr);
+        <td><button onclick="toggleHidden('${p.code.replace(/'/g,"\\'")}')" style="padding:2px 8px;font-size:11px;border:1px solid var(--primary);border-radius:4px;cursor:pointer;background:white;color:var(--primary)">恢復顯示</button></td>`;
+      hiddenBody.appendChild(tr);
     }
   }
   const btnHidden = document.getElementById('btn-show-hidden');
   if (btnHidden) {
-    btnHidden.textContent = stockShowHidden ? `隱藏已隱藏 (${hidden.length})` : `顯示已隱藏 (${hidden.length})`;
-    btnHidden.style.display = hidden.length === 0 && !stockShowHidden ? 'none' : '';
+    btnHidden.style.display = hidden.length === 0 ? 'none' : '';
+    btnHidden.textContent = `隱藏商品列表 (${hidden.length})`;
   }
-  document.getElementById('stock-count').textContent = `共 ${visible.length} 筆商品`;
+  const countTxt = q && visible.length !== allVisible.length ? `找到 ${visible.length} 筆（共 ${allVisible.length} 筆）` : `共 ${allVisible.length} 筆商品`;
+  document.getElementById('stock-count').textContent = countTxt;
   const statDef = [
     { color: '#FF5252', label: '庫存為 0',     key: 'red' },
     { color: '#64B5F6', label: '低於安全庫存', key: 'blue' },
@@ -343,21 +418,18 @@ function stockReset() {
   document.getElementById('stock-upload-section').style.display = 'block';
   document.getElementById('stock-result-section').style.display = 'none';
   document.getElementById('stockFileInput').value = '';
-  stockProducts = []; stockSortKey = ''; stockShowHidden = false;
-  document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
-  const defBtn = document.getElementById('sort-btn-default');
-  if (defBtn) defBtn.classList.add('active');
+  stockProducts = []; stockSortKey = ''; stockSortDir = 'asc';
+  document.querySelectorAll('th.sortable').forEach(th => th.classList.remove('sort-asc','sort-desc'));
+  const searchEl = document.getElementById('stock-search'); if (searchEl) searchEl.value = '';
+  const batchBar = document.getElementById('batch-bar'); if (batchBar) batchBar.classList.remove('visible');
 }
 function stockDownloadCSV() {
   const hiddenCodes = getHiddenCodes();
+  const orderQtys = getOrderQty();
   const headers = ['商品代號','商品名稱','安全庫存','販售狀態','庫位','數量','建議訂購數量','實際訂購數量'];
   const esc = v => { const s = String(v ?? ''); return (s.includes(',') || s.includes('"') || s.includes('\n')) ? `"${s.replace(/"/g,'""')}"` : s; };
-  const visibleProducts = stockProducts.filter(p => !hiddenCodes.has(p.code));
-  const visibleRows = Array.from(document.querySelectorAll('#stock-body tr')).filter(tr => !tr.classList.contains('row-hidden') && tr.cells.length > 2);
-  const data = visibleProducts.map((p, i) => {
-    const input = visibleRows[i] ? visibleRows[i].querySelector('input') : null;
-    return [p.code, p.name, p.safety ?? '', p.status, p.loc, p.qty ?? '', p.suggest, input ? input.value : ''];
-  });
+  const exportProducts = stockProducts.filter(p => !hiddenCodes.has(p.code));
+  const data = exportProducts.map(p => [p.code, p.name, p.safety ?? '', p.status, p.loc, p.qty ?? '', p.suggest, orderQtys[p.code] || '']);
   const csv = [headers, ...data].map(r => r.map(esc).join(',')).join('\n');
   const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
