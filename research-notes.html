@@ -148,14 +148,14 @@
     <div class="sidebar-label">系統</div>
     <a class="nav-item" href="tools.html"><span class="icon">🔧</span> 使用工具</a>
   </div>
-  <div class="sidebar-footer">v1.2 · Feebit © 2026</div>
+  <div class="sidebar-footer">v1.3 · Feebit © 2026</div>
 </div>
 
 <!-- ── MAIN ── -->
 <div id="main">
   <div class="topbar">
     <span class="topbar-title">研發筆記</span>
-    <span style="font-size:11px;color:var(--gray-400);margin-left:4px">v1.2</span>
+    <span style="font-size:11px;color:var(--gray-400);margin-left:4px">v1.3</span>
     <div style="display:flex;gap:8px;align-items:center;">
       <button class="btn btn-outline btn-sm" id="btn-synthesize" style="display:none;">🔗 整合摘要</button>
       <button class="btn btn-outline btn-sm" id="btn-add-note" style="display:none;">＋ 新增資料</button>
@@ -365,6 +365,10 @@ async function loadNotes(notebookId, searchQuery = '') {
   if (error) { showToast('載入筆記失敗'); return; }
   notes = data || [];
   renderNoteList();
+  if (currentNotebook) {
+    document.getElementById('btn-synthesize').style.display = '';
+    document.getElementById('btn-add-note').style.display = '';
+  }
 }
 
 async function saveNotebook(name, desc, emoji) {
@@ -447,24 +451,29 @@ function renderNoteList() {
   const list = document.getElementById('note-list');
   if (!notes.length) {
     list.innerHTML = '<div class="rn-empty">此筆記本還沒有資料<br>點上方「新增資料」開始</div>';
-    return;
-  }
-  list.innerHTML = notes.map(n => `
-    <div class="note-item ${currentNote?.id === n.id ? 'active' : ''}" data-id="${n.id}">
-      <div class="note-item-title">${escHtml(n.title)}</div>
-      <div class="note-item-meta">
-        <span class="source-badge badge-${n.source_type}">${sourceLabel(n.source_type)}</span>
-        ${formatDate(n.created_at)}
+  } else {
+    list.innerHTML = notes.map(n => `
+      <div class="note-item ${currentNote?.id === n.id ? 'active' : ''}" data-id="${n.id}">
+        <div class="note-item-title">${escHtml(n.title)}</div>
+        <div class="note-item-meta">
+          <span class="source-badge badge-${n.source_type}">${sourceLabel(n.source_type)}</span>
+          ${formatDate(n.created_at)}
+        </div>
       </div>
-    </div>
-  `).join('');
+    `).join('');
 
-  list.querySelectorAll('.note-item').forEach(el => {
-    el.addEventListener('click', () => {
-      const note = notes.find(n => n.id === el.dataset.id);
-      if (note) selectNote(note);
+    list.querySelectorAll('.note-item').forEach(el => {
+      el.addEventListener('click', () => {
+        const note = notes.find(n => n.id === el.dataset.id);
+        if (note) selectNote(note);
+      });
     });
-  });
+  }
+  // 確保筆記本已選時按鈕保持可見
+  if (currentNotebook) {
+    document.getElementById('btn-synthesize').style.display = '';
+    document.getElementById('btn-add-note').style.display = '';
+  }
 }
 
 function selectNote(note) {
