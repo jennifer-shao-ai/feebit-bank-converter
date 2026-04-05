@@ -72,7 +72,7 @@
     </a>
   </div>
 
-  <div class="sidebar-footer">v1.1 · Feebit © 2026</div>
+  <div class="sidebar-footer">v2.1 · Feebit © 2026</div>
 </div>
 
 <!-- ── SIDEBAR OVERLAY ── -->
@@ -85,7 +85,7 @@
       <button class="btn-hamburger" onclick="openSidebar()">☰</button>
       <span class="topbar-title">帳務轉換</span>
       <span class="topbar-badge">財務工具</span>
-      <span style="font-size:11px;color:var(--gray-400);margin-left:4px">v1.1</span>
+      <span style="font-size:11px;color:var(--gray-400);margin-left:4px">v2.1</span>
     </div>
     <button class="btn-share" onclick="copyShare(this)" title="複製分享連結">🔗 分享</button>
   </div>
@@ -350,7 +350,12 @@ function parseTWD2601(text) {
     const payeeCode = (f[C.PAYEE]||'').trim();
     const note      = (f[C.NOTE]||'') + (f[C.MEMO] ? ' '+f[C.MEMO] : '');
     const fullText  = [summary, payeeCode, note.trim()].join(' ');
-    const rule      = findRule(summary, payeeCode, fullText);
+    let rule        = findRule(summary, payeeCode, fullText);
+    if (!rule) {
+      for (const kw of ['健保','勞保','勞退']) {
+        if (fullText.includes(kw)) { rule = { type:'支出', main:kw, sub:'', payee:'' }; break; }
+      }
+    }
     const descParts = [summary, payeeCode, note.trim()].filter(s => s && s !== '00000000');
     result.push({
       date: rocToAd(f[C.TX_DT]), accountNum: f[C.ACC],
@@ -391,6 +396,7 @@ function renderPreview() {
   const tbody = document.getElementById('preview-body'); tbody.innerHTML = '';
   transactions.forEach((tx, i) => {
     const tr = document.createElement('tr');
+    if (tx.description && /更正|被更正/.test(tx.description)) tr.style.backgroundColor = '#fed7aa';
     const cls = tx.type==='收入' ? 'type-in' : 'type-out';
     const statusTag = tx.needsCat ? '<span class="tag-unknown">待分類</span>' : tx.edited ? '<span class="tag-auto" style="background:#dbeafe;color:#1d4ed8">已編輯</span>' : '<span class="tag-auto">自動</span>';
     tr.innerHTML = `<td>${tx.date}</td><td class="${cls}">${tx.type}</td><td>${tx.accountName}</td>
