@@ -33,15 +33,41 @@
     <span class="topbar-badge">系統資訊</span>
   </div>
   <div class="page">
-    <p style="color:var(--gray-600);font-size:14px;margin-bottom:20px">儀表板中所有用到的工具，點擊前往各平台</p>
+    <p style="color:var(--gray-600);font-size:14px;margin-bottom:20px">飛比特日常營運用到的所有工具與後台，點擊前往各平台</p>
     <div id="tools-list"></div>
   </div>
 </div>
 <script>
 const TOOLS_DATA = [
-  { icon:'🐙', name:'GitHub', category:'開發 / 版本控制', desc:'儀表板原始碼管理，所有程式碼變更與版本記錄都在這裡', url:'https://github.com/jennifer-shao-ai/feebit-bank-converter', related:['整體工具箱'] },
-  { icon:'🌐', name:'GitHub Pages', category:'部署 / 網站託管', desc:'靜態網站免費部署，推送 main 分支後自動上線', url:'https://jennifer-shao-ai.github.io/feebit-bank-converter/', related:['整體工具箱'] },
-  { icon:'🤖', name:'Claude Code', category:'開發 / AI 助手', desc:'用於撰寫、調整、優化儀表板所有功能與介面', url:'https://claude.ai/code', related:['整體工具箱'] },
+  // ── 電商平台
+  { icon:'🦐', name:'蝦皮賣場後台', category:'電商平台', desc:'蝦皮主要銷售後台，管理商品、訂單、促銷活動', url:'https://seller.shopee.tw', related:['商品','訂單','促銷'] },
+  { icon:'🛒', name:'蝦皮廣告', category:'電商平台', desc:'蝦皮站內廣告投放，管理關鍵字廣告與曝光版位', url:'https://seller.shopee.tw/portal/marketing/ads', related:['廣告','行銷'] },
+  { icon:'🏪', name:'樂天市場', category:'電商平台', desc:'樂天賣場後台，管理商品頁面與訂單', url:'https://merchants.rakuten.com.tw', related:['商品','訂單'] },
+  { icon:'📦', name:'MOMO 賣場', category:'電商平台', desc:'MOMO 富邦媒賣場後台管理', url:'https://seller.momoshop.com.tw', related:['商品','訂單'] },
+  // ── 進銷存 / ERP
+  { icon:'📊', name:'Ragic', category:'進銷存 / ERP', desc:'飛比特主要 ERP，管理庫存、訂單匯入、帳務匯出格式', url:'https://www.ragic.com', related:['庫存','財務','訂單'] },
+  { icon:'🏦', name:'彰化銀行網銀', category:'進銷存 / ERP', desc:'公司帳戶查詢與轉帳，配合帳務轉換工具使用', url:'https://ibank.chb.com.tw', related:['財務'] },
+  // ── 工作管理
+  { icon:'📓', name:'Notion', category:'工作管理', desc:'工作日誌、知識庫、SOP、商品資料、廠商資料一站管理', url:'https://notion.so', related:['SOP','商品','廠商','筆記'] },
+  { icon:'✅', name:'Asana', category:'工作管理', desc:'任務追蹤與專案管理，每日代辦與跨部門協作', url:'https://app.asana.com', related:['任務','專案'] },
+  { icon:'💬', name:'Slack', category:'工作管理', desc:'團隊內部即時溝通與協作', url:'https://slack.com', related:['溝通','協作'] },
+  // ── 行銷
+  { icon:'📘', name:'Meta 廣告後台', category:'行銷', desc:'Facebook / Instagram 廣告投放、受眾設定、成效分析', url:'https://business.facebook.com', related:['廣告','FB','IG'] },
+  { icon:'📸', name:'Instagram', category:'行銷', desc:'飛比特官方 IG 帳號，品牌貼文與限時動態管理', url:'https://www.instagram.com', related:['社群','行銷'] },
+  { icon:'🎨', name:'Canva', category:'行銷', desc:'商品主圖、Banner、社群素材快速設計', url:'https://www.canva.com', related:['設計','素材'] },
+  { icon:'📊', name:'Google Analytics', category:'行銷', desc:'網站流量分析，監控各渠道來源與轉換率', url:'https://analytics.google.com', related:['數據','流量'] },
+  // ── 客服
+  { icon:'📧', name:'Gmail', category:'客服 / 信件', desc:'對外客服信件、廠商往來、升級投訴處理', url:'https://mail.google.com', related:['客服','廠商','信件'] },
+  { icon:'💚', name:'LINE 官方帳號', category:'客服 / 信件', desc:'LINE 官方帳號後台，客服訊息回覆與群發', url:'https://manager.line.biz', related:['客服','LINE'] },
+  // ── 物流
+  { icon:'📮', name:'黑貓宅急便', category:'物流', desc:'出貨管理、追蹤查詢、批次報表下載', url:'https://www.t-cat.com.tw/business/login.aspx', related:['出貨','物流'] },
+  { icon:'📦', name:'7-11 交貨便', category:'物流', desc:'超商取貨發貨管理後台', url:'https://eship.7-eleven.com.tw', related:['出貨','超商'] },
+  // ── AI / 開發
+  { icon:'🤖', name:'Claude AI', category:'AI / 開發', desc:'日常文案撰寫、客服草稿、策略分析的 AI 助手', url:'https://claude.ai', related:['AI','文案','客服'] },
+  { icon:'💻', name:'Claude Code', category:'AI / 開發', desc:'儀表板開發與功能優化', url:'https://claude.ai/code', related:['開發'] },
+  { icon:'🐙', name:'GitHub', category:'AI / 開發', desc:'儀表板原始碼版本管理', url:'https://github.com/jennifer-shao-ai/feebit', related:['開發'] },
+  { icon:'🌐', name:'GitHub Pages', category:'AI / 開發', desc:'儀表板免費靜態網站部署', url:'https://jennifer-shao-ai.github.io/feebit/', related:['開發','部署'] },
+  { icon:'🔥', name:'Firebase', category:'AI / 開發', desc:'旅行規劃即時協作後端（Realtime Database）', url:'https://console.firebase.google.com', related:['開發','協作'] },
 ];
 const container = document.getElementById('tools-list');
 const groups = {};
