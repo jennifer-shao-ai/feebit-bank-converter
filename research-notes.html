@@ -468,6 +468,10 @@ function selectNote(note) {
   viewMode = 'note';
   renderNoteList();
   renderViewer(note);
+  if (currentNotebook) {
+    document.getElementById('btn-synthesize').style.display = '';
+    document.getElementById('btn-add-note').style.display = '';
+  }
 }
 
 function renderViewer(note) {
