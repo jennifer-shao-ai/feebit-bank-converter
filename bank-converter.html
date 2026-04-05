@@ -72,7 +72,7 @@
     </a>
   </div>
 
-  <div class="sidebar-footer">v1.0 · Feebit © 2026</div>
+  <div class="sidebar-footer">v1.1 · Feebit © 2026</div>
 </div>
 
 <!-- ── SIDEBAR OVERLAY ── -->
@@ -85,6 +85,7 @@
       <button class="btn-hamburger" onclick="openSidebar()">☰</button>
       <span class="topbar-title">帳務轉換</span>
       <span class="topbar-badge">財務工具</span>
+      <span style="font-size:11px;color:var(--gray-400);margin-left:4px">v1.1</span>
     </div>
     <button class="btn-share" onclick="copyShare(this)" title="複製分享連結">🔗 分享</button>
   </div>
@@ -135,7 +136,7 @@
             <table>
               <thead><tr>
                 <th>交易日期</th><th>收入/支出</th><th>帳戶</th><th>幣別</th>
-                <th>原幣金額</th><th>主分類</th><th>子分類</th><th>收款人</th><th>描述</th><th>狀態</th>
+                <th>原幣金額</th><th>主分類</th><th>子分類</th><th>收款人</th><th>描述</th><th>狀態</th><th></th>
               </tr></thead>
               <tbody id="preview-body"></tbody>
             </table>
@@ -186,7 +187,7 @@
   <div class="modal">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
       <h2 style="margin-bottom:0">📂 設定分類</h2>
-      <button onclick="document.getElementById('modal-backdrop').style.display='none'" style="border:none;background:none;cursor:pointer;font-size:20px;color:var(--gray-400);line-height:1;padding:0 4px">✕</button>
+      <button onclick="editingIdx=-1;document.getElementById('modal-backdrop').style.display='none'" style="border:none;background:none;cursor:pointer;font-size:20px;color:var(--gray-400);line-height:1;padding:0 4px">✕</button>
     </div>
     <div class="progress-text" id="modal-progress"></div>
     <div class="tx-info" id="modal-tx-info"></div>
@@ -200,7 +201,7 @@
         <option value="">-- 選擇 --</option>
         <option>保險相關</option><option>其他費用</option><option>商品貨款</option>
         <option>廣告費/加值費</option><option>政府相關</option><option>會計師</option>
-        <option>耗材相關</option><option>薪資/外包</option><option>貨運運費</option>
+        <option>耗材相關</option><option>薪資/外包</option><option>勞保</option><option>健保</option><option>勞退</option><option>貨運運費</option>
         <option>賣場/通路銷售</option><option>軟體/系統工具</option><option>進口費用</option>
         <option value="__custom__">＋ 自訂...</option>
       </select>
@@ -242,6 +243,7 @@
 let transactions = [];
 let unknownQueue = [];
 let currentIdx = 0;
+let editingIdx = -1;
 const KEY_RULES    = 'feebit_rules_v2';
 const KEY_ACCOUNTS = 'feebit_accounts_v2';
 
@@ -286,9 +288,9 @@ const DEFAULT_RULES = [
   { summary: '00000', payeeKey: 'SHOPEE', type: '收入', main: '賣場/通路銷售', sub: '蝦皮商城/一般/寶媽', payee: 'SHOPEE' },
   { summary: '匯款',  payeeKey: '寶雅',   type: '收入', main: '賣場/通路銷售', sub: 'POYA寶雅',          payee: '寶雅連鎖' },
   { summary: '匯款',  payeeKey: '富邦媒', type: '收入', main: '賣場/通路銷售', sub: 'MOMO',              payee: '富邦媒體' },
-  { summary: '勞保', contains: true, payeeKey: '', type: '支出', main: '薪資/外包', sub: '', payee: '' },
-  { summary: '健保', contains: true, payeeKey: '', type: '支出', main: '薪資/外包', sub: '', payee: '' },
-  { summary: '勞退', contains: true, payeeKey: '', type: '支出', main: '薪資/外包', sub: '', payee: '' },
+  { summary: '勞保', contains: true, payeeKey: '', type: '支出', main: '勞保', sub: '', payee: '' },
+  { summary: '健保', contains: true, payeeKey: '', type: '支出', main: '健保', sub: '', payee: '' },
+  { summary: '勞退', contains: true, payeeKey: '', type: '支出', main: '勞退', sub: '', payee: '' },
 ];
 function getRules() {
   try { const s = localStorage.getItem(KEY_RULES); return s ? JSON.parse(s) : [...DEFAULT_RULES]; }
@@ -387,17 +389,19 @@ function updateAlerts() {
 }
 function renderPreview() {
   const tbody = document.getElementById('preview-body'); tbody.innerHTML = '';
-  for (const tx of transactions) {
+  transactions.forEach((tx, i) => {
     const tr = document.createElement('tr');
     const cls = tx.type==='收入' ? 'type-in' : 'type-out';
+    const statusTag = tx.needsCat ? '<span class="tag-unknown">待分類</span>' : tx.edited ? '<span class="tag-auto" style="background:#dbeafe;color:#1d4ed8">已編輯</span>' : '<span class="tag-auto">自動</span>';
     tr.innerHTML = `<td>${tx.date}</td><td class="${cls}">${tx.type}</td><td>${tx.accountName}</td>
       <td>${tx.currency}</td><td style="text-align:right">${tx.amount.toLocaleString()}</td>
       <td>${tx.main||'<span style="color:#9ca3af">未分類</span>'}</td><td>${tx.sub}</td>
       <td>${tx.payee}</td>
       <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis" title="${tx.description}">${tx.description}</td>
-      <td>${tx.needsCat?'<span class="tag-unknown">待分類</span>':'<span class="tag-auto">自動</span>'}</td>`;
+      <td>${statusTag}</td>
+      <td><button class="btn btn-outline" style="padding:3px 8px;font-size:12px;white-space:nowrap" onclick="openEditModal(${i})">✏ 編輯</button></td>`;
     tbody.appendChild(tr);
-  }
+  });
 }
 function renderRules() {
   const rules = getRules();
@@ -440,7 +444,57 @@ function startCategorizing() {
   if (!unknownQueue.length) { updateAlerts(); return; }
   showModal(unknownQueue[0]);
 }
+function openEditModal(i) {
+  editingIdx = i;
+  const tx = transactions[i];
+  document.getElementById('modal-progress').textContent = `編輯分類`;
+  document.getElementById('modal-tx-info').innerHTML = `
+    <div class="row"><span class="label">日期</span><span>${tx.date}</span></div>
+    <div class="row"><span class="label">帳戶</span><span>${tx.accountName}</span></div>
+    <div class="row"><span class="label">摘要</span><span>${tx.summary}</span></div>
+    <div class="row"><span class="label">來源代號</span><span>${tx.payeeCode}</span></div>
+    <div class="row"><span class="label">金額</span><strong>${tx.amount.toLocaleString()} ${tx.currency}</strong></div>
+    ${tx.description?`<div class="row"><span class="label">描述</span><span>${tx.description}</span></div>`:''}`;
+  document.getElementById('modal-type').value = tx.type;
+  const mainSel = document.getElementById('modal-main');
+  const knownVals = Array.from(mainSel.options).map(o => o.value).filter(v => v && v !== '__custom__');
+  if (knownVals.includes(tx.main)) {
+    mainSel.value = tx.main;
+    document.getElementById('modal-main-custom').style.display = 'none';
+    document.getElementById('modal-main-custom').value = '';
+  } else if (tx.main) {
+    mainSel.value = '__custom__';
+    document.getElementById('modal-main-custom').style.display = 'block';
+    document.getElementById('modal-main-custom').value = tx.main;
+  } else {
+    mainSel.value = '';
+    document.getElementById('modal-main-custom').style.display = 'none';
+    document.getElementById('modal-main-custom').value = '';
+  }
+  handleMainChange();
+  const subSel = document.getElementById('modal-sub-select');
+  const subInput = document.getElementById('modal-sub');
+  if (subSel.style.display !== 'none' && tx.sub) {
+    const subOpts = Array.from(subSel.options).map(o => o.value);
+    if (subOpts.includes(tx.sub)) {
+      subSel.value = tx.sub;
+      subInput.value = tx.sub;
+    } else {
+      subSel.style.display = 'none';
+      subInput.style.display = 'block';
+      subInput.value = tx.sub;
+    }
+  } else {
+    subInput.value = tx.sub || '';
+  }
+  document.getElementById('modal-payee').value = tx.payee || '';
+  document.getElementById('modal-remember').checked = false;
+  document.getElementById('split-section').style.display = 'none';
+  splitTx = null;
+  document.getElementById('modal-backdrop').style.display = 'flex';
+}
 function showModal(tx) {
+  editingIdx = -1;
   const total = transactions.filter(t => t.needsCat).length;
   document.getElementById('modal-progress').textContent = `第 ${currentIdx+1} 筆（共 ${total} 筆待分類）`;
   document.getElementById('modal-tx-info').innerHTML = `
@@ -514,6 +568,15 @@ function getModalVals() {
 function applyToTx(tx, v) { tx.type=v.type; tx.main=v.main; tx.sub=v.sub; tx.payee=v.payee; tx.needsCat=false; }
 function confirmCategory() {
   const v = getModalVals(); if (!v.main) { alert('請選擇主分類'); return; }
+  if (editingIdx >= 0) {
+    const tx = transactions[editingIdx];
+    applyToTx(tx, v);
+    tx.edited = true;
+    editingIdx = -1;
+    document.getElementById('modal-backdrop').style.display = 'none';
+    renderAll();
+    return;
+  }
   const tx = unknownQueue[currentIdx]; applyToTx(tx, v);
   if (v.remember) {
     const rule = { summary:tx.summary, payeeKey:tx.payeeCode, type:v.type, main:v.main, sub:v.sub, payee:v.payee };
@@ -611,7 +674,7 @@ let splitTx = null;
 function toggleSplit() {
   const sec = document.getElementById('split-section');
   if (sec.style.display !== 'none') { sec.style.display = 'none'; splitTx = null; return; }
-  splitTx = unknownQueue[currentIdx];
+  splitTx = editingIdx >= 0 ? transactions[editingIdx] : unknownQueue[currentIdx];
   sec.style.display = 'block';
   document.getElementById('split-rows').innerHTML = '';
   addSplitRow(); addSplitRow();
@@ -654,9 +717,15 @@ function confirmSplit() {
   const total = parts.reduce((s, p) => s + p.amt, 0);
   if (Math.abs(total - splitTx.amount) > 0.01) { alert(`合計 ${total.toLocaleString()} ≠ 原始 ${splitTx.amount.toLocaleString()}`); return; }
   const idx = transactions.indexOf(splitTx);
-  const entries = parts.map((p, i) => ({ ...splitTx, amount: p.amt, main: p.main, sub: p.sub, needsCat: false, description: splitTx.description + ` [拆分${i+1}/${parts.length}]` }));
+  const entries = parts.map((p, i) => ({ ...splitTx, amount: p.amt, main: p.main, sub: p.sub, needsCat: false, edited: true, description: splitTx.description + ` [拆分${i+1}/${parts.length}]` }));
   transactions.splice(idx, 1, ...entries);
   document.getElementById('split-section').style.display = 'none'; splitTx = null;
+  if (editingIdx >= 0) {
+    editingIdx = -1;
+    document.getElementById('modal-backdrop').style.display = 'none';
+    renderAll();
+    return;
+  }
   unknownQueue = transactions.filter(t => t.needsCat);
   currentIdx = Math.min(currentIdx, unknownQueue.length - 1);
   nextOrClose();
