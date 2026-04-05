@@ -108,12 +108,7 @@ tr:hover td { background: var(--gray-50); }
 .row-blue   td { background: #dbeeff; }
 .row-orange td { background: #fff0db; }
 .row-yellow td { background: #fffde7; }
-.row-purple td { color: #7c3aed; font-weight: 700; }
-.row-hidden td { opacity: 0.45; }
-.stock-sort { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
-.sort-btn { padding: 4px 12px; border-radius: var(--radius); border: 1px solid var(--gray-200); cursor: pointer; font-size: 12px; background: white; color: var(--gray-600); transition: all 0.15s; }
-.sort-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
-.sort-btn:hover:not(.active) { background: var(--gray-100); }
+.row-purple td { background: #f5e8ff; }
 .account-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 14px; }
 .account-row input { flex: 1; }
 .account-num { color: var(--gray-600); font-family: monospace; font-size: 12px; min-width: 150px; }
@@ -180,20 +175,18 @@ select:focus, input[type="text"]:focus { border-color: var(--primary); }
   </div>
 
   <div class="sidebar-section">
+    <div class="sidebar-label">業務</div>
+    <div class="nav-item soon" id="nav-nego">
+      <span class="icon">🤝</span> 廠商談判
+      <span class="soon-tag">即將推出</span>
+    </div>
+  </div>
+
+  <div class="sidebar-section">
     <div class="sidebar-label">庫存</div>
-    <a href="stock-analysis.html" class="nav-item"><span class="icon">📦</span> 庫存訂貨分析</a>
-  </div>
-  <div class="sidebar-section">
-    <div class="sidebar-label">研發</div>
-    <a href="research-notes.html" class="nav-item"><span class="icon">📚</span> 研發筆記</a>
-  </div>
-  <div class="sidebar-section">
-    <div class="sidebar-label">生活</div>
-    <a href="travel-planner.html" class="nav-item"><span class="icon">✈️</span> 旅行規劃</a>
-  </div>
-  <div class="sidebar-section">
-    <div class="sidebar-label">系統</div>
-    <a href="tools.html" class="nav-item"><span class="icon">🔧</span> 使用工具</a>
+    <div class="nav-item" onclick="navigate('stock')" id="nav-stock">
+      <span class="icon">📦</span> 庫存訂貨分析
+    </div>
   </div>
 
   <div class="sidebar-footer">v1.2 · Feebit © 2026</div>
@@ -203,7 +196,10 @@ select:focus, input[type="text"]:focus { border-color: var(--primary); }
 <div id="main">
   <div class="topbar">
     <span class="topbar-title" id="topbar-title">首頁</span>
-    <span class="topbar-badge" id="topbar-badge">飛比特營運工具箱</span>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button id="share-btn" class="btn btn-outline" style="display:none;padding:4px 12px;font-size:12px" onclick="shareLink()">🔗 分享連結</button>
+      <span class="topbar-badge" id="topbar-badge">飛比特營運工具箱</span>
+    </div>
   </div>
 
   <div class="page">
@@ -215,7 +211,7 @@ select:focus, input[type="text"]:focus { border-color: var(--primary); }
         <div class="home-card" onclick="navigate('bank')">
           <div class="hc-icon">🏦</div>
           <div class="hc-name">帳務轉換</div>
-          <div class="hc-desc">將彰銀 CSV百年格式 轉成帶分類的交易明細</div>
+          <div class="hc-desc">將彰銀 TWD-2601 CSV 轉成帶分類的交易明細</div>
           <div class="hc-tag">可使用</div>
         </div>
         <div class="home-card soon">
@@ -236,7 +232,7 @@ select:focus, input[type="text"]:focus { border-color: var(--primary); }
           <div class="hc-desc">輸入客訴情境，自動產出溫和但不退讓的回覆</div>
           <div class="hc-tag">即將推出</div>
         </div>
-        <div class="home-card" onclick="location.href='stock-analysis.html'">
+        <div class="home-card" onclick="navigate('stock')">
           <div class="hc-icon">📦</div>
           <div class="hc-name">庫存訂貨分析</div>
           <div class="hc-desc">上傳商品總表，自動標色低庫存，計算建議訂購數量</div>
@@ -247,24 +243,6 @@ select:focus, input[type="text"]:focus { border-color: var(--primary); }
           <div class="hc-name">廠商談判</div>
           <div class="hc-desc">依情境產出談判策略與話術</div>
           <div class="hc-tag">即將推出</div>
-        </div>
-        <div class="home-card" onclick="location.href='travel-planner.html'">
-          <div class="hc-icon">✈️</div>
-          <div class="hc-name">旅行規劃</div>
-          <div class="hc-desc">即時協作旅行行程規劃工具</div>
-          <div class="hc-tag">可使用</div>
-        </div>
-        <div class="home-card" onclick="location.href='research-notes.html'">
-          <div class="hc-icon">📝</div>
-          <div class="hc-name">研發筆記</div>
-          <div class="hc-desc">影片字幕、圖片 OCR 轉筆記</div>
-          <div class="hc-tag">可使用</div>
-        </div>
-        <div class="home-card" onclick="location.href='tools.html'">
-          <div class="hc-icon">🛠️</div>
-          <div class="hc-name">使用工具</div>
-          <div class="hc-desc">所有工具總覽與說明</div>
-          <div class="hc-tag">可使用</div>
         </div>
       </div>
     </div>
@@ -288,21 +266,13 @@ select:focus, input[type="text"]:focus { border-color: var(--primary); }
           <div class="legend-item" style="background:#ffe5e5"><div class="dot" style="background:#FF5252"></div>庫存為 0</div>
           <div class="legend-item" style="background:#dbeeff"><div class="dot" style="background:#64B5F6"></div>低於安全庫存</div>
           <div class="legend-item" style="background:#fff0db"><div class="dot" style="background:#FFB74D"></div>低於 20</div>
-          <div class="legend-item" style="background:#fffde7"><div class="dot" style="background:#FFF176;border:1px solid #ddd"></div>低於 50</div>
-          <div class="legend-item" style="border:1px solid #e9d5ff"><span style="color:#7c3aed;font-weight:700;font-size:13px">A</span>&nbsp;未設安全庫存且低於 10（文字紫色）</div>
-        </div>
-        <div class="stock-sort">
-          <span style="color:var(--gray-600);font-size:12px">排序：</span>
-          <button class="sort-btn active" id="sort-btn-default" onclick="stockSetSort('')">預設</button>
-          <button class="sort-btn" id="sort-btn-code" onclick="stockSetSort('code')">貨號 A→Z</button>
-          <button class="sort-btn" id="sort-btn-name" onclick="stockSetSort('name')">品名 A→Z</button>
-          <button class="sort-btn" id="sort-btn-qty" onclick="stockSetSort('qty')">庫存量 大→小</button>
+          <div class="legend-item" style="background:#fffde7"><div class="dot" style="background:#d97706"></div>低於 50</div>
+          <div class="legend-item" style="background:#f5e8ff"><div class="dot" style="background:#CE93D8"></div>未設安全庫存且低於 10</div>
         </div>
         <div class="card">
           <div class="card-header">
             <h2>庫存訂貨分析 <span id="stock-count" style="color:var(--gray-600);font-weight:400;font-size:13px"></span></h2>
             <div style="display:flex;gap:8px">
-              <button class="btn btn-outline" id="btn-show-hidden" onclick="stockToggleShowHidden()" style="font-size:12px">顯示已隱藏 (0)</button>
               <button class="btn btn-outline" onclick="stockReset()">↩ 重新上傳</button>
               <button class="btn btn-success" onclick="stockDownloadCSV()">⬇ 下載 CSV</button>
             </div>
@@ -315,7 +285,6 @@ select:focus, input[type="text"]:focus { border-color: var(--primary); }
                 <th style="text-align:right">數量</th>
                 <th style="text-align:right">建議訂購</th>
                 <th style="text-align:right">實際訂購</th>
-                <th>操作</th>
               </tr></thead>
               <tbody id="stock-body"></tbody>
             </table>
@@ -463,6 +432,12 @@ const PAGE_META = {
 };
 
 function navigate(page) {
+  // 重置各工具頁的顯示狀態，確保每次進入都從上傳區開始
+  document.getElementById('upload-section').style.display = '';
+  document.getElementById('result-section').style.display = 'none';
+  document.getElementById('stock-upload-section').style.display = '';
+  document.getElementById('stock-result-section').style.display = 'none';
+  // 切換頁面與側欄 active
   document.querySelectorAll('.tool-page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
@@ -471,6 +446,12 @@ function navigate(page) {
   const meta = PAGE_META[page] || { title: page, badge: '' };
   document.getElementById('topbar-title').textContent = meta.title;
   document.getElementById('topbar-badge').textContent = meta.badge;
+  // 更新 URL hash（不觸發頁面跳動）
+  history.replaceState(null, '', page === 'home' ? location.pathname : '#' + page);
+  // 分享按鈕顯示控制
+  document.getElementById('share-btn').style.display = page === 'home' ? 'none' : '';
+  // 回頂部
+  window.scrollTo(0, 0);
 }
 
 // ── STATE ─────────────────────────────────────────────────────
@@ -773,45 +754,10 @@ function resetUpload() {
 
 // ── STOCK ANALYSIS ────────────────────────────────────────────
 let stockProducts = [];
-let stockSortKey = '';
-let stockShowHidden = false;
-const KEY_HIDDEN = 'feebit_hidden_codes';
-
-function getHiddenCodes() {
-  try { return new Set(JSON.parse(localStorage.getItem(KEY_HIDDEN)) || []); }
-  catch(e) { return new Set(); }
-}
-function saveHiddenCodes(set) { localStorage.setItem(KEY_HIDDEN, JSON.stringify([...set])); }
-function toggleHidden(code) {
-  const s = getHiddenCodes();
-  if (s.has(code)) s.delete(code); else s.add(code);
-  saveHiddenCodes(s);
-  stockRender();
-}
-function stockToggleShowHidden() {
-  stockShowHidden = !stockShowHidden;
-  stockRender();
-}
-function stockSetSort(key) {
-  stockSortKey = key;
-  document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
-  const id = key === '' ? 'sort-btn-default' : 'sort-btn-' + key;
-  const btn = document.getElementById(id);
-  if (btn) btn.classList.add('active');
-  stockRender();
-}
 
 function stockIsBundle(code) {
   code = String(code || '').trim();
   return code.length === 8 && code[2] === '9';
-}
-function stockIsExcluded(code) {
-  const c = String(code || '').trim();
-  if (!c) return false;
-  const upper = c.toUpperCase();
-  if (upper[0] === 'X' || upper[0] === 'Z') return true;
-  if (/-[9QL]$/i.test(c)) return true;
-  return false;
 }
 function stockCleanNum(val) {
   if (val === null || val === undefined || val === '') return null;
@@ -832,11 +778,8 @@ function stockGetColor(qty, safety) {
   if (safety && safety > 0 && q < safety) return 'blue';
   if (q < 20) return 'orange';
   if (q < 50) return 'yellow';
+  if ((!safety || safety <= 0) && q < 10) return 'purple';
   return '';
-}
-function stockIsPurple(qty, safety) {
-  const q = qty === null ? 0 : qty;
-  return (!safety || safety <= 0) && q < 10;
 }
 function stockParseLine(line) {
   const fields = []; let cur = ''; let inQ = false;
@@ -867,7 +810,6 @@ async function stockHandleFile(file) {
       const code = (f[0] || '').trim();
       if (!code) continue;
       if (stockIsBundle(code)) continue;
-      if (stockIsExcluded(code)) continue;
       const qty = stockCleanNum(f[7]);
       const safety = stockCleanNum(f[2]);
       stockProducts.push({
@@ -876,7 +818,6 @@ async function stockHandleFile(file) {
         qty, update: f[8] || '', create: f[9] || '',
         suggest: stockSuggestOrder(safety, qty),
         color: stockGetColor(qty, safety),
-        isPurple: stockIsPurple(qty, safety),
       });
     }
     if (!stockProducts.length) { alert('未找到有效商品資料，請確認 CSV 格式'); return; }
@@ -886,69 +827,28 @@ async function stockHandleFile(file) {
   } catch(e) { alert('讀取失敗：' + e.message); }
 }
 function stockRender() {
-  const hiddenCodes = getHiddenCodes();
   const counts = { red: 0, blue: 0, orange: 0, yellow: 0, purple: 0, ok: 0 };
   const tbody = document.getElementById('stock-body'); tbody.innerHTML = '';
-
-  // 排序
-  let products = [...stockProducts];
-  if (stockSortKey === 'code') products.sort((a,b) => a.code.localeCompare(b.code));
-  else if (stockSortKey === 'name') products.sort((a,b) => a.name.localeCompare(b.name, 'zh-TW'));
-  else if (stockSortKey === 'qty') products.sort((a,b) => (b.qty ?? -1) - (a.qty ?? -1));
-
-  const visible = products.filter(p => !hiddenCodes.has(p.code));
-  const hidden  = products.filter(p =>  hiddenCodes.has(p.code));
-
-  for (const p of visible) {
+  for (const p of stockProducts) {
     counts[p.color || 'ok']++;
-    if (p.isPurple) counts['purple']++;
     const tr = document.createElement('tr');
-    const classes = [];
-    if (p.color) classes.push('row-' + p.color);
-    if (p.isPurple) classes.push('row-purple');
-    tr.className = classes.join(' ');
+    if (p.color) tr.className = 'row-' + p.color;
     tr.innerHTML = `<td style="font-family:monospace;font-size:12px">${p.code}</td>
       <td>${p.name}</td>
       <td style="text-align:right">${p.safety === null ? '' : p.safety}</td>
       <td>${p.status}</td><td>${p.loc}</td>
       <td style="text-align:right;font-weight:600">${p.qty === null ? '' : p.qty}</td>
       <td style="text-align:right;color:var(--primary);font-weight:600">${p.suggest}</td>
-      <td style="text-align:right"><input type="number" min="0" style="width:72px;padding:4px 6px;border:1px solid var(--gray-200);border-radius:4px;font-size:13px;text-align:right" placeholder="0"></td>
-      <td><button onclick="toggleHidden('${p.code.replace(/'/g,"\\'")}')" style="padding:2px 8px;font-size:11px;border:1px solid var(--gray-200);border-radius:4px;cursor:pointer;background:white;color:var(--gray-600)">隱藏</button></td>`;
+      <td style="text-align:right"><input type="number" min="0" style="width:72px;padding:4px 6px;border:1px solid var(--gray-200);border-radius:4px;font-size:13px;text-align:right" placeholder="0"></td>`;
     tbody.appendChild(tr);
   }
-
-  if (stockShowHidden && hidden.length > 0) {
-    const sepTr = document.createElement('tr');
-    sepTr.innerHTML = `<td colspan="9" style="background:var(--gray-100);color:var(--gray-400);font-size:11px;text-align:center;padding:6px">── 已隱藏商品 (${hidden.length}) ──</td>`;
-    tbody.appendChild(sepTr);
-    for (const p of hidden) {
-      const tr = document.createElement('tr');
-      tr.className = 'row-hidden';
-      tr.innerHTML = `<td style="font-family:monospace;font-size:12px">${p.code}</td>
-        <td>${p.name}</td>
-        <td style="text-align:right">${p.safety === null ? '' : p.safety}</td>
-        <td>${p.status}</td><td>${p.loc}</td>
-        <td style="text-align:right">${p.qty === null ? '' : p.qty}</td>
-        <td></td><td></td>
-        <td><button onclick="toggleHidden('${p.code.replace(/'/g,"\\'")}')" style="padding:2px 8px;font-size:11px;border:1px solid var(--gray-200);border-radius:4px;cursor:pointer;background:white;color:var(--primary)">取消隱藏</button></td>`;
-      tbody.appendChild(tr);
-    }
-  }
-
-  const btnHidden = document.getElementById('btn-show-hidden');
-  if (btnHidden) {
-    btnHidden.textContent = stockShowHidden ? `隱藏已隱藏 (${hidden.length})` : `顯示已隱藏 (${hidden.length})`;
-    btnHidden.style.display = hidden.length === 0 && !stockShowHidden ? 'none' : '';
-  }
-
-  document.getElementById('stock-count').textContent = `共 ${visible.length} 筆商品`;
+  document.getElementById('stock-count').textContent = `共 ${stockProducts.length} 筆商品`;
   const statDef = [
     { color: '#FF5252', label: '庫存為 0',     key: 'red' },
     { color: '#64B5F6', label: '低於安全庫存', key: 'blue' },
     { color: '#FFB74D', label: '低於 20',       key: 'orange' },
-    { color: '#b45309', label: '低於 50',       key: 'yellow' },
-    { color: '#7c3aed', label: '未設且低於 10', key: 'purple' },
+    { color: '#d97706', label: '低於 50',       key: 'yellow' },
+    { color: '#CE93D8', label: '未設且低於 10', key: 'purple' },
     { color: '#16a34a', label: '庫存正常',      key: 'ok' },
   ];
   document.getElementById('stock-stats').innerHTML = statDef.map(s =>
@@ -962,21 +862,13 @@ function stockReset() {
   document.getElementById('stock-result-section').style.display = 'none';
   document.getElementById('stockFileInput').value = '';
   stockProducts = [];
-  stockSortKey = '';
-  stockShowHidden = false;
-  document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
-  const defBtn = document.getElementById('sort-btn-default');
-  if (defBtn) defBtn.classList.add('active');
 }
 function stockDownloadCSV() {
-  const hiddenCodes = getHiddenCodes();
+  const rows = document.querySelectorAll('#stock-body tr');
   const headers = ['商品代號','商品名稱','安全庫存','販售狀態','庫位','數量','建議訂購數量','實際訂購數量'];
   const esc = v => { const s = String(v ?? ''); return (s.includes(',') || s.includes('"') || s.includes('\n')) ? `"${s.replace(/"/g,'""')}"` : s; };
-  // 只匯出可見的列（排除隱藏商品）
-  const visibleRows = Array.from(document.querySelectorAll('#stock-body tr')).filter(tr => !tr.classList.contains('row-hidden') && tr.cells.length > 2);
-  const visibleProducts = stockProducts.filter(p => !hiddenCodes.has(p.code));
-  const data = visibleProducts.map((p, i) => {
-    const input = visibleRows[i] ? visibleRows[i].querySelector('input') : null;
+  const data = stockProducts.map((p, i) => {
+    const input = rows[i] ? rows[i].querySelector('input') : null;
     return [p.code, p.name, p.safety ?? '', p.status, p.loc, p.qty ?? '', p.suggest, input ? input.value : ''];
   });
   const csv = [headers, ...data].map(r => r.map(esc).join(',')).join('\n');
@@ -985,9 +877,25 @@ function stockDownloadCSV() {
   a.download = `feebit_stock_${new Date().toISOString().slice(0,10).replace(/-/g,'')}.csv`; a.click();
 }
 
+// ── SHARE ────────────────────────────────────────────────────
+function shareLink() {
+  const url = location.origin + location.pathname + location.hash;
+  navigator.clipboard.writeText(url).then(() => {
+    const btn = document.getElementById('share-btn');
+    const orig = btn.textContent;
+    btn.textContent = '✅ 已複製';
+    setTimeout(() => { btn.textContent = orig; }, 2000);
+  });
+}
+
 // ── INIT ─────────────────────────────────────────────────────
 if (!localStorage.getItem(KEY_RULES)) saveRulesStore(DEFAULT_RULES);
 if (!localStorage.getItem(KEY_ACCOUNTS)) saveAccountsStore(DEFAULT_ACCOUNTS);
+// Hash routing：從分享連結進入時自動導向對應頁面
+(function() {
+  const hash = location.hash.slice(1);
+  if (hash && document.getElementById('page-' + hash)) navigate(hash);
+})();
 </script>
 </body>
 </html>
