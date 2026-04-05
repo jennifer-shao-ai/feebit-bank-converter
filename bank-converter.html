@@ -379,7 +379,7 @@ async function handleFile(file) {
   try {
     const text = decode(await file.arrayBuffer());
     transactions = parseTWD2601(text);
-    if (!transactions.length) { alert('無法解析檔案，請確認格式為 TWD-2601 CSV'); return; }
+    if (!transactions.length) { alert('無法解析檔案，請確認為彰銀帳務明細 CSV'); return; }
     unknownQueue = transactions.filter(t => t.needsCat); currentIdx = 0;
     renderAll();
     document.getElementById('upload-section').style.display = 'none';
