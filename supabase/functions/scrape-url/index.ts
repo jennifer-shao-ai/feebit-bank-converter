@@ -28,6 +28,25 @@ serve(async (req) => {
     const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/is)
     const title = titleMatch ? titleMatch[1].replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').trim() : url
 
+    // Extract image URLs before stripping tags
+    const images: string[] = []
+    const imgRegex = /<img([^>]+)>/gi
+    let imgMatch: RegExpExecArray | null
+    while ((imgMatch = imgRegex.exec(html)) !== null) {
+      const tag = imgMatch[1]
+      // Skip 1x1 tracking pixels
+      if (/\bwidth=["']?1["']?\b/i.test(tag) || /\bheight=["']?1["']?\b/i.test(tag)) continue
+      const srcMatch = tag.match(/\bsrc=["']([^"']+)["']/i)
+      if (!srcMatch) continue
+      let src = srcMatch[1].trim()
+      if (!src || src.startsWith('data:')) continue
+      // Resolve relative URLs
+      try { src = new URL(src, url).href } catch { continue }
+      if (!src.startsWith('http')) continue
+      if (!images.includes(src)) images.push(src)
+      if (images.length >= 8) break
+    }
+
     // Remove scripts, styles, nav, footer
     let content = html
       .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
@@ -49,7 +68,7 @@ serve(async (req) => {
       content = content.slice(0, 8000) + '\n\n[內容已截斷...]'
     }
 
-    return new Response(JSON.stringify({ title, content }), {
+    return new Response(JSON.stringify({ title, content, images }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (err) {

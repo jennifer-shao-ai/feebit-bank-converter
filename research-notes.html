@@ -372,6 +372,7 @@ let selectedType = 'url';
 let selectedEmoji = '📓';
 let fetchedContent = '';
 let fetchedTitle = '';
+let fetchedImages = [];
 let ocrText = '';
 let inputQueue = [];
 let viewMode = 'note'; // 'note' | 'synthesis' | 'edit'
@@ -751,7 +752,7 @@ function renderViewer(note) {
       }
     </div>
     <div id="vtab-content" style="display:${!hasSummary ? 'block' : 'none'};">
-      <div class="rn-viewer-content">${escHtml(note.content || '（無內容）')}</div>
+      <div class="rn-viewer-content">${renderContentHtml(note.content)}</div>
     </div>
   `;
   viewer.querySelectorAll('.vtab-btn').forEach(btn => {
@@ -1040,14 +1041,16 @@ async function addToQueue() {
       if (!url) { showToast('請輸入網址'); return; }
       let content = fetchedContent;
       let title = fetchedTitle;
+      let images = fetchedImages;
       if (!content) {
         showToast('擷取中...');
         const res = await callEdgeFunction('scrape-url', { url });
         content = res.content;
         title = res.title || url;
+        images = res.images || [];
       }
-      inputQueue.push({ type: 'url', url, content, title, label: title || url });
-      fetchedContent = ''; fetchedTitle = '';
+      inputQueue.push({ type: 'url', url, content, images, title, label: title || url });
+      fetchedContent = ''; fetchedTitle = ''; fetchedImages = [];
       document.getElementById('input-url').value = '';
       document.getElementById('url-preview').style.display = 'none';
 
@@ -1105,7 +1108,11 @@ async function handleBatchSave() {
     const item = inputQueue[i];
     btn.innerHTML = `<span class="spinner"></span> 儲存 ${i + 1}/${total}`;
     try {
-      await saveNoteSilent({ title: item.title, content: item.content, source_url: item.url || null, source_type: item.type });
+      let contentToSave = item.content;
+      if (item.images && item.images.length) {
+        contentToSave = item.images.map(u => `[IMG:${u}]`).join('\n') + '\n\n' + item.content;
+      }
+      await saveNoteSilent({ title: item.title, content: contentToSave, source_url: item.url || null, source_type: item.type });
       saved++;
     } catch(err) {
       showToast(`第 ${i + 1} 筆失敗`);
@@ -1247,6 +1254,7 @@ document.getElementById('input-url').addEventListener('blur', async function() {
     const res = await callEdgeFunction('scrape-url', { url });
     fetchedContent = res.content;
     fetchedTitle = res.title || url;
+    fetchedImages = res.images || [];
     preview.textContent = fetchedContent.slice(0, 300) + '...';
   } catch(e) {
     preview.textContent = '⚠️ 無法擷取，儲存時會再試一次';
@@ -1278,6 +1286,7 @@ function resetAddModal() {
   selectedType = 'url';
   fetchedContent = '';
   fetchedTitle = '';
+  fetchedImages = [];
   ocrText = '';
   document.querySelectorAll('.type-btn').forEach(b => b.classList.toggle('selected', b.dataset.type === 'url'));
   document.querySelectorAll('.input-section').forEach(s => s.classList.remove('active'));
@@ -1297,6 +1306,13 @@ function resetAddModal() {
 function openModal(id) { document.getElementById(id).style.display = 'flex'; }
 function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 function escHtml(str) { return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function renderContentHtml(text) {
+  return (text || '（無內容）').split('\n').map(line => {
+    const m = line.match(/^\[IMG:(https?:\/\/.+)\]$/);
+    if (m) return `<img src="${escHtml(m[1])}" style="max-width:100%;border-radius:6px;margin:6px 0;display:block;" loading="lazy" onerror="this.style.display='none'">`;
+    return escHtml(line);
+  }).join('\n');
+}
 function sourceLabel(type) { return { url:'網頁', image:'圖片', youtube:'YouTube', manual:'手動' }[type] || type; }
 function formatDate(iso) { return new Date(iso).toLocaleDateString('zh-TW'); }
 
