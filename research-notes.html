@@ -20,14 +20,25 @@
 .btn-nb { width: 100%; margin-top: 6px; padding: 6px; border-radius: var(--radius); border: 1px dashed var(--gray-400); background: white; color: var(--gray-600); font-size: 12px; cursor: pointer; }
 .btn-nb:hover { border-color: var(--primary); color: var(--primary); }
 
+/* Notebook actions row */
+.nb-actions-row { display: flex; gap: 4px; margin-top: 6px; }
+.btn-nb-action { flex: 1; padding: 5px; border-radius: var(--radius); border: 1px solid var(--gray-200); background: white; color: var(--gray-500); font-size: 11px; cursor: pointer; text-align: center; }
+.btn-nb-action:hover { border-color: var(--primary); color: var(--primary); }
+.btn-nb-action.danger:hover { border-color: var(--danger); color: var(--danger); }
+
 .rn-search { padding: 8px 12px; border-bottom: 1px solid var(--gray-200); }
 .rn-search input { width: 100%; padding: 6px 10px; border: 1px solid var(--gray-200); border-radius: var(--radius); font-size: 13px; outline: none; }
 .rn-search input:focus { border-color: var(--primary); }
 
 .rn-note-list { flex: 1; overflow-y: auto; padding: 8px; }
-.note-item { padding: 10px 12px; border-radius: var(--radius); cursor: pointer; margin-bottom: 4px; border: 1px solid transparent; }
+.note-item { display: flex; align-items: flex-start; gap: 4px; padding: 8px 10px; border-radius: var(--radius); cursor: pointer; margin-bottom: 4px; border: 1px solid transparent; transition: background 0.1s; }
 .note-item:hover { background: var(--gray-50); }
 .note-item.active { background: var(--primary-light); border-color: var(--primary); }
+.note-item.dragging { opacity: 0.4; }
+.note-item.drag-over { border-color: var(--primary); border-style: dashed; background: var(--primary-light); }
+.drag-handle { color: var(--gray-300); font-size: 12px; cursor: grab; padding: 2px 2px; margin-top: 1px; line-height: 1; user-select: none; flex-shrink: 0; }
+.drag-handle:active { cursor: grabbing; }
+.note-item-body { flex: 1; min-width: 0; }
 .note-item-title { font-size: 13px; font-weight: 600; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .note-item-meta { font-size: 11px; color: var(--gray-400); display: flex; gap: 6px; align-items: center; }
 .source-badge { font-size: 10px; padding: 1px 5px; border-radius: 3px; font-weight: 600; }
@@ -36,6 +47,16 @@
 .badge-youtube { background: #fee2e2; color: #991b1b; }
 .badge-manual { background: #d1fae5; color: #065f46; }
 .rn-empty { text-align: center; color: var(--gray-400); font-size: 13px; padding: 40px 20px; }
+
+/* Folder groups */
+.folder-group { margin-bottom: 4px; }
+.folder-header { display: flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: var(--radius); cursor: pointer; font-size: 12px; font-weight: 600; color: var(--gray-600); user-select: none; }
+.folder-header:hover { background: var(--gray-50); }
+.folder-count { font-size: 11px; background: var(--gray-200); color: var(--gray-600); padding: 0 5px; border-radius: 8px; }
+.folder-chevron { margin-left: auto; font-size: 10px; transition: transform 0.2s; }
+.folder-header.collapsed .folder-chevron { transform: rotate(-90deg); }
+.folder-items { padding-left: 8px; }
+.folder-items.hidden { display: none; }
 
 /* Right panel: note viewer */
 .rn-right { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: var(--gray-50); }
@@ -51,6 +72,13 @@
 .rn-placeholder { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--gray-400); gap: 12px; }
 .rn-placeholder .ph-icon { font-size: 48px; }
 .rn-placeholder p { font-size: 14px; }
+
+/* Edit mode */
+.edit-form { display: flex; flex-direction: column; gap: 14px; background: white; padding: 20px; border-radius: var(--radius); box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+.edit-form .form-label { font-size: 13px; font-weight: 600; color: var(--gray-600); margin-bottom: 4px; display: block; }
+.edit-form .form-input { width: 100%; padding: 9px 12px; border: 1px solid var(--gray-200); border-radius: var(--radius); font-size: 14px; outline: none; box-sizing: border-box; }
+.edit-form .form-input:focus { border-color: var(--primary); }
+.edit-actions { display: flex; gap: 8px; margin-top: 4px; }
 
 /* Add note modal */
 .add-type-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
@@ -148,14 +176,14 @@
     <div class="sidebar-label">系統</div>
     <a class="nav-item" href="tools.html"><span class="icon">🔧</span> 使用工具</a>
   </div>
-  <div class="sidebar-footer">v1.3 · Feebit © 2026</div>
+  <div class="sidebar-footer">v2.3 · Feebit © 2026</div>
 </div>
 
 <!-- ── MAIN ── -->
 <div id="main">
   <div class="topbar">
     <span class="topbar-title">研發筆記</span>
-    <span style="font-size:11px;color:var(--gray-400);margin-left:4px">v1.3</span>
+    <span style="font-size:11px;color:var(--gray-400);margin-left:4px">v2.3</span>
     <div style="display:flex;gap:8px;align-items:center;">
       <button class="btn btn-outline btn-sm" id="btn-synthesize" style="display:none;">🔗 整合摘要</button>
       <button class="btn btn-outline btn-sm" id="btn-add-note" style="display:none;">＋ 新增資料</button>
@@ -170,6 +198,11 @@
         <select class="rn-notebook-select" id="notebook-select">
           <option value="">-- 選擇筆記本 --</option>
         </select>
+        <!-- Notebook actions: rename / delete (only shown when notebook selected) -->
+        <div class="nb-actions-row" id="nb-actions-row" style="display:none;">
+          <button class="btn-nb-action" id="btn-rename-notebook">✏️ 改名稱</button>
+          <button class="btn-nb-action danger" id="btn-delete-notebook">🗑 刪除</button>
+        </div>
         <button class="btn-nb" id="btn-new-notebook">＋ 建立新筆記本</button>
       </div>
       <div class="rn-search">
@@ -184,6 +217,7 @@
     <div class="rn-right">
       <div id="rn-right-toolbar" class="rn-right-toolbar" style="display:none;">
         <div class="note-source-url" id="note-source-display"></div>
+        <button class="btn btn-outline btn-sm" id="btn-edit-note">✏️ 編輯</button>
         <button class="btn btn-outline btn-sm" id="btn-ai-summarize">✨ AI 整理</button>
         <button class="btn btn-outline btn-sm" id="btn-delete-note" style="color:var(--danger);border-color:var(--danger);">🗑 刪除</button>
       </div>
@@ -197,10 +231,10 @@
   </div>
 </div>
 
-<!-- ── MODAL: 建立筆記本 ── -->
+<!-- ── MODAL: 建立/編輯筆記本 ── -->
 <div class="modal-backdrop" id="modal-notebook" style="display:none;">
   <div class="modal" style="width:400px;">
-    <h2 style="margin-bottom:16px;">建立筆記本</h2>
+    <h2 id="modal-notebook-title" style="margin-bottom:16px;">建立筆記本</h2>
     <div class="nb-form">
       <div>
         <label class="form-label">名稱</label>
@@ -340,7 +374,9 @@ let fetchedContent = '';
 let fetchedTitle = '';
 let ocrText = '';
 let inputQueue = [];
-let viewMode = 'note'; // 'note' | 'synthesis'
+let viewMode = 'note'; // 'note' | 'synthesis' | 'edit'
+let notebookModalMode = 'create'; // 'create' | 'edit'
+let dragSrcId = null;
 
 // ── INIT ──
 async function init() {
@@ -378,11 +414,43 @@ async function saveNotebook(name, desc, emoji) {
   renderNotebookSelect();
   document.getElementById('notebook-select').value = data.id;
   currentNotebook = data;
+  document.getElementById('nb-actions-row').style.display = '';
   document.getElementById('btn-synthesize').style.display = '';
   document.getElementById('btn-add-note').style.display = '';
   notes = [];
   renderNoteList();
   showToast('✅ 筆記本已建立');
+}
+
+async function updateNotebookData(id, name, desc, emoji) {
+  const { error } = await db.from('notebooks').update({ name, description: desc, emoji }).eq('id', id);
+  if (error) { showToast('更新失敗: ' + error.message); return; }
+  const nb = notebooks.find(n => n.id === id);
+  if (nb) { nb.name = name; nb.description = desc; nb.emoji = emoji; }
+  if (currentNotebook?.id === id) { currentNotebook.name = name; currentNotebook.description = desc; currentNotebook.emoji = emoji; }
+  renderNotebookSelect();
+  document.getElementById('notebook-select').value = id;
+  showToast('✅ 筆記本已更新');
+}
+
+async function deleteNotebook(id) {
+  if (!confirm('確定刪除此筆記本？所有筆記將一併刪除，無法復原。')) return;
+  await db.from('notes').delete().eq('notebook_id', id);
+  const { error } = await db.from('notebooks').delete().eq('id', id);
+  if (error) { showToast('刪除失敗'); return; }
+  notebooks = notebooks.filter(n => n.id !== id);
+  if (currentNotebook?.id === id) {
+    currentNotebook = null;
+    notes = [];
+    currentNote = null;
+    renderNoteList();
+    renderViewer(null);
+    document.getElementById('nb-actions-row').style.display = 'none';
+    document.getElementById('btn-synthesize').style.display = 'none';
+    document.getElementById('btn-add-note').style.display = 'none';
+  }
+  renderNotebookSelect();
+  showToast('🗑 筆記本已刪除');
 }
 
 async function saveNote(noteData) {
@@ -401,9 +469,24 @@ async function saveNoteSilent(noteData) {
   return data;
 }
 
+async function updateNote(id, data) {
+  const { error } = await db.from('notes').update(data).eq('id', id);
+  if (error) { showToast('更新失敗: ' + error.message); return false; }
+  const note = notes.find(n => n.id === id);
+  if (note) Object.assign(note, data);
+  return true;
+}
+
 async function deleteNote(id) {
   const { error } = await db.from('notes').delete().eq('id', id);
   if (error) { showToast('刪除失敗'); return; }
+  // Remove folder assignment from localStorage
+  setNoteFolder(id, '');
+  // Remove from order
+  if (currentNotebook) {
+    const order = getNoteOrder(currentNotebook.id);
+    if (order) saveNoteOrder(currentNotebook.id, order.filter(oid => oid !== id));
+  }
   notes = notes.filter(n => n.id !== id);
   currentNote = null;
   renderNoteList();
@@ -435,6 +518,41 @@ async function callEdgeFunction(fnName, body) {
   return res.json();
 }
 
+// ── LOCAL STORAGE: ORDER & FOLDERS ──
+function getNoteOrder(notebookId) {
+  try { return JSON.parse(localStorage.getItem(`nb-order-${notebookId}`) || 'null'); }
+  catch { return null; }
+}
+
+function saveNoteOrder(notebookId, orderedIds) {
+  localStorage.setItem(`nb-order-${notebookId}`, JSON.stringify(orderedIds));
+}
+
+function applyNoteOrder(noteList, notebookId) {
+  const order = getNoteOrder(notebookId);
+  if (!order) return noteList;
+  const indexed = Object.fromEntries(noteList.map(n => [n.id, n]));
+  const sorted = order.filter(id => indexed[id]).map(id => indexed[id]);
+  const unordered = noteList.filter(n => !order.includes(n.id));
+  return [...sorted, ...unordered];
+}
+
+function getNoteFolders() {
+  try { return JSON.parse(localStorage.getItem('note-folders') || '{}'); }
+  catch { return {}; }
+}
+
+function setNoteFolder(noteId, folder) {
+  const folders = getNoteFolders();
+  if (folder) folders[noteId] = folder;
+  else delete folders[noteId];
+  localStorage.setItem('note-folders', JSON.stringify(folders));
+}
+
+function getNoteFolder(noteId) {
+  return getNoteFolders()[noteId] || '';
+}
+
 // ── RENDER ──
 function renderNotebookSelect() {
   const sel = document.getElementById('notebook-select');
@@ -447,33 +565,140 @@ function renderNotebookSelect() {
   });
 }
 
-function renderNoteList() {
-  const list = document.getElementById('note-list');
-  if (!notes.length) {
-    list.innerHTML = '<div class="rn-empty">此筆記本還沒有資料<br>點上方「新增資料」開始</div>';
-  } else {
-    list.innerHTML = notes.map(n => `
-      <div class="note-item ${currentNote?.id === n.id ? 'active' : ''}" data-id="${n.id}">
+function renderNoteItem(n) {
+  const folder = getNoteFolder(n.id);
+  return `
+    <div class="note-item ${currentNote?.id === n.id ? 'active' : ''}" data-id="${n.id}" draggable="true">
+      <div class="drag-handle" title="拖曳排序">⋮⋮</div>
+      <div class="note-item-body">
         <div class="note-item-title">${escHtml(n.title)}</div>
         <div class="note-item-meta">
           <span class="source-badge badge-${n.source_type}">${sourceLabel(n.source_type)}</span>
           ${formatDate(n.created_at)}
+          ${folder ? `<span style="font-size:10px;color:var(--gray-400)">📁 ${escHtml(folder)}</span>` : ''}
         </div>
       </div>
-    `).join('');
+    </div>
+  `;
+}
 
-    list.querySelectorAll('.note-item').forEach(el => {
-      el.addEventListener('click', () => {
-        const note = notes.find(n => n.id === el.dataset.id);
-        if (note) selectNote(note);
-      });
-    });
+function renderNoteList() {
+  const list = document.getElementById('note-list');
+  if (!notes.length) {
+    list.innerHTML = '<div class="rn-empty">此筆記本還沒有資料<br>點上方「新增資料」開始</div>';
+    if (currentNotebook) {
+      document.getElementById('btn-synthesize').style.display = '';
+      document.getElementById('btn-add-note').style.display = '';
+    }
+    return;
   }
-  // 確保筆記本已選時按鈕保持可見
+
+  const orderedNotes = applyNoteOrder(notes, currentNotebook?.id);
+  const folderMap = getNoteFolders();
+
+  // Group by folder
+  const folderGroups = {};
+  const noFolder = [];
+  orderedNotes.forEach(n => {
+    const f = folderMap[n.id];
+    if (f) {
+      if (!folderGroups[f]) folderGroups[f] = [];
+      folderGroups[f].push(n);
+    } else {
+      noFolder.push(n);
+    }
+  });
+
+  let html = '';
+  // No-folder notes first
+  noFolder.forEach(n => { html += renderNoteItem(n); });
+  // Folder groups
+  Object.entries(folderGroups).forEach(([folder, folderNotes]) => {
+    const collapsedClass = localStorage.getItem(`folder-collapsed-${folder}`) === '1' ? ' collapsed' : '';
+    const hiddenClass = localStorage.getItem(`folder-collapsed-${folder}`) === '1' ? ' hidden' : '';
+    html += `
+      <div class="folder-group" data-folder="${escHtml(folder)}">
+        <div class="folder-header${collapsedClass}" onclick="toggleFolder(this)">
+          <span>📁</span>
+          <span class="folder-name">${escHtml(folder)}</span>
+          <span class="folder-count">${folderNotes.length}</span>
+          <span class="folder-chevron">▾</span>
+        </div>
+        <div class="folder-items${hiddenClass}">
+          ${folderNotes.map(n => renderNoteItem(n)).join('')}
+        </div>
+      </div>
+    `;
+  });
+
+  list.innerHTML = html;
+
+  // Attach click events
+  list.querySelectorAll('.note-item').forEach(el => {
+    el.addEventListener('click', e => {
+      // Don't trigger if clicking drag handle
+      if (e.target.classList.contains('drag-handle')) return;
+      const note = notes.find(n => n.id === el.dataset.id);
+      if (note) selectNote(note);
+    });
+  });
+
+  // Drag & drop
+  setupDragDrop(list);
+
   if (currentNotebook) {
     document.getElementById('btn-synthesize').style.display = '';
     document.getElementById('btn-add-note').style.display = '';
   }
+}
+
+function toggleFolder(header) {
+  const folderName = header.querySelector('.folder-name').textContent;
+  const items = header.nextElementSibling;
+  const isCollapsed = header.classList.toggle('collapsed');
+  items.classList.toggle('hidden', isCollapsed);
+  localStorage.setItem(`folder-collapsed-${folderName}`, isCollapsed ? '1' : '0');
+}
+
+// ── DRAG & DROP ──
+function setupDragDrop(list) {
+  list.querySelectorAll('.note-item').forEach(el => {
+    el.addEventListener('dragstart', e => {
+      dragSrcId = el.dataset.id;
+      el.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    el.addEventListener('dragend', () => {
+      el.classList.remove('dragging');
+      list.querySelectorAll('.note-item').forEach(i => i.classList.remove('drag-over'));
+    });
+    el.addEventListener('dragover', e => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      if (el.dataset.id !== dragSrcId) {
+        list.querySelectorAll('.note-item').forEach(i => i.classList.remove('drag-over'));
+        el.classList.add('drag-over');
+      }
+    });
+    el.addEventListener('drop', e => {
+      e.preventDefault();
+      if (dragSrcId && dragSrcId !== el.dataset.id) {
+        reorderNote(dragSrcId, el.dataset.id);
+      }
+    });
+  });
+}
+
+function reorderNote(draggedId, targetId) {
+  const orderedNotes = applyNoteOrder(notes, currentNotebook.id);
+  const fromIdx = orderedNotes.findIndex(n => n.id === draggedId);
+  const toIdx = orderedNotes.findIndex(n => n.id === targetId);
+  if (fromIdx === -1 || toIdx === -1) return;
+  const [moved] = orderedNotes.splice(fromIdx, 1);
+  orderedNotes.splice(toIdx, 0, moved);
+  notes = orderedNotes;
+  saveNoteOrder(currentNotebook.id, orderedNotes.map(n => n.id));
+  renderNoteList();
 }
 
 function selectNote(note) {
@@ -481,6 +706,7 @@ function selectNote(note) {
   viewMode = 'note';
   renderNoteList();
   renderViewer(note);
+  // Always keep topbar buttons visible when notebook is active
   if (currentNotebook) {
     document.getElementById('btn-synthesize').style.display = '';
     document.getElementById('btn-add-note').style.display = '';
@@ -499,6 +725,7 @@ function renderViewer(note) {
   }
 
   toolbar.style.display = '';
+  document.getElementById('btn-edit-note').style.display = '';
   document.getElementById('btn-ai-summarize').style.display = '';
   document.getElementById('btn-delete-note').style.display = '';
 
@@ -508,10 +735,11 @@ function renderViewer(note) {
     sourceDisplay.innerHTML = `<span style="color:var(--gray-400)">${sourceLabel(note.source_type)}</span>`;
   }
 
+  const folder = getNoteFolder(note.id);
   const hasSummary = !!note.summary;
   viewer.innerHTML = `
     <div class="rn-viewer-title">${escHtml(note.title)}</div>
-    <div class="rn-viewer-date">${new Date(note.created_at).toLocaleString('zh-TW')} · ${sourceLabel(note.source_type)}</div>
+    <div class="rn-viewer-date">${new Date(note.created_at).toLocaleString('zh-TW')} · ${sourceLabel(note.source_type)}${folder ? ` · 📁 ${escHtml(folder)}` : ''}</div>
     <div class="viewer-tabs">
       <button class="vtab-btn ${hasSummary ? 'active' : ''}" data-tab="summary">✨ AI 摘要</button>
       <button class="vtab-btn ${!hasSummary ? 'active' : ''}" data-tab="content">📄 原始內容</button>
@@ -537,6 +765,83 @@ function renderViewer(note) {
   });
 }
 
+function renderEditMode(note) {
+  viewMode = 'edit';
+  const toolbar = document.getElementById('rn-right-toolbar');
+  const viewer = document.getElementById('rn-viewer');
+  const sourceDisplay = document.getElementById('note-source-display');
+  const currentFolder = getNoteFolder(note.id);
+
+  toolbar.style.display = '';
+  sourceDisplay.innerHTML = `<span style="color:var(--primary);font-weight:600;">✏️ 編輯模式</span>`;
+  document.getElementById('btn-edit-note').style.display = 'none';
+  document.getElementById('btn-ai-summarize').style.display = 'none';
+  document.getElementById('btn-delete-note').style.display = 'none';
+
+  // Get all existing folders for datalist
+  const allFolders = [...new Set(Object.values(getNoteFolders()))].filter(Boolean);
+  const folderOptions = allFolders.map(f => `<option value="${escHtml(f)}">`).join('');
+
+  viewer.innerHTML = `
+    <div class="edit-form">
+      <div>
+        <label class="form-label">標題</label>
+        <input class="form-input" id="edit-title" type="text" value="${escHtml(note.title)}" style="font-size:15px;font-weight:600;">
+      </div>
+      <div>
+        <label class="form-label">資料夾（選填，可直接輸入新資料夾名稱）</label>
+        <input class="form-input" id="edit-folder" type="text" value="${escHtml(currentFolder)}" placeholder="例：競品分析" list="folder-list">
+        <datalist id="folder-list">${folderOptions}</datalist>
+      </div>
+      <div>
+        <label class="form-label">AI 摘要</label>
+        <textarea class="form-input" id="edit-summary" rows="5" style="resize:vertical;">${escHtml(note.summary || '')}</textarea>
+      </div>
+      <div>
+        <label class="form-label">原始內容</label>
+        <textarea class="form-input" id="edit-content" rows="10" style="resize:vertical;">${escHtml(note.content || '')}</textarea>
+      </div>
+      <div class="edit-actions">
+        <button class="btn btn-primary" id="btn-save-edit">💾 儲存</button>
+        <button class="btn btn-outline" id="btn-cancel-edit">取消</button>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('btn-save-edit').addEventListener('click', async () => {
+    const title = document.getElementById('edit-title').value.trim();
+    const content = document.getElementById('edit-content').value;
+    const summary = document.getElementById('edit-summary').value.trim();
+    const folder = document.getElementById('edit-folder').value.trim();
+    if (!title) { showToast('標題不可空白'); return; }
+
+    const btn = document.getElementById('btn-save-edit');
+    btn.disabled = true;
+    btn.textContent = '儲存中...';
+
+    const ok = await updateNote(note.id, { title, content, summary: summary || null });
+    if (ok) {
+      setNoteFolder(note.id, folder);
+      showToast('✅ 已儲存');
+      renderNoteList();
+      selectNote(notes.find(n => n.id === note.id));
+    } else {
+      btn.disabled = false;
+      btn.textContent = '💾 儲存';
+    }
+  });
+
+  document.getElementById('btn-cancel-edit').addEventListener('click', () => {
+    selectNote(note);
+  });
+
+  // Keep topbar buttons visible
+  if (currentNotebook) {
+    document.getElementById('btn-synthesize').style.display = '';
+    document.getElementById('btn-add-note').style.display = '';
+  }
+}
+
 // ── EVENT LISTENERS ──
 function setupEventListeners() {
   // Notebook select
@@ -545,13 +850,16 @@ function setupEventListeners() {
     if (!id) {
       currentNotebook = null;
       notes = [];
+      currentNote = null;
       renderNoteList();
       renderViewer(null);
+      document.getElementById('nb-actions-row').style.display = 'none';
       document.getElementById('btn-synthesize').style.display = 'none';
       document.getElementById('btn-add-note').style.display = 'none';
       return;
     }
     currentNotebook = notebooks.find(nb => nb.id === id);
+    document.getElementById('nb-actions-row').style.display = '';
     document.getElementById('btn-synthesize').style.display = '';
     document.getElementById('btn-add-note').style.display = '';
     await loadNotes(id);
@@ -559,11 +867,33 @@ function setupEventListeners() {
 
   // New notebook
   document.getElementById('btn-new-notebook').addEventListener('click', () => {
+    notebookModalMode = 'create';
+    document.getElementById('modal-notebook-title').textContent = '建立筆記本';
+    document.getElementById('btn-save-notebook').textContent = '建立';
     document.getElementById('nb-name').value = '';
     document.getElementById('nb-desc').value = '';
     selectedEmoji = '📓';
     document.querySelectorAll('.emoji-btn').forEach(b => b.classList.toggle('selected', b.dataset.emoji === '📓'));
     openModal('modal-notebook');
+  });
+
+  // Rename notebook
+  document.getElementById('btn-rename-notebook').addEventListener('click', () => {
+    if (!currentNotebook) return;
+    notebookModalMode = 'edit';
+    document.getElementById('modal-notebook-title').textContent = '修改筆記本';
+    document.getElementById('btn-save-notebook').textContent = '儲存';
+    document.getElementById('nb-name').value = currentNotebook.name;
+    document.getElementById('nb-desc').value = currentNotebook.description || '';
+    selectedEmoji = currentNotebook.emoji || '📓';
+    document.querySelectorAll('.emoji-btn').forEach(b => b.classList.toggle('selected', b.dataset.emoji === selectedEmoji));
+    openModal('modal-notebook');
+  });
+
+  // Delete notebook
+  document.getElementById('btn-delete-notebook').addEventListener('click', () => {
+    if (!currentNotebook) return;
+    deleteNotebook(currentNotebook.id);
   });
 
   // Emoji picker
@@ -575,11 +905,15 @@ function setupEventListeners() {
     selectedEmoji = btn.dataset.emoji;
   });
 
-  // Save notebook
+  // Save / update notebook
   document.getElementById('btn-save-notebook').addEventListener('click', async () => {
     const name = document.getElementById('nb-name').value.trim();
     if (!name) { showToast('請輸入筆記本名稱'); return; }
-    await saveNotebook(name, document.getElementById('nb-desc').value.trim(), selectedEmoji);
+    if (notebookModalMode === 'create') {
+      await saveNotebook(name, document.getElementById('nb-desc').value.trim(), selectedEmoji);
+    } else {
+      await updateNotebookData(currentNotebook.id, name, document.getElementById('nb-desc').value.trim(), selectedEmoji);
+    }
     closeModal('modal-notebook');
   });
 
@@ -587,6 +921,12 @@ function setupEventListeners() {
   document.getElementById('btn-add-note').addEventListener('click', () => {
     resetAddModal();
     openModal('modal-add-note');
+  });
+
+  // Edit note
+  document.getElementById('btn-edit-note').addEventListener('click', () => {
+    if (!currentNote) return;
+    renderEditMode(currentNote);
   });
 
   // Type selector
@@ -825,6 +1165,7 @@ function renderSynthesisView() {
   const viewer = document.getElementById('rn-viewer');
 
   toolbar.style.display = '';
+  document.getElementById('btn-edit-note').style.display = 'none';
   document.getElementById('btn-ai-summarize').style.display = 'none';
   document.getElementById('btn-delete-note').style.display = 'none';
   sourceDisplay.innerHTML = `<span style="color:var(--gray-600);font-weight:600;">📊 整合摘要 — ${escHtml(currentNotebook.emoji + ' ' + currentNotebook.name)}</span>`;
