@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>酷澎發票轉檔 · 飛比特營運工具箱</title>
+<link rel="icon" href="favicon.svg">
+<script>if(location.search.includes("share"))document.documentElement.classList.add("standalone");</script>
+<link rel="stylesheet" href="style.css">
+<style>
+/* ── Upload Zone ── */
+.upload-zone {
+  border: 2px dashed var(--gray-300);
+  border-radius: 12px;
+  padding: 48px 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: #fff;
+  margin-bottom: 20px;
+}
+.upload-zone:hover, .upload-zone.drag-over {
+  border-color: var(--primary);
+  background: #eff6ff;
+}
+.upload-zone.has-file {
+  border-color: var(--success);
+  background: #f0fdf4;
+}
+.upload-icon { font-size: 40px; margin-bottom: 12px; }
+.upload-title { font-size: 15px; font-weight: 600; color: var(--gray-800); margin-bottom: 6px; }
+.upload-sub { font-size: 12px; color: var(--gray-400); }
+.upload-file-name { font-size: 13px; font-weight: 600; color: var(--success); margin-top: 8px; }
+#file-input { display: none; }
+
+/* ── Info Card ── */
+.info-card {
+  background: #fff;
+  border: 1px solid var(--gray-200);
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin-bottom: 20px;
+  display: none;
+}
+.info-card.show { display: block; }
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+.info-stat {
+  background: var(--gray-50);
+  border-radius: 8px;
+  padding: 12px 14px;
+  text-align: center;
+}
+.info-stat-num { font-size: 22px; font-weight: 700; color: var(--primary); }
+.info-stat-label { font-size: 11px; color: var(--gray-400); margin-top: 2px; }
+
+/* ── Rule Notice ── */
+.rule-card {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin-bottom: 20px;
+  font-size: 12px;
+  color: #92400e;
+  line-height: 1.6;
+}
+.rule-card strong { display: block; font-size: 13px; margin-bottom: 6px; color: #78350f; }
+
+/* ── Action Row ── */
+.action-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.btn-process {
+  padding: 12px 28px;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.btn-process:hover { background: var(--primary-dark); }
+.btn-process:disabled { background: var(--gray-300); cursor: not-allowed; }
+.btn-reset {
+  padding: 12px 20px;
+  background: #fff;
+  color: var(--gray-600);
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-reset:hover { border-color: var(--gray-400); color: var(--gray-800); }
+
+/* ── Progress ── */
+.progress-wrap {
+  display: none;
+  margin-top: 20px;
+  background: #fff;
+  border: 1px solid var(--gray-200);
+  border-radius: 10px;
+  padding: 18px 20px;
+}
+.progress-wrap.show { display: block; }
+.progress-label { font-size: 12px; color: var(--gray-600); margin-bottom: 8px; }
+.progress-bar-track {
+  background: var(--gray-100);
+  border-radius: 4px;
+  height: 8px;
+  overflow: hidden;
+}
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #2563eb, #60a5fa);
+  border-radius: 4px;
+  transition: width 0.2s;
+  width: 0%;
+}
+.progress-status { font-size: 11px; color: var(--gray-400); margin-top: 6px; }
+
+/* ── Result ── */
+.result-card {
+  display: none;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 10px;
+  padding: 18px 20px;
+  margin-top: 16px;
+  text-align: center;
+}
+.result-card.show { display: block; }
+.result-icon { font-size: 28px; margin-bottom: 8px; }
+.result-title { font-size: 14px; font-weight: 700; color: #15803d; margin-bottom: 4px; }
+.result-sub { font-size: 12px; color: #16a34a; margin-bottom: 14px; }
+.btn-download {
+  padding: 11px 28px;
+  background: #16a34a;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.btn-download:hover { background: #15803d; }
+
+/* ── Error ── */
+.error-card {
+  display: none;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  padding: 16px 18px;
+  margin-top: 16px;
+  font-size: 12px;
+  color: #b91c1c;
+}
+.error-card.show { display: block; }
+</style>
+</head>
+<body>
+
+<!-- ── SIDEBAR ── -->
+<div id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand">飛比特 Feebit</div>
+    <div class="sub">營運工具箱</div>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">總覽</div>
+    <a class="nav-item" href="index.html"><span class="icon">🏠</span> 首頁</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">財務</div>
+    <a class="nav-item" href="bank-converter.html"><span class="icon">🏦</span> 帳務轉換</a>
+    <a class="nav-item" href="accounting-ops.html"><span class="icon">📅</span> 例行帳務</a>
+    <a class="nav-item active" href="coupang-invoice.html"><span class="icon">🧾</span> 酷澎發票轉檔</a>
+    <div class="nav-item soon"><span class="icon">💰</span> 定價試算<span class="soon-tag">即將推出</span></div>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">行銷</div>
+    <div class="nav-item soon"><span class="icon">📢</span> 廣告文案<span class="soon-tag">即將推出</span></div>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">客服</div>
+    <div class="nav-item soon"><span class="icon">💬</span> 客服回覆<span class="soon-tag">即將推出</span></div>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">庫存</div>
+    <a class="nav-item" href="stock-analysis.html"><span class="icon">📦</span> 庫存訂貨分析</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">研發</div>
+    <a class="nav-item" href="research-notes.html"><span class="icon">📚</span> 研發筆記</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">生活</div>
+    <a class="nav-item" href="travel-planner.html"><span class="icon">✈️</span> 旅行規劃</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">系統</div>
+    <a class="nav-item" href="tools.html"><span class="icon">🔧</span> 使用工具</a>
+  </div>
+  <div class="sidebar-footer">v1.0 · Feebit © 2026</div>
+</div>
+
+<!-- ── SIDEBAR OVERLAY ── -->
+<div id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<!-- ── MAIN ── -->
+<div id="main">
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:8px">
+      <button class="btn-hamburger" onclick="openSidebar()">☰</button>
+      <span class="topbar-title">酷澎發票轉檔</span>
+      <span class="topbar-badge">財務工具</span>
+      <span style="font-size:11px;color:var(--gray-400);margin-left:4px">v1.0</span>
+    </div>
+    <button class="btn-share" onclick="copyShare(this)" title="複製分享連結">🔗 分享</button>
+  </div>
+
+  <div class="page">
+
+    <!-- Rule Notice -->
+    <div class="rule-card">
+      <strong>🔧 處理規則說明</strong>
+      上傳 Excel 檔（.xlsx / .xls），工具會掃描所有工作表中的每個文字儲存格，將<strong>特殊符號與標點符號</strong>（如 ®、©、★、！、「」等）全數取代為空格，數字與英數字內容保留原樣。處理完成後提供下載，原始檔案不受影響。
+    </div>
+
+    <!-- Upload Zone -->
+    <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()">
+      <div class="upload-icon" id="upload-icon">📂</div>
+      <div class="upload-title" id="upload-title">點擊或拖曳 Excel 檔案到此處</div>
+      <div class="upload-sub">支援 .xlsx、.xls 格式</div>
+      <div class="upload-file-name" id="upload-file-name"></div>
+    </div>
+    <input type="file" id="file-input" accept=".xlsx,.xls">
+
+    <!-- File Info -->
+    <div class="info-card" id="info-card">
+      <div style="font-size:13px;font-weight:600;color:var(--gray-700)">檔案資訊</div>
+      <div class="info-grid">
+        <div class="info-stat">
+          <div class="info-stat-num" id="stat-sheets">—</div>
+          <div class="info-stat-label">工作表數</div>
+        </div>
+        <div class="info-stat">
+          <div class="info-stat-num" id="stat-rows">—</div>
+          <div class="info-stat-label">總列數</div>
+        </div>
+        <div class="info-stat">
+          <div class="info-stat-num" id="stat-cells">—</div>
+          <div class="info-stat-label">文字儲存格數</div>
+        </div>
+        <div class="info-stat">
+          <div class="info-stat-num" id="stat-size">—</div>
+          <div class="info-stat-label">檔案大小</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="action-row">
+      <button class="btn-process" id="btn-process" disabled onclick="processFile()">
+        <span>⚙️</span> 開始處理並下載
+      </button>
+      <button class="btn-reset" id="btn-reset" onclick="resetTool()">重新選擇</button>
+    </div>
+
+    <!-- Progress -->
+    <div class="progress-wrap" id="progress-wrap">
+      <div class="progress-label" id="progress-label">處理中...</div>
+      <div class="progress-bar-track">
+        <div class="progress-bar-fill" id="progress-bar-fill"></div>
+      </div>
+      <div class="progress-status" id="progress-status">正在讀取工作表...</div>
+    </div>
+
+    <!-- Result -->
+    <div class="result-card" id="result-card">
+      <div class="result-icon">✅</div>
+      <div class="result-title" id="result-title">處理完成</div>
+      <div class="result-sub" id="result-sub">已取代 0 處特殊字元</div>
+      <button class="btn-download" id="btn-download" onclick="downloadResult()">
+        ⬇️ 下載清理後的檔案
+      </button>
+    </div>
+
+    <!-- Error -->
+    <div class="error-card" id="error-card"></div>
+
+  </div><!-- /page -->
+</div><!-- /main -->
+
+<!-- SheetJS CDN -->
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<script>
+// ── Sidebar ────────────────────────────────────────────────────
+function openSidebar() {
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('sidebar-overlay').classList.add('active');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('active');
+}
+function copyShare(btn) {
+  const url = location.href.split('?')[0] + '?share=1';
+  navigator.clipboard.writeText(url).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = '✓ 已複製';
+    setTimeout(() => btn.textContent = orig, 2000);
+  });
+}
+
+// ── State ──────────────────────────────────────────────────────
+let workbook = null;
+let processedWorkbook = null;
+let originalFileName = '';
+
+// ── Upload ─────────────────────────────────────────────────────
+const zone = document.getElementById('upload-zone');
+const fileInput = document.getElementById('file-input');
+
+zone.addEventListener('dragover', e => {
+  e.preventDefault();
+  zone.classList.add('drag-over');
+});
+zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+zone.addEventListener('drop', e => {
+  e.preventDefault();
+  zone.classList.remove('drag-over');
+  const f = e.dataTransfer.files[0];
+  if (f) loadFile(f);
+});
+fileInput.addEventListener('change', () => {
+  if (fileInput.files[0]) loadFile(fileInput.files[0]);
+});
+
+function loadFile(file) {
+  // Validate extension
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (!['xlsx','xls'].includes(ext)) {
+    showError('請上傳 .xlsx 或 .xls 格式的 Excel 檔案。');
+    return;
+  }
+
+  originalFileName = file.name;
+  hideError();
+  hideResult();
+  document.getElementById('result-card').classList.remove('show');
+  document.getElementById('progress-wrap').classList.remove('show');
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = new Uint8Array(e.target.result);
+      workbook = XLSX.read(data, { type: 'array', cellDates: true });
+
+      // Count stats
+      let totalRows = 0, textCells = 0;
+      workbook.SheetNames.forEach(name => {
+        const sheet = workbook.Sheets[name];
+        const range = XLSX.utils.decode_range(sheet['!ref'] || 'A1:A1');
+        totalRows += range.e.r - range.s.r + 1;
+        Object.keys(sheet).forEach(key => {
+          if (key.startsWith('!')) return;
+          const cell = sheet[key];
+          if (cell && cell.t === 's') textCells++;
+        });
+      });
+
+      const sizeMB = (file.size / 1024).toFixed(1);
+
+      document.getElementById('stat-sheets').textContent = workbook.SheetNames.length;
+      document.getElementById('stat-rows').textContent = totalRows.toLocaleString();
+      document.getElementById('stat-cells').textContent = textCells.toLocaleString();
+      document.getElementById('stat-size').textContent = sizeMB + ' KB';
+      document.getElementById('info-card').classList.add('show');
+
+      // Update upload zone
+      zone.classList.add('has-file');
+      document.getElementById('upload-icon').textContent = '📊';
+      document.getElementById('upload-title').textContent = '已載入檔案';
+      document.getElementById('upload-file-name').textContent = file.name;
+
+      document.getElementById('btn-process').disabled = false;
+    } catch(err) {
+      showError('無法讀取檔案，請確認檔案格式正確。錯誤：' + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ── Clean Function ─────────────────────────────────────────────
+// Keep: Unicode letters (\p{L}), digits (\p{N}), whitespace (\s)
+// Replace everything else (punctuation, symbols, etc.) with a single space
+function cleanText(str) {
+  if (typeof str !== 'string') return str;
+  // Replace special symbols and punctuation with space
+  let result = str.replace(/[^\p{L}\p{N}\s]/gu, ' ');
+  // Collapse multiple spaces into one
+  result = result.replace(/ {2,}/g, ' ');
+  return result;
+}
+
+// ── Process ────────────────────────────────────────────────────
+function processFile() {
+  if (!workbook) return;
+
+  document.getElementById('btn-process').disabled = true;
+  document.getElementById('progress-wrap').classList.add('show');
+  hideResult();
+  hideError();
+
+  // Use setTimeout to let UI update before heavy processing
+  setTimeout(() => {
+    try {
+      let totalReplaced = 0;
+      const sheetNames = workbook.SheetNames;
+      const totalSheets = sheetNames.length;
+
+      // Deep clone workbook via re-parse (SheetJS doesn't have built-in deep clone)
+      const wbClone = XLSX.utils.book_new();
+
+      sheetNames.forEach((sheetName, idx) => {
+        const pct = Math.round((idx / totalSheets) * 80);
+        setProgress(pct, `處理工作表 ${idx + 1}/${totalSheets}：${sheetName}`);
+
+        const sheet = workbook.Sheets[sheetName];
+        // Clone sheet by converting to AOA and back
+        const newSheet = {};
+
+        Object.keys(sheet).forEach(key => {
+          if (key.startsWith('!')) {
+            newSheet[key] = sheet[key];
+            return;
+          }
+          const cell = sheet[key];
+          if (!cell) { newSheet[key] = cell; return; }
+
+          if (cell.t === 's' && typeof cell.v === 'string') {
+            const cleaned = cleanText(cell.v);
+            if (cleaned !== cell.v) totalReplaced++;
+            newSheet[key] = Object.assign({}, cell, {
+              v: cleaned,
+              w: cleaned  // also update formatted text
+            });
+          } else {
+            newSheet[key] = Object.assign({}, cell);
+          }
+        });
+
+        XLSX.utils.book_append_sheet(wbClone, newSheet, sheetName);
+      });
+
+      setProgress(90, '產生輸出檔案...');
+
+      processedWorkbook = wbClone;
+
+      setProgress(100, '完成！');
+
+      document.getElementById('result-title').textContent = '處理完成';
+      document.getElementById('result-sub').textContent =
+        `已在 ${totalSheets} 個工作表中，取代了 ${totalReplaced.toLocaleString()} 處特殊字元`;
+      document.getElementById('result-card').classList.add('show');
+      document.getElementById('btn-process').disabled = false;
+
+    } catch(err) {
+      showError('處理過程中發生錯誤：' + err.message);
+      document.getElementById('btn-process').disabled = false;
+    }
+  }, 50);
+}
+
+function setProgress(pct, status) {
+  document.getElementById('progress-bar-fill').style.width = pct + '%';
+  document.getElementById('progress-status').textContent = status;
+  if (pct === 100) {
+    document.getElementById('progress-label').textContent = '處理完成';
+  }
+}
+
+// ── Download ───────────────────────────────────────────────────
+function downloadResult() {
+  if (!processedWorkbook) return;
+  const baseName = originalFileName.replace(/\.[^.]+$/, '');
+  const outName = baseName + '_cleaned.xlsx';
+  XLSX.writeFile(processedWorkbook, outName);
+}
+
+// ── Reset ──────────────────────────────────────────────────────
+function resetTool() {
+  workbook = null;
+  processedWorkbook = null;
+  originalFileName = '';
+
+  zone.classList.remove('has-file');
+  document.getElementById('upload-icon').textContent = '📂';
+  document.getElementById('upload-title').textContent = '點擊或拖曳 Excel 檔案到此處';
+  document.getElementById('upload-file-name').textContent = '';
+  document.getElementById('info-card').classList.remove('show');
+  document.getElementById('progress-wrap').classList.remove('show');
+  document.getElementById('result-card').classList.remove('show');
+  document.getElementById('btn-process').disabled = true;
+  hideError();
+  fileInput.value = '';
+}
+
+function showError(msg) {
+  const el = document.getElementById('error-card');
+  el.textContent = '⚠️ ' + msg;
+  el.classList.add('show');
+}
+function hideError() {
+  document.getElementById('error-card').classList.remove('show');
+}
+function hideResult() {
+  document.getElementById('result-card').classList.remove('show');
+}
+</script>
+</body>
+</html>
