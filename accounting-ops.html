@@ -101,7 +101,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  margin: 32px 0 18px;
+  margin: 32px 0 14px;
 }
 .section-divider h2 {
   font-size: 14px;
@@ -122,102 +122,114 @@
 }
 
 /* ── Deadline Group ── */
-.deadline-group { margin-bottom: 22px; }
-.deadline-group-header {
+.deadline-group { margin-bottom: 14px; }
+
+/* Banner header — colored strip connected to grid below */
+.dg-banner {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 10px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--gray-100);
+  justify-content: space-between;
+  padding: 7px 14px;
+  border-radius: 8px 8px 0 0;
+  border: 1px solid transparent;
+  border-bottom: none;
 }
-.dg-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-.dg-title { font-size: 13px; font-weight: 700; color: var(--gray-700); }
-.dg-subtitle { font-size: 11px; color: var(--gray-400); }
-.dg-count {
-  margin-left: auto;
-  font-size: 11px;
-  color: var(--gray-400);
-  background: var(--gray-50);
-  border: 1px solid var(--gray-200);
-  padding: 1px 7px;
-  border-radius: 10px;
+.dg-banner-left { display: flex; align-items: center; gap: 8px; }
+.dg-banner-icon { font-size: 14px; }
+.dg-banner-title { font-size: 12px; font-weight: 700; }
+.dg-banner-sub { font-size: 11px; opacity: .7; }
+.dg-banner-count {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 8px;
+  border-radius: 20px;
+  background: rgba(255,255,255,.55);
 }
+/* Color variants */
+.dg-red    { background:#fef2f2; border-color:#fecaca; color:#b91c1c; }
+.dg-orange { background:#fff7ed; border-color:#fed7aa; color:#c2410c; }
+.dg-amber  { background:#fffbeb; border-color:#fde68a; color:#b45309; }
+.dg-blue   { background:#eff6ff; border-color:#bfdbfe; color:#1d4ed8; }
+.dg-purple { background:#f5f3ff; border-color:#ddd6fe; color:#6d28d9; }
+.dg-green  { background:#f0fdf4; border-color:#bbf7d0; color:#15803d; }
+.dg-gray   { background:#f9fafb; border-color:#e5e7eb; color:var(--gray-600); }
+
+/* Grid connected below banner */
+.dg-grid-wrap {
+  border: 1px solid #e5e7eb;
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  padding: 10px;
+  background: #fafafa;
+}
+.dg-red    + .dg-grid-wrap { border-color: #fecaca; }
+.dg-orange + .dg-grid-wrap { border-color: #fed7aa; }
+.dg-amber  + .dg-grid-wrap { border-color: #fde68a; }
+.dg-blue   + .dg-grid-wrap { border-color: #bfdbfe; }
+.dg-purple + .dg-grid-wrap { border-color: #ddd6fe; }
+.dg-green  + .dg-grid-wrap { border-color: #bbf7d0; }
 
 /* ── Platform Cards ── */
 .platform-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(158px, 1fr));
+  gap: 8px;
 }
 .platform-card {
   background: #fff;
   border: 1px solid var(--gray-200);
-  border-radius: 10px;
-  padding: 14px 16px;
+  border-radius: 8px;
+  padding: 10px 12px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   transition: box-shadow .15s, border-color .15s;
 }
 .platform-card:hover {
-  box-shadow: 0 3px 10px rgba(0,0,0,.07);
+  box-shadow: 0 2px 8px rgba(0,0,0,.07);
   border-color: var(--gray-300);
 }
 .pc-header {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
+  gap: 8px;
 }
-.pc-icon { font-size: 20px; line-height: 1; flex-shrink: 0; }
+.pc-icon { font-size: 18px; line-height: 1; flex-shrink: 0; margin-top: 1px; }
 .pc-info { flex: 1; min-width: 0; }
-.pc-name { font-size: 13px; font-weight: 700; color: var(--gray-800); margin: 0 0 2px; }
-.pc-task { font-size: 11px; color: var(--gray-500); }
-.pc-badge {
-  flex-shrink: 0;
-  font-size: 10px;
-  font-weight: 700;
-  padding: 2px 7px;
-  border-radius: 20px;
-  color: #fff;
-  white-space: nowrap;
-  align-self: flex-start;
-}
-.badge-red    { background: #dc2626; }
-.badge-orange { background: #d97706; }
-.badge-amber  { background: #f59e0b; color: #78350f; }
-.badge-blue   { background: #3b82f6; }
-.badge-gray   { background: var(--gray-400); }
+.pc-name { font-size: 12px; font-weight: 700; color: var(--gray-800); margin: 0 0 1px; }
+.pc-task { font-size: 10px; color: var(--gray-500); }
 
 .pc-note {
-  font-size: 11px;
-  line-height: 1.55;
+  font-size: 10px;
+  line-height: 1.5;
   color: #92400e;
   background: #fffbeb;
-  border-left: 3px solid #f59e0b;
-  padding: 7px 10px;
-  border-radius: 0 6px 6px 0;
+  border-left: 2px solid #f59e0b;
+  padding: 5px 8px;
+  border-radius: 0 5px 5px 0;
 }
 .pc-note.note-red     { color: #7f1d1d; background: #fef2f2; border-left-color: #dc2626; }
+.pc-note.note-purple  { color: #4c1d95; background: #f5f3ff; border-left-color: #7c3aed; }
 .pc-note.note-neutral { color: var(--gray-600); background: var(--gray-50); border-left-color: var(--gray-300); }
 
 .btn-goto {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 8px 12px;
+  gap: 4px;
+  padding: 6px 10px;
   background: var(--primary);
   color: #fff;
   border: none;
-  border-radius: 7px;
-  font-size: 12px;
+  border-radius: 6px;
+  font-size: 11px;
   font-weight: 600;
   cursor: pointer;
   text-decoration: none;
-  transition: background .15s, transform .1s;
+  transition: background .15s;
+  margin-top: auto;
 }
-.btn-goto:hover { background: #1d4ed8; transform: translateY(-1px); }
+.btn-goto:hover { background: #1d4ed8; }
 
 /* ── Single Task ── */
 .single-task-list { display: flex; flex-direction: column; gap: 8px; }
@@ -225,15 +237,15 @@
   background: #fff;
   border: 1px solid var(--gray-200);
   border-radius: 10px;
-  padding: 14px 18px;
+  padding: 12px 16px;
   display: flex;
   align-items: center;
   gap: 12px;
 }
-.stc-icon { font-size: 20px; flex-shrink: 0; }
+.stc-icon { font-size: 18px; flex-shrink: 0; }
 .stc-text { flex: 1; min-width: 0; }
 .stc-name { font-size: 13px; font-weight: 700; color: var(--gray-800); margin: 0 0 2px; }
-.stc-desc { font-size: 12px; color: var(--gray-500); margin: 0; }
+.stc-desc { font-size: 11px; color: var(--gray-500); margin: 0; }
 .stc-tag {
   font-size: 10px;
   font-weight: 600;
@@ -244,9 +256,12 @@
   white-space: nowrap;
 }
 
-@media (max-width: 480px) {
-  .platform-grid { grid-template-columns: 1fr; }
+@media (max-width: 600px) {
+  .platform-grid { grid-template-columns: 1fr 1fr; }
   .converter-banner { flex-direction: column; align-items: flex-start; }
+}
+@media (max-width: 380px) {
+  .platform-grid { grid-template-columns: 1fr; }
 }
 </style>
 </head>
@@ -292,7 +307,7 @@
     <div class="sidebar-label">系統</div>
     <a class="nav-item" href="tools.html"><span class="icon">🔧</span> 使用工具</a>
   </div>
-  <div class="sidebar-footer">v1.0 · Feebit © 2026</div>
+  <div class="sidebar-footer">v1.1 · Feebit © 2026</div>
 </div>
 <div id="sidebar-overlay" onclick="closeSidebar()"></div>
 
@@ -303,7 +318,7 @@
       <button class="btn-hamburger" onclick="openSidebar()">☰</button>
       <span class="topbar-title">例行帳務作業</span>
       <span class="topbar-badge">財務工具</span>
-      <span style="font-size:11px;color:var(--gray-400);margin-left:4px">v1.0</span>
+      <span style="font-size:11px;color:var(--gray-400);margin-left:4px">v1.1</span>
     </div>
     <button class="btn-share" onclick="copyShare(this)" title="複製分享連結">🔗 分享</button>
   </div>
@@ -345,180 +360,218 @@
 
     <!-- 5號前 -->
     <div class="deadline-group">
-      <div class="deadline-group-header">
-        <div class="dg-dot" style="background:#dc2626"></div>
-        <div class="dg-title">月初截止</div>
-        <div class="dg-subtitle">每月 5 號前</div>
-        <div class="dg-count">2 項</div>
+      <div class="dg-banner dg-red">
+        <div class="dg-banner-left">
+          <span class="dg-banner-icon">🔴</span>
+          <span class="dg-banner-title">每月 5 號前</span>
+          <span class="dg-banner-sub">月初截止</span>
+        </div>
+        <span class="dg-banner-count">2 項</span>
       </div>
-      <div class="platform-grid">
-
-        <div class="platform-card">
-          <div class="pc-header">
-            <div class="pc-icon">🧾</div>
-            <div class="pc-info">
-              <div class="pc-name">寶雅</div>
-              <div class="pc-task">對帳 &amp; 帳款申請</div>
+      <div class="dg-grid-wrap">
+        <div class="platform-grid">
+          <div class="platform-card">
+            <div class="pc-header">
+              <div class="pc-icon">🧾</div>
+              <div class="pc-info">
+                <div class="pc-name">寶雅</div>
+                <div class="pc-task">對帳 &amp; 帳款申請</div>
+              </div>
             </div>
-            <div class="pc-badge badge-red">5號前</div>
+            <div class="pc-note note-red">申請後需等 3～5 小時才可開立發票，請提前作業</div>
+            <a class="btn-goto" href="https://order.poya.com.tw/LoginCom.aspx" target="_blank" rel="noopener">進入後台 →</a>
           </div>
-          <div class="pc-note note-red">申請後需等候 3～5 小時，才可開立發票與簽章，請提前作業</div>
-          <a class="btn-goto" href="https://order.poya.com.tw/LoginCom.aspx" target="_blank" rel="noopener">進入後台 →</a>
-        </div>
-
-        <div class="platform-card">
-          <div class="pc-header">
-            <div class="pc-icon">📄</div>
-            <div class="pc-info">
-              <div class="pc-name">寶雅</div>
-              <div class="pc-task">發票 &amp; 折讓單簽章</div>
+          <div class="platform-card">
+            <div class="pc-header">
+              <div class="pc-icon">📄</div>
+              <div class="pc-info">
+                <div class="pc-name">寶雅</div>
+                <div class="pc-task">發票 &amp; 折讓單簽章</div>
+              </div>
             </div>
-            <div class="pc-badge badge-red">5號前</div>
+            <div class="pc-note">需先完成對帳申請才可開發票；折讓單月底前完成</div>
+            <a class="btn-goto" href="https://lgc.tradevan.com.tw/tln-bin/APTLN/welcome.do" target="_blank" rel="noopener">進入後台 →</a>
           </div>
-          <div class="pc-note">發票每月 5 號前開立完成；折讓單月底前完成。需先完成對帳申請才可開立發票</div>
-          <a class="btn-goto" href="https://lgc.tradevan.com.tw/tln-bin/APTLN/welcome.do" target="_blank" rel="noopener">進入後台 →</a>
         </div>
-
       </div>
     </div>
 
     <!-- 7號前 -->
     <div class="deadline-group">
-      <div class="deadline-group-header">
-        <div class="dg-dot" style="background:#d97706"></div>
-        <div class="dg-title">月初截止</div>
-        <div class="dg-subtitle">每月 7 號前</div>
-        <div class="dg-count">1 項</div>
-      </div>
-      <div class="platform-grid">
-
-        <div class="platform-card">
-          <div class="pc-header">
-            <div class="pc-icon">🛒</div>
-            <div class="pc-info">
-              <div class="pc-name">mo店+</div>
-              <div class="pc-task">對帳 &amp; 發票開立</div>
-            </div>
-            <div class="pc-badge badge-orange">7號前</div>
-          </div>
-          <div class="pc-note note-neutral">每月 7 號前需完成對帳與發票開立</div>
-          <a class="btn-goto" href="https://3p.momo.com.tw/LoginServlet.do" target="_blank" rel="noopener">進入後台 →</a>
+      <div class="dg-banner dg-orange">
+        <div class="dg-banner-left">
+          <span class="dg-banner-icon">🟠</span>
+          <span class="dg-banner-title">每月 7 號前</span>
+          <span class="dg-banner-sub">月初截止</span>
         </div>
-
+        <span class="dg-banner-count">1 項</span>
+      </div>
+      <div class="dg-grid-wrap">
+        <div class="platform-grid">
+          <div class="platform-card">
+            <div class="pc-header">
+              <div class="pc-icon">🛒</div>
+              <div class="pc-info">
+                <div class="pc-name">mo店+</div>
+                <div class="pc-task">對帳 &amp; 發票開立</div>
+              </div>
+            </div>
+            <a class="btn-goto" href="https://3p.momo.com.tw/LoginServlet.do" target="_blank" rel="noopener">進入後台 →</a>
+          </div>
+        </div>
       </div>
     </div>
 
     <!-- 11~14號 -->
     <div class="deadline-group">
-      <div class="deadline-group-header">
-        <div class="dg-dot" style="background:#f59e0b"></div>
-        <div class="dg-title">月中截止</div>
-        <div class="dg-subtitle">每月 11～14 號</div>
-        <div class="dg-count">1 項</div>
-      </div>
-      <div class="platform-grid">
-
-        <div class="platform-card">
-          <div class="pc-header">
-            <div class="pc-icon">📺</div>
-            <div class="pc-info">
-              <div class="pc-name">momo</div>
-              <div class="pc-task">對帳 &amp; 發票開立</div>
-            </div>
-            <div class="pc-badge badge-amber">11~14號</div>
-          </div>
-          <div class="pc-note">每月 11～14 號需完成對帳與發票開立</div>
-          <a class="btn-goto" href="https://scm.momoshop.com.tw/manage/login.jsp" target="_blank" rel="noopener">進入後台 →</a>
+      <div class="dg-banner dg-amber">
+        <div class="dg-banner-left">
+          <span class="dg-banner-icon">🟡</span>
+          <span class="dg-banner-title">每月 11～14 號</span>
+          <span class="dg-banner-sub">月中區間</span>
         </div>
-
+        <span class="dg-banner-count">1 項</span>
+      </div>
+      <div class="dg-grid-wrap">
+        <div class="platform-grid">
+          <div class="platform-card">
+            <div class="pc-header">
+              <div class="pc-icon">📺</div>
+              <div class="pc-info">
+                <div class="pc-name">momo</div>
+                <div class="pc-task">對帳 &amp; 發票開立</div>
+              </div>
+            </div>
+            <a class="btn-goto" href="https://scm.momoshop.com.tw/manage/login.jsp" target="_blank" rel="noopener">進入後台 →</a>
+          </div>
+        </div>
       </div>
     </div>
 
     <!-- 14號前 -->
     <div class="deadline-group">
-      <div class="deadline-group-header">
-        <div class="dg-dot" style="background:#d97706"></div>
-        <div class="dg-title">月中截止</div>
-        <div class="dg-subtitle">每月 14 號前</div>
-        <div class="dg-count">2 項</div>
+      <div class="dg-banner dg-orange">
+        <div class="dg-banner-left">
+          <span class="dg-banner-icon">🟠</span>
+          <span class="dg-banner-title">每月 14 號前</span>
+          <span class="dg-banner-sub">月中截止</span>
+        </div>
+        <span class="dg-banner-count">2 項</span>
       </div>
-      <div class="platform-grid">
-
-        <div class="platform-card">
-          <div class="pc-header">
-            <div class="pc-icon">🛍️</div>
-            <div class="pc-info">
-              <div class="pc-name">酷澎</div>
-              <div class="pc-task">發票開立 &amp; 請款</div>
+      <div class="dg-grid-wrap">
+        <div class="platform-grid">
+          <div class="platform-card">
+            <div class="pc-header">
+              <div class="pc-icon">🛍️</div>
+              <div class="pc-info">
+                <div class="pc-name">酷澎</div>
+                <div class="pc-task">發票開立 &amp; 請款</div>
+              </div>
             </div>
-            <div class="pc-badge badge-orange">14號前</div>
+            <div class="pc-note note-red">逾期則次月才能請款，務必準時</div>
+            <a class="btn-goto" href="https://xauth.tw.coupang.com/auth/realms/seller/protocol/openid-connect/auth?response_type=code&client_id=supplier-hub&scope=openid&state=oNqpvmNirCqGaHrHmBf16LDUDT6O-cVRwMQ-WlVdi6Q%3D&redirect_uri=https://supplier.tw.coupang.com/login/oauth2/code/keycloak?returnUrl%3Dhttps%253A%252F%252Fsupplier.tw.coupang.com%252Fpom%252Fpurchase-order%252Flist&nonce=miIx6Tk0sfcpqsHlcNhx6VvYzRsQ7YL5RePZpyNAWMk&ui_locales=zh-TW" target="_blank" rel="noopener">進入後台 →</a>
           </div>
-          <div class="pc-note note-red">逾期則次月才能請款，請務必準時完成</div>
-          <a class="btn-goto" href="https://xauth.tw.coupang.com/auth/realms/seller/protocol/openid-connect/auth?response_type=code&client_id=supplier-hub&scope=openid&state=oNqpvmNirCqGaHrHmBf16LDUDT6O-cVRwMQ-WlVdi6Q%3D&redirect_uri=https://supplier.tw.coupang.com/login/oauth2/code/keycloak?returnUrl%3Dhttps%253A%252F%252Fsupplier.tw.coupang.com%252Fpom%252Fpurchase-order%252Flist&nonce=miIx6Tk0sfcpqsHlcNhx6VvYzRsQ7YL5RePZpyNAWMk&ui_locales=zh-TW" target="_blank" rel="noopener">進入後台 →</a>
-        </div>
-
-        <div class="platform-card">
-          <div class="pc-header">
-            <div class="pc-icon">🏪</div>
-            <div class="pc-info">
-              <div class="pc-name">酷澎商城</div>
-              <div class="pc-task">後台管理</div>
+          <div class="platform-card">
+            <div class="pc-header">
+              <div class="pc-icon">🏪</div>
+              <div class="pc-info">
+                <div class="pc-name">酷澎商城</div>
+                <div class="pc-task">後台管理</div>
+              </div>
             </div>
-            <div class="pc-badge badge-gray">彈性</div>
+            <div class="pc-note note-neutral">建議與酷澎請款一併處理</div>
+            <a class="btn-goto" href="https://xauth.coupang.com/auth/realms/seller/protocol/openid-connect/auth?response_type=code&client_id=wing&redirect_uri=https%3A%2F%2Fwing.coupang.com%2Fsso%2Flogin?returnUrl%3Dhttp%253A%252F%252Fwing.coupang.com%252Ftenants%252Fmsf%252Fwing%252Fview%252Fpayment-report-view&state=23342799-1d08-48e0-b907-49de33072a07&login=true&ui_locales=zh-TW&scope=openid" target="_blank" rel="noopener">進入後台 →</a>
           </div>
-          <div class="pc-note note-neutral">無固定截止日，建議與酷澎請款一併處理</div>
-          <a class="btn-goto" href="https://xauth.coupang.com/auth/realms/seller/protocol/openid-connect/auth?response_type=code&client_id=wing&redirect_uri=https%3A%2F%2Fwing.coupang.com%2Fsso%2Flogin?returnUrl%3Dhttp%253A%252F%252Fwing.coupang.com%252Ftenants%252Fmsf%252Fwing%252Fview%252Fpayment-report-view&state=23342799-1d08-48e0-b907-49de33072a07&login=true&ui_locales=zh-TW&scope=openid" target="_blank" rel="noopener">進入後台 →</a>
         </div>
-
       </div>
     </div>
 
-    <!-- 彈性時間 -->
+    <!-- 15號前 -->
     <div class="deadline-group">
-      <div class="deadline-group-header">
-        <div class="dg-dot" style="background:var(--gray-400)"></div>
-        <div class="dg-title">彈性時間</div>
-        <div class="dg-subtitle">無固定截止日</div>
-        <div class="dg-count">3 項</div>
+      <div class="dg-banner dg-blue">
+        <div class="dg-banner-left">
+          <span class="dg-banner-icon">🔵</span>
+          <span class="dg-banner-title">每月 15 號前</span>
+          <span class="dg-banner-sub">月中截止</span>
+        </div>
+        <span class="dg-banner-count">1 項</span>
       </div>
-      <div class="platform-grid">
-
-        <div class="platform-card">
-          <div class="pc-header">
-            <div class="pc-icon">🦐</div>
-            <div class="pc-info">
-              <div class="pc-name">蝦皮</div>
-              <div class="pc-task">對帳 &amp; 發票開立</div>
+      <div class="dg-grid-wrap">
+        <div class="platform-grid">
+          <div class="platform-card">
+            <div class="pc-header">
+              <div class="pc-icon">🦐</div>
+              <div class="pc-info">
+                <div class="pc-name">蝦皮</div>
+                <div class="pc-task">對帳 &amp; 發票開立</div>
+              </div>
             </div>
-            <div class="pc-badge badge-gray">每月</div>
+            <a class="btn-goto" href="https://seller.shopee.tw/portal/finance/income?type=2&dateRange=THIS_WEEK" target="_blank" rel="noopener">進入後台 →</a>
           </div>
-          <a class="btn-goto" href="https://seller.shopee.tw/portal/finance/income?type=2&dateRange=THIS_WEEK" target="_blank" rel="noopener">進入後台 →</a>
         </div>
+      </div>
+    </div>
 
-        <div class="platform-card">
-          <div class="pc-header">
-            <div class="pc-icon">🚚</div>
-            <div class="pc-info">
-              <div class="pc-name">蝦皮</div>
-              <div class="pc-task">運費補助申請</div>
+    <!-- 25號前 -->
+    <div class="deadline-group">
+      <div class="dg-banner dg-purple">
+        <div class="dg-banner-left">
+          <span class="dg-banner-icon">🟣</span>
+          <span class="dg-banner-title">每月 25 號前</span>
+          <span class="dg-banner-sub">月底前截止</span>
+        </div>
+        <span class="dg-banner-count">1 項</span>
+      </div>
+      <div class="dg-grid-wrap">
+        <div class="platform-grid">
+          <div class="platform-card">
+            <div class="pc-header">
+              <div class="pc-icon">🚚</div>
+              <div class="pc-info">
+                <div class="pc-name">蝦皮</div>
+                <div class="pc-task">運費補助申請</div>
+              </div>
             </div>
-            <div class="pc-badge badge-gray">每月</div>
+            <div class="pc-note note-purple">25 號當天務必回線上確認審核狀態</div>
+            <a class="btn-goto" href="https://self-service.twtc.shopee.tw/other/685a5589d35e81d452e52bb2" target="_blank" rel="noopener">申請連結 →</a>
           </div>
-          <a class="btn-goto" href="https://self-service.twtc.shopee.tw/other/685a5589d35e81d452e52bb2" target="_blank" rel="noopener">申請連結 →</a>
         </div>
+      </div>
+    </div>
 
-        <div class="platform-card">
-          <div class="pc-header">
-            <div class="pc-icon">🛒</div>
-            <div class="pc-info">
-              <div class="pc-name">家樂福</div>
-              <div class="pc-task">後台管理</div>
+    <!-- 月底前 -->
+    <div class="deadline-group">
+      <div class="dg-banner dg-green">
+        <div class="dg-banner-left">
+          <span class="dg-banner-icon">🟢</span>
+          <span class="dg-banner-title">月底前</span>
+          <span class="dg-banner-sub">每月最後一日</span>
+        </div>
+        <span class="dg-banner-count">2 項</span>
+      </div>
+      <div class="dg-grid-wrap">
+        <div class="platform-grid">
+          <div class="platform-card">
+            <div class="pc-header">
+              <div class="pc-icon">📄</div>
+              <div class="pc-info">
+                <div class="pc-name">寶雅</div>
+                <div class="pc-task">折讓單 — 月底完成</div>
+              </div>
             </div>
-            <div class="pc-badge badge-gray">每月</div>
+            <a class="btn-goto" href="https://lgc.tradevan.com.tw/tln-bin/APTLN/welcome.do" target="_blank" rel="noopener">進入後台 →</a>
           </div>
-          <a class="btn-goto" href="https://scm.carrefour.com.tw/product/list" target="_blank" rel="noopener">進入後台 →</a>
+          <div class="platform-card">
+            <div class="pc-header">
+              <div class="pc-icon">🛒</div>
+              <div class="pc-info">
+                <div class="pc-name">家樂福</div>
+                <div class="pc-task">後台管理</div>
+              </div>
+            </div>
+            <a class="btn-goto" href="https://scm.carrefour.com.tw/product/list" target="_blank" rel="noopener">進入後台 →</a>
+          </div>
         </div>
-
       </div>
     </div>
 
@@ -591,13 +644,13 @@ function copyShare(btn) {
     '<div style="font-size:9px;color:#2563eb;font-weight:700;">今天</div>';
   bar.appendChild(tm);
 
-  // Milestones: [day, color, label (newline = <br>)]
+  // Milestones: [day, color, label]
   var milestones = [
     [5,  '#dc2626', '寶雅<br>申請/發票'],
-    [7,  '#d97706', 'mo店+'],
-    [11, '#f59e0b', 'momo<br>開始'],
+    [7,  '#ea580c', 'mo店+'],
     [14, '#d97706', 'momo截止<br>酷澎請款'],
-    [31, '#3b82f6',  '寶雅<br>折讓單'],
+    [15, '#2563eb', '蝦皮<br>對帳/發票'],
+    [25, '#7c3aed', '蝦皮<br>運費補助'],
   ];
   milestones.forEach(function(m) {
     var d = m[0], color = m[1], label = m[2];
