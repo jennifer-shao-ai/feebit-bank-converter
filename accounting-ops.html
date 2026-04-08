@@ -52,15 +52,23 @@
 }
 
 /* ── Converter Banner ── */
+.converter-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+@media (max-width: 700px) {
+  .converter-grid { grid-template-columns: 1fr; }
+}
 .converter-banner {
   background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%);
   border-radius: 12px;
-  padding: 18px 20px;
-  margin-bottom: 28px;
+  padding: 16px 18px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 12px;
   text-decoration: none;
   transition: transform .15s, box-shadow .15s;
 }
@@ -68,33 +76,51 @@
   transform: translateY(-1px);
   box-shadow: 0 6px 20px rgba(37,99,235,.3);
 }
+.converter-banner.cb-green {
+  background: linear-gradient(135deg, #065f46 0%, #059669 100%);
+}
+.converter-banner.cb-green:hover {
+  box-shadow: 0 6px 20px rgba(5,150,105,.3);
+}
+.converter-banner.cb-purple {
+  background: linear-gradient(135deg, #4c1d95 0%, #7c3aed 100%);
+}
+.converter-banner.cb-purple:hover {
+  box-shadow: 0 6px 20px rgba(124,58,237,.3);
+}
 .converter-banner-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+  min-width: 0;
 }
-.converter-banner-icon { font-size: 26px; }
+.converter-banner-icon { font-size: 22px; flex-shrink: 0; }
 .converter-banner-text h3 {
   color: #fff;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   margin: 0 0 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .converter-banner-text p {
   color: rgba(255,255,255,.7);
-  font-size: 12px;
+  font-size: 11px;
   margin: 0;
 }
 .btn-converter {
   flex-shrink: 0;
-  padding: 8px 16px;
+  padding: 7px 13px;
   background: #fff;
   color: #1d4ed8;
   border-radius: 8px;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   white-space: nowrap;
 }
+.cb-green .btn-converter { color: #065f46; }
+.cb-purple .btn-converter { color: #4c1d95; }
 
 /* ── Section Divider ── */
 .section-divider {
@@ -285,6 +311,16 @@
 @media (max-width: 380px) {
   .platform-grid { grid-template-columns: 1fr; }
 }
+
+/* ── Sidebar Scroll ── */
+#sidebar {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+#sidebar::-webkit-scrollbar { width: 4px; }
+#sidebar::-webkit-scrollbar-track { background: transparent; }
+#sidebar::-webkit-scrollbar-thumb { background: rgba(0,0,0,.15); border-radius: 4px; }
+#sidebar::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,.3); }
 </style>
 </head>
 <body>
@@ -334,7 +370,7 @@
     <div class="sidebar-label">系統</div>
     <a class="nav-item" href="tools.html"><span class="icon">🔧</span> 使用工具</a>
   </div>
-  <div class="sidebar-footer">v1.3 · Feebit © 2026</div>
+  <div class="sidebar-footer">v2.3 · Feebit © 2026</div>
 </div>
 <div id="sidebar-overlay" onclick="closeSidebar()"></div>
 
@@ -345,7 +381,7 @@
       <button class="btn-hamburger" onclick="openSidebar()">☰</button>
       <span class="topbar-title">例行帳務作業</span>
       <span class="topbar-badge">財務工具</span>
-      <span style="font-size:11px;color:var(--gray-400);margin-left:4px">v1.3</span>
+      <span style="font-size:11px;color:var(--gray-400);margin-left:4px">v2.3</span>
     </div>
     <button class="btn-share" onclick="copyShare(this)" title="複製分享連結">🔗 分享</button>
   </div>
@@ -367,16 +403,38 @@
     </div>
 
     <!-- ── 帳務轉換工具入口 ── -->
-    <a class="converter-banner" href="bank-converter.html">
-      <div class="converter-banner-left">
-        <div class="converter-banner-icon">🏦</div>
-        <div class="converter-banner-text">
-          <h3>帳務轉換工具</h3>
-          <p>彰化銀行 CSV 匯入 → 自動分類 → 匯出 Ragic 格式</p>
+    <div class="converter-grid">
+      <a class="converter-banner" href="bank-converter.html">
+        <div class="converter-banner-left">
+          <div class="converter-banner-icon">🏦</div>
+          <div class="converter-banner-text">
+            <h3>帳務轉換工具</h3>
+            <p>彰化銀行 CSV → Ragic 格式</p>
+          </div>
         </div>
-      </div>
-      <div class="btn-converter">前往工具 →</div>
-    </a>
+        <div class="btn-converter">前往 →</div>
+      </a>
+      <a class="converter-banner cb-green" href="https://docs.google.com/spreadsheets/d/1WWmUtkZuqxax5AGu9YXnEf41FAyb-bmiab8OZrQVAzA/edit?gid=1105981276#gid=1105981276" target="_blank" rel="noopener">
+        <div class="converter-banner-left">
+          <div class="converter-banner-icon">📊</div>
+          <div class="converter-banner-text">
+            <h3>營業額表單</h3>
+            <p>各平台月營業額紀錄</p>
+          </div>
+        </div>
+        <div class="btn-converter">開啟 →</div>
+      </a>
+      <a class="converter-banner cb-purple" href="https://docs.google.com/spreadsheets/d/1yhO66llRwyXeWWlJCJ7VYOXrfIX5wgE8ULUptST9iBY/edit?gid=0#gid=0" target="_blank" rel="noopener">
+        <div class="converter-banner-left">
+          <div class="converter-banner-icon">🧾</div>
+          <div class="converter-banner-text">
+            <h3>外部發票紀錄</h3>
+            <p>發票開立紀錄總表</p>
+          </div>
+        </div>
+        <div class="btn-converter">開啟 →</div>
+      </a>
+    </div>
 
     <!-- ── 每月例行作業 ── -->
     <div class="section-divider">
@@ -499,6 +557,7 @@
             </div>
             <div class="pc-note note-red">逾期則次月才能請款，務必準時</div>
             <a class="btn-goto" href="https://xauth.tw.coupang.com/auth/realms/seller/protocol/openid-connect/auth?response_type=code&client_id=supplier-hub&scope=openid&state=oNqpvmNirCqGaHrHmBf16LDUDT6O-cVRwMQ-WlVdi6Q%3D&redirect_uri=https://supplier.tw.coupang.com/login/oauth2/code/keycloak?returnUrl%3Dhttps%253A%252F%252Fsupplier.tw.coupang.com%252Fpom%252Fpurchase-order%252Flist&nonce=miIx6Tk0sfcpqsHlcNhx6VvYzRsQ7YL5RePZpyNAWMk&ui_locales=zh-TW" target="_blank" rel="noopener">進入後台 →</a>
+            <a class="btn-goto" href="coupang-invoice.html" style="background:#059669;" onmouseover="this.style.background='#047857'" onmouseout="this.style.background='#059669'">🧾 發票轉檔工具 →</a>
           </div>
           <div class="platform-card">
             <div class="pc-header">
@@ -534,6 +593,11 @@
                 <div class="pc-name">蝦皮</div>
                 <div class="pc-task">對帳 &amp; 發票開立</div>
               </div>
+            </div>
+            <div class="pc-note note-neutral" style="font-size:10px;line-height:1.7;">
+              商城：lala_v_official / 206339549<br>
+              玩美：lala_v_collection / 827824800<br>
+              寶媽：b.1314520 / 1192432875
             </div>
             <a class="btn-goto" href="https://seller.shopee.tw/portal/finance/income?type=2&dateRange=THIS_WEEK" target="_blank" rel="noopener">進入後台 →</a>
           </div>
@@ -614,12 +678,20 @@
     </div>
     <div class="single-task-list">
       <div class="single-task-card">
-        <div class="stc-icon">🗂️</div>
+        <div class="stc-icon">♻️</div>
         <div class="stc-text">
-          <div class="stc-name">外部發票設立</div>
-          <div class="stc-desc">單月作業，視需求執行</div>
+          <div class="stc-name">環保署申報</div>
+          <div class="stc-desc">單月申報，10 號前完成</div>
         </div>
-        <div class="stc-tag">手動作業</div>
+        <a class="btn-goto" href="https://recycle1.moenv.gov.tw/sys/Business/" target="_blank" rel="noopener" style="font-size:11px;padding:6px 12px;white-space:nowrap;">前往申報 →</a>
+      </div>
+      <div class="single-task-card">
+        <div class="stc-icon">📋</div>
+        <div class="stc-text">
+          <div class="stc-name">環保署申報商品資料</div>
+          <div class="stc-desc">申報前確認商品資料表，10 號前</div>
+        </div>
+        <a class="btn-goto" href="https://docs.google.com/spreadsheets/d/1H94HBTRBPo-kq9lPqOyvZ1pLGZ2Zn6VIs9YQc5SFS04/edit?gid=1686514007#gid=1686514007" target="_blank" rel="noopener" style="font-size:11px;padding:6px 12px;white-space:nowrap;">開啟表單 →</a>
       </div>
     </div>
 
@@ -700,3 +772,4 @@ function copyShare(btn) {
 </script>
 </body>
 </html>
+
