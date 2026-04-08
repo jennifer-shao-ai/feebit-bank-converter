@@ -256,6 +256,18 @@
   white-space: nowrap;
 }
 
+/* ── Two-column group layout ── */
+.groups-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  align-items: start;
+}
+.deadline-group { margin-bottom: 0; }
+
+@media (max-width: 800px) {
+  .groups-grid { grid-template-columns: 1fr; }
+}
 @media (max-width: 600px) {
   .platform-grid { grid-template-columns: 1fr 1fr; }
   .converter-banner { flex-direction: column; align-items: flex-start; }
@@ -307,7 +319,7 @@
     <div class="sidebar-label">系統</div>
     <a class="nav-item" href="tools.html"><span class="icon">🔧</span> 使用工具</a>
   </div>
-  <div class="sidebar-footer">v1.1 · Feebit © 2026</div>
+  <div class="sidebar-footer">v1.2 · Feebit © 2026</div>
 </div>
 <div id="sidebar-overlay" onclick="closeSidebar()"></div>
 
@@ -318,7 +330,7 @@
       <button class="btn-hamburger" onclick="openSidebar()">☰</button>
       <span class="topbar-title">例行帳務作業</span>
       <span class="topbar-badge">財務工具</span>
-      <span style="font-size:11px;color:var(--gray-400);margin-left:4px">v1.1</span>
+      <span style="font-size:11px;color:var(--gray-400);margin-left:4px">v1.2</span>
     </div>
     <button class="btn-share" onclick="copyShare(this)" title="複製分享連結">🔗 分享</button>
   </div>
@@ -357,6 +369,8 @@
       <div class="section-line"></div>
       <div class="section-chip">每月需處理</div>
     </div>
+
+    <div class="groups-grid">
 
     <!-- 5號前 -->
     <div class="deadline-group">
@@ -573,7 +587,9 @@
           </div>
         </div>
       </div>
-    </div>
+    </div><!-- end 月底前 deadline-group -->
+
+    </div><!-- end .groups-grid -->
 
     <!-- ── 單月例行作業 ── -->
     <div class="section-divider">
