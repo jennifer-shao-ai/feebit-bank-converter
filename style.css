@@ -12,7 +12,12 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Microsoft
 #sidebar {
   width: var(--sidebar-w); min-height: 100vh; background: var(--sidebar-bg);
   display: flex; flex-direction: column; flex-shrink: 0; position: fixed; top: 0; left: 0; bottom: 0; z-index: 100;
+  overflow-y: auto; overflow-x: hidden;
 }
+#sidebar::-webkit-scrollbar { width: 4px; }
+#sidebar::-webkit-scrollbar-track { background: transparent; }
+#sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,.2); border-radius: 4px; }
+#sidebar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.4); }
 .sidebar-logo {
   padding: 20px 16px 16px; border-bottom: 1px solid rgba(255,255,255,0.08);
 }
@@ -151,3 +156,4 @@ select:focus, input[type="text"]:focus { border-color: var(--primary); }
 .tool-tag { background: var(--primary-light); color: var(--primary-dark); padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; }
 .tool-card-link { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: var(--radius); font-size: 13px; font-weight: 500; color: var(--gray-800); text-decoration: none; transition: all 0.15s; margin-top: auto; align-self: flex-start; }
 .tool-card-link:hover { background: var(--primary); color: white; border-color: var(--primary); }
+
