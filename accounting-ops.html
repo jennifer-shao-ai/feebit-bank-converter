@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>例行帳務作業 · 飛比特營運工具箱</title>
+<link rel="icon" href="favicon.svg">
+<script>if(location.search.includes("share"))document.documentElement.classList.add("standalone");</script>
+<link rel="stylesheet" href="style.css">
+<style>
+/* ── Timeline ── */
+.timeline-wrap {
+  background: #fff;
+  border: 1px solid var(--gray-200);
+  border-radius: 12px;
+  padding: 20px 24px 18px;
+  margin-bottom: 28px;
+  overflow: hidden;
+}
+.timeline-head {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gray-400);
+  letter-spacing: .5px;
+  text-transform: uppercase;
+  margin-bottom: 18px;
+}
+.timeline-bar {
+  position: relative;
+  height: 64px;
+}
+.tl-track {
+  position: absolute;
+  left: 0; right: 0; top: 24px;
+  height: 3px;
+  background: var(--gray-100);
+  border-radius: 2px;
+}
+.tl-filled {
+  position: absolute;
+  left: 0; top: 24px;
+  height: 3px;
+  background: linear-gradient(90deg, #2563eb, #60a5fa);
+  border-radius: 2px;
+}
+.timeline-foot {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--gray-400);
+  margin-top: 6px;
+}
+
+/* ── Converter Banner ── */
+.converter-banner {
+  background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%);
+  border-radius: 12px;
+  padding: 18px 20px;
+  margin-bottom: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  text-decoration: none;
+  transition: transform .15s, box-shadow .15s;
+}
+.converter-banner:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(37,99,235,.3);
+}
+.converter-banner-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.converter-banner-icon { font-size: 26px; }
+.converter-banner-text h3 {
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0 0 2px;
+}
+.converter-banner-text p {
+  color: rgba(255,255,255,.7);
+  font-size: 12px;
+  margin: 0;
+}
+.btn-converter {
+  flex-shrink: 0;
+  padding: 8px 16px;
+  background: #fff;
+  color: #1d4ed8;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* ── Section Divider ── */
+.section-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 32px 0 18px;
+}
+.section-divider h2 {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--gray-700);
+  white-space: nowrap;
+  margin: 0;
+}
+.section-line { flex: 1; height: 1px; background: var(--gray-200); }
+.section-chip {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 9px;
+  border-radius: 20px;
+  background: #f3f4f6;
+  color: var(--gray-500);
+  white-space: nowrap;
+}
+
+/* ── Deadline Group ── */
+.deadline-group { margin-bottom: 22px; }
+.deadline-group-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--gray-100);
+}
+.dg-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.dg-title { font-size: 13px; font-weight: 700; color: var(--gray-700); }
+.dg-subtitle { font-size: 11px; color: var(--gray-400); }
+.dg-count {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--gray-400);
+  background: var(--gray-50);
+  border: 1px solid var(--gray-200);
+  padding: 1px 7px;
+  border-radius: 10px;
+}
+
+/* ── Platform Cards ── */
+.platform-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 10px;
+}
+.platform-card {
+  background: #fff;
+  border: 1px solid var(--gray-200);
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: box-shadow .15s, border-color .15s;
+}
+.platform-card:hover {
+  box-shadow: 0 3px 10px rgba(0,0,0,.07);
+  border-color: var(--gray-300);
+}
+.pc-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.pc-icon { font-size: 20px; line-height: 1; flex-shrink: 0; }
+.pc-info { flex: 1; min-width: 0; }
+.pc-name { font-size: 13px; font-weight: 700; color: var(--gray-800); margin: 0 0 2px; }
+.pc-task { font-size: 11px; color: var(--gray-500); }
+.pc-badge {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 20px;
+  color: #fff;
+  white-space: nowrap;
+  align-self: flex-start;
+}
+.badge-red    { background: #dc2626; }
+.badge-orange { background: #d97706; }
+.badge-amber  { background: #f59e0b; color: #78350f; }
+.badge-blue   { background: #3b82f6; }
+.badge-gray   { background: var(--gray-400); }
+
+.pc-note {
+  font-size: 11px;
+  line-height: 1.55;
+  color: #92400e;
+  background: #fffbeb;
+  border-left: 3px solid #f59e0b;
+  padding: 7px 10px;
+  border-radius: 0 6px 6px 0;
+}
+.pc-note.note-red     { color: #7f1d1d; background: #fef2f2; border-left-color: #dc2626; }
+.pc-note.note-neutral { color: var(--gray-600); background: var(--gray-50); border-left-color: var(--gray-300); }
+
+.btn-goto {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background .15s, transform .1s;
+}
+.btn-goto:hover { background: #1d4ed8; transform: translateY(-1px); }
+
+/* ── Single Task ── */
+.single-task-list { display: flex; flex-direction: column; gap: 8px; }
+.single-task-card {
+  background: #fff;
+  border: 1px solid var(--gray-200);
+  border-radius: 10px;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.stc-icon { font-size: 20px; flex-shrink: 0; }
+.stc-text { flex: 1; min-width: 0; }
+.stc-name { font-size: 13px; font-weight: 700; color: var(--gray-800); margin: 0 0 2px; }
+.stc-desc { font-size: 12px; color: var(--gray-500); margin: 0; }
+.stc-tag {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 9px;
+  border-radius: 20px;
+  background: #f3f4f6;
+  color: var(--gray-500);
+  white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+  .platform-grid { grid-template-columns: 1fr; }
+  .converter-banner { flex-direction: column; align-items: flex-start; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── SIDEBAR ── -->
+<div id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand">飛比特 Feebit</div>
+    <div class="sub">營運工具箱</div>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">總覽</div>
+    <a class="nav-item" href="index.html"><span class="icon">🏠</span> 首頁</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">財務</div>
+    <a class="nav-item" href="bank-converter.html"><span class="icon">🏦</span> 帳務轉換</a>
+    <a class="nav-item active" href="accounting-ops.html"><span class="icon">📅</span> 例行帳務</a>
+    <div class="nav-item soon"><span class="icon">💰</span> 定價試算<span class="soon-tag">即將推出</span></div>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">行銷</div>
+    <div class="nav-item soon"><span class="icon">📢</span> 廣告文案<span class="soon-tag">即將推出</span></div>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">客服</div>
+    <div class="nav-item soon"><span class="icon">💬</span> 客服回覆<span class="soon-tag">即將推出</span></div>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">庫存</div>
+    <a class="nav-item" href="stock-analysis.html"><span class="icon">📦</span> 庫存訂貨分析</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">研發</div>
+    <a class="nav-item" href="research-notes.html"><span class="icon">📚</span> 研發筆記</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">生活</div>
+    <a class="nav-item" href="travel-planner.html"><span class="icon">✈️</span> 旅行規劃</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">系統</div>
+    <a class="nav-item" href="tools.html"><span class="icon">🔧</span> 使用工具</a>
+  </div>
+  <div class="sidebar-footer">v1.0 · Feebit © 2026</div>
+</div>
+<div id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<!-- ── MAIN ── -->
+<div id="main">
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:8px">
+      <button class="btn-hamburger" onclick="openSidebar()">☰</button>
+      <span class="topbar-title">例行帳務作業</span>
+      <span class="topbar-badge">財務工具</span>
+      <span style="font-size:11px;color:var(--gray-400);margin-left:4px">v1.0</span>
+    </div>
+    <button class="btn-share" onclick="copyShare(this)" title="複製分享連結">🔗 分享</button>
+  </div>
+
+  <div class="page">
+
+    <!-- ── 時間軸 ── -->
+    <div class="timeline-wrap">
+      <div class="timeline-head" id="tl-month-label">本月截止時間軸</div>
+      <div class="timeline-bar" id="timeline-bar">
+        <div class="tl-track"></div>
+        <div class="tl-filled" id="tl-filled"></div>
+      </div>
+      <div class="timeline-foot">
+        <span>1日</span>
+        <span id="tl-foot-label"></span>
+        <span>月底</span>
+      </div>
+    </div>
+
+    <!-- ── 帳務轉換工具入口 ── -->
+    <a class="converter-banner" href="bank-converter.html">
+      <div class="converter-banner-left">
+        <div class="converter-banner-icon">🏦</div>
+        <div class="converter-banner-text">
+          <h3>帳務轉換工具</h3>
+          <p>彰化銀行 CSV 匯入 → 自動分類 → 匯出 Ragic 格式</p>
+        </div>
+      </div>
+      <div class="btn-converter">前往工具 →</div>
+    </a>
+
+    <!-- ── 每月例行作業 ── -->
+    <div class="section-divider">
+      <h2>每月例行作業</h2>
+      <div class="section-line"></div>
+      <div class="section-chip">每月需處理</div>
+    </div>
+
+    <!-- 5號前 -->
+    <div class="deadline-group">
+      <div class="deadline-group-header">
+        <div class="dg-dot" style="background:#dc2626"></div>
+        <div class="dg-title">月初截止</div>
+        <div class="dg-subtitle">每月 5 號前</div>
+        <div class="dg-count">2 項</div>
+      </div>
+      <div class="platform-grid">
+
+        <div class="platform-card">
+          <div class="pc-header">
+            <div class="pc-icon">🧾</div>
+            <div class="pc-info">
+              <div class="pc-name">寶雅</div>
+              <div class="pc-task">對帳 &amp; 帳款申請</div>
+            </div>
+            <div class="pc-badge badge-red">5號前</div>
+          </div>
+          <div class="pc-note note-red">申請後需等候 3～5 小時，才可開立發票與簽章，請提前作業</div>
+          <a class="btn-goto" href="https://order.poya.com.tw/LoginCom.aspx" target="_blank" rel="noopener">進入後台 →</a>
+        </div>
+
+        <div class="platform-card">
+          <div class="pc-header">
+            <div class="pc-icon">📄</div>
+            <div class="pc-info">
+              <div class="pc-name">寶雅</div>
+              <div class="pc-task">發票 &amp; 折讓單簽章</div>
+            </div>
+            <div class="pc-badge badge-red">5號前</div>
+          </div>
+          <div class="pc-note">發票每月 5 號前開立完成；折讓單月底前完成。需先完成對帳申請才可開立發票</div>
+          <a class="btn-goto" href="https://lgc.tradevan.com.tw/tln-bin/APTLN/welcome.do" target="_blank" rel="noopener">進入後台 →</a>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 7號前 -->
+    <div class="deadline-group">
+      <div class="deadline-group-header">
+        <div class="dg-dot" style="background:#d97706"></div>
+        <div class="dg-title">月初截止</div>
+        <div class="dg-subtitle">每月 7 號前</div>
+        <div class="dg-count">1 項</div>
+      </div>
+      <div class="platform-grid">
+
+        <div class="platform-card">
+          <div class="pc-header">
+            <div class="pc-icon">🛒</div>
+            <div class="pc-info">
+              <div class="pc-name">mo店+</div>
+              <div class="pc-task">對帳 &amp; 發票開立</div>
+            </div>
+            <div class="pc-badge badge-orange">7號前</div>
+          </div>
+          <div class="pc-note note-neutral">每月 7 號前需完成對帳與發票開立</div>
+          <a class="btn-goto" href="https://3p.momo.com.tw/LoginServlet.do" target="_blank" rel="noopener">進入後台 →</a>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 11~14號 -->
+    <div class="deadline-group">
+      <div class="deadline-group-header">
+        <div class="dg-dot" style="background:#f59e0b"></div>
+        <div class="dg-title">月中截止</div>
+        <div class="dg-subtitle">每月 11～14 號</div>
+        <div class="dg-count">1 項</div>
+      </div>
+      <div class="platform-grid">
+
+        <div class="platform-card">
+          <div class="pc-header">
+            <div class="pc-icon">📺</div>
+            <div class="pc-info">
+              <div class="pc-name">momo</div>
+              <div class="pc-task">對帳 &amp; 發票開立</div>
+            </div>
+            <div class="pc-badge badge-amber">11~14號</div>
+          </div>
+          <div class="pc-note">每月 11～14 號需完成對帳與發票開立</div>
+          <a class="btn-goto" href="https://scm.momoshop.com.tw/manage/login.jsp" target="_blank" rel="noopener">進入後台 →</a>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 14號前 -->
+    <div class="deadline-group">
+      <div class="deadline-group-header">
+        <div class="dg-dot" style="background:#d97706"></div>
+        <div class="dg-title">月中截止</div>
+        <div class="dg-subtitle">每月 14 號前</div>
+        <div class="dg-count">2 項</div>
+      </div>
+      <div class="platform-grid">
+
+        <div class="platform-card">
+          <div class="pc-header">
+            <div class="pc-icon">🛍️</div>
+            <div class="pc-info">
+              <div class="pc-name">酷澎</div>
+              <div class="pc-task">發票開立 &amp; 請款</div>
+            </div>
+            <div class="pc-badge badge-orange">14號前</div>
+          </div>
+          <div class="pc-note note-red">逾期則次月才能請款，請務必準時完成</div>
+          <a class="btn-goto" href="https://xauth.tw.coupang.com/auth/realms/seller/protocol/openid-connect/auth?response_type=code&client_id=supplier-hub&scope=openid&state=oNqpvmNirCqGaHrHmBf16LDUDT6O-cVRwMQ-WlVdi6Q%3D&redirect_uri=https://supplier.tw.coupang.com/login/oauth2/code/keycloak?returnUrl%3Dhttps%253A%252F%252Fsupplier.tw.coupang.com%252Fpom%252Fpurchase-order%252Flist&nonce=miIx6Tk0sfcpqsHlcNhx6VvYzRsQ7YL5RePZpyNAWMk&ui_locales=zh-TW" target="_blank" rel="noopener">進入後台 →</a>
+        </div>
+
+        <div class="platform-card">
+          <div class="pc-header">
+            <div class="pc-icon">🏪</div>
+            <div class="pc-info">
+              <div class="pc-name">酷澎商城</div>
+              <div class="pc-task">後台管理</div>
+            </div>
+            <div class="pc-badge badge-gray">彈性</div>
+          </div>
+          <div class="pc-note note-neutral">無固定截止日，建議與酷澎請款一併處理</div>
+          <a class="btn-goto" href="https://xauth.coupang.com/auth/realms/seller/protocol/openid-connect/auth?response_type=code&client_id=wing&redirect_uri=https%3A%2F%2Fwing.coupang.com%2Fsso%2Flogin?returnUrl%3Dhttp%253A%252F%252Fwing.coupang.com%252Ftenants%252Fmsf%252Fwing%252Fview%252Fpayment-report-view&state=23342799-1d08-48e0-b907-49de33072a07&login=true&ui_locales=zh-TW&scope=openid" target="_blank" rel="noopener">進入後台 →</a>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 彈性時間 -->
+    <div class="deadline-group">
+      <div class="deadline-group-header">
+        <div class="dg-dot" style="background:var(--gray-400)"></div>
+        <div class="dg-title">彈性時間</div>
+        <div class="dg-subtitle">無固定截止日</div>
+        <div class="dg-count">3 項</div>
+      </div>
+      <div class="platform-grid">
+
+        <div class="platform-card">
+          <div class="pc-header">
+            <div class="pc-icon">🦐</div>
+            <div class="pc-info">
+              <div class="pc-name">蝦皮</div>
+              <div class="pc-task">對帳 &amp; 發票開立</div>
+            </div>
+            <div class="pc-badge badge-gray">每月</div>
+          </div>
+          <a class="btn-goto" href="https://seller.shopee.tw/portal/finance/income?type=2&dateRange=THIS_WEEK" target="_blank" rel="noopener">進入後台 →</a>
+        </div>
+
+        <div class="platform-card">
+          <div class="pc-header">
+            <div class="pc-icon">🚚</div>
+            <div class="pc-info">
+              <div class="pc-name">蝦皮</div>
+              <div class="pc-task">運費補助申請</div>
+            </div>
+            <div class="pc-badge badge-gray">每月</div>
+          </div>
+          <a class="btn-goto" href="https://self-service.twtc.shopee.tw/other/685a5589d35e81d452e52bb2" target="_blank" rel="noopener">申請連結 →</a>
+        </div>
+
+        <div class="platform-card">
+          <div class="pc-header">
+            <div class="pc-icon">🛒</div>
+            <div class="pc-info">
+              <div class="pc-name">家樂福</div>
+              <div class="pc-task">後台管理</div>
+            </div>
+            <div class="pc-badge badge-gray">每月</div>
+          </div>
+          <a class="btn-goto" href="https://scm.carrefour.com.tw/product/list" target="_blank" rel="noopener">進入後台 →</a>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── 單月例行作業 ── -->
+    <div class="section-divider">
+      <h2>單月例行作業</h2>
+      <div class="section-line"></div>
+      <div class="section-chip">單月需處理</div>
+    </div>
+    <div class="single-task-list">
+      <div class="single-task-card">
+        <div class="stc-icon">🗂️</div>
+        <div class="stc-text">
+          <div class="stc-name">外部發票設立</div>
+          <div class="stc-desc">單月作業，視需求執行</div>
+        </div>
+        <div class="stc-tag">手動作業</div>
+      </div>
+    </div>
+
+  </div><!-- .page -->
+</div><!-- #main -->
+
+<script>
+function openSidebar() {
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('sidebar-overlay').classList.add('show');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('show');
+}
+function copyShare(btn) {
+  const url = location.href.split('?')[0] + '?share=1';
+  navigator.clipboard.writeText(url).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = '✓ 已複製';
+    setTimeout(() => btn.textContent = orig, 2000);
+  });
+}
+
+// ── 時間軸 ──
+(function () {
+  var today = new Date();
+  var day = today.getDate();
+  var year = today.getFullYear();
+  var month = today.getMonth();
+  var daysInMonth = new Date(year, month + 1, 0).getDate();
+  var monthNames = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+
+  document.getElementById('tl-month-label').textContent =
+    year + ' 年 ' + monthNames[month] + ' 截止時間軸';
+  document.getElementById('tl-foot-label').textContent =
+    year + ' 年 ' + monthNames[month];
+
+  function pct(d) {
+    return ((d - 1) / (daysInMonth - 1) * 100).toFixed(2) + '%';
+  }
+
+  // Today progress bar
+  document.getElementById('tl-filled').style.width = pct(day);
+
+  var bar = document.getElementById('timeline-bar');
+
+  // Today marker
+  var tm = document.createElement('div');
+  tm.style.cssText = 'position:absolute;top:10px;left:' + pct(day) + ';transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;z-index:2;';
+  tm.innerHTML =
+    '<div style="width:6px;height:6px;background:#2563eb;border-radius:50%;margin-bottom:2px;"></div>' +
+    '<div style="font-size:9px;color:#2563eb;font-weight:700;">今天</div>';
+  bar.appendChild(tm);
+
+  // Milestones: [day, color, label (newline = <br>)]
+  var milestones = [
+    [5,  '#dc2626', '寶雅<br>申請/發票'],
+    [7,  '#d97706', 'mo店+'],
+    [11, '#f59e0b', 'momo<br>開始'],
+    [14, '#d97706', 'momo截止<br>酷澎請款'],
+    [31, '#3b82f6',  '寶雅<br>折讓單'],
+  ];
+  milestones.forEach(function(m) {
+    var d = m[0], color = m[1], label = m[2];
+    var el = document.createElement('div');
+    el.style.cssText =
+      'position:absolute;top:0;left:' + pct(d) + ';transform:translateX(-50%);' +
+      'display:flex;flex-direction:column;align-items:center;z-index:1;';
+    el.innerHTML =
+      '<div style="width:10px;height:10px;border-radius:50%;background:' + color + ';' +
+        'border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.15);margin-bottom:3px;"></div>' +
+      '<div style="font-size:9px;font-weight:700;color:' + color + ';text-align:center;line-height:1.3;">' + label + '</div>' +
+      '<div style="position:absolute;top:38px;font-size:9px;color:#9ca3af;font-weight:500;">' + d + '日</div>';
+    bar.appendChild(el);
+  });
+})();
+</script>
+</body>
+</html>
