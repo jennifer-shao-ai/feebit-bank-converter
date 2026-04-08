@@ -259,13 +259,23 @@
 /* ── Two-column group layout ── */
 .groups-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 14px;
-  align-items: start;
+  align-items: stretch;
 }
-.deadline-group { margin-bottom: 0; }
+.deadline-group {
+  margin-bottom: 0;
+  display: flex;
+  flex-direction: column;
+}
+.deadline-group .dg-grid-wrap {
+  flex: 1;
+}
 
-@media (max-width: 800px) {
+@media (max-width: 900px) {
+  .groups-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 600px) {
   .groups-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 600px) {
@@ -319,7 +329,7 @@
     <div class="sidebar-label">系統</div>
     <a class="nav-item" href="tools.html"><span class="icon">🔧</span> 使用工具</a>
   </div>
-  <div class="sidebar-footer">v1.2 · Feebit © 2026</div>
+  <div class="sidebar-footer">v1.3 · Feebit © 2026</div>
 </div>
 <div id="sidebar-overlay" onclick="closeSidebar()"></div>
 
@@ -330,7 +340,7 @@
       <button class="btn-hamburger" onclick="openSidebar()">☰</button>
       <span class="topbar-title">例行帳務作業</span>
       <span class="topbar-badge">財務工具</span>
-      <span style="font-size:11px;color:var(--gray-400);margin-left:4px">v1.2</span>
+      <span style="font-size:11px;color:var(--gray-400);margin-left:4px">v1.3</span>
     </div>
     <button class="btn-share" onclick="copyShare(this)" title="複製分享連結">🔗 分享</button>
   </div>
