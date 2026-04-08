@@ -24,9 +24,24 @@ serve(async (req) => {
 
     const html = await response.text()
 
-    // Extract title
+    // Extract title (og:title preferred over <title>)
+    const ogTitleMatch = html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i)
+      || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:title["']/i)
     const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/is)
-    const title = titleMatch ? titleMatch[1].replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').trim() : url
+    const rawTitle = ogTitleMatch ? ogTitleMatch[1] : (titleMatch ? titleMatch[1] : url)
+    const title = rawTitle.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#[0-9]+;/g, '').trim()
+
+    // Extract og:image (product image — set by the site, most reliable for e-commerce)
+    const ogImageMatch = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i)
+      || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i)
+    const image = ogImageMatch ? ogImageMatch[1].trim() : ''
+
+    // Extract og:description
+    const ogDescMatch = html.match(/<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']+)["']/i)
+      || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:description["']/i)
+      || html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i)
+      || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']description["']/i)
+    const description = ogDescMatch ? ogDescMatch[1].trim() : ''
 
     // Extract image URLs before stripping tags
     const images: string[] = []
@@ -68,7 +83,7 @@ serve(async (req) => {
       content = content.slice(0, 8000) + '\n\n[內容已截斷...]'
     }
 
-    return new Response(JSON.stringify({ title, content, images }), {
+    return new Response(JSON.stringify({ title, content, image, description }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (err) {
