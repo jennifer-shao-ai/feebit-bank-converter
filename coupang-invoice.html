@@ -243,7 +243,7 @@
     <!-- Rule Notice -->
     <div class="rule-card">
       <strong>🔧 處理規則說明</strong>
-      上傳 Excel 檔（.xlsx / .xls），工具會掃描所有工作表中的每個文字儲存格，將<strong>特殊符號與標點符號</strong>（如 ®、©、★、！、「」等）全數取代為空格，數字與英數字內容保留原樣。處理完成後提供下載，原始檔案不受影響。
+      上傳 Excel 檔（.xlsx / .xls），工具會自動找到<strong>「產品名稱」欄位</strong>，將其中所有非英文字母、非數字的內容（包含 + - * / % &amp; . _ () 及中文、韓文等）全數取代為空格，其他欄位保留原樣。處理完成後提供下載，原始檔案不受影響。
     </div>
 
     <!-- Upload Zone -->
@@ -412,14 +412,14 @@ function loadFile(file) {
 }
 
 // ── Clean Function ─────────────────────────────────────────────
-// Keep: Unicode letters (\p{L}), digits (\p{N}), whitespace (\s)
-// Replace everything else (punctuation, symbols, etc.) with a single space
+// Keep: English letters (a-zA-Z) and digits (0-9) only
+// Replace everything else with a single space
 function cleanText(str) {
   if (typeof str !== 'string') return str;
-  // Replace special symbols and punctuation with space
-  let result = str.replace(/[^\p{L}\p{N}\s]/gu, ' ');
-  // Collapse multiple spaces into one
-  result = result.replace(/ {2,}/g, ' ');
+  // Replace anything that is not English letters, digits, or Chinese characters with space
+  let result = str.replace(/[^a-zA-Z0-9\p{Script=Han}]/gu, ' ');
+  // Collapse multiple spaces into one and trim
+  result = result.replace(/ {2,}/g, ' ').trim();
   return result;
 }
 
@@ -450,6 +450,20 @@ function processFile() {
         // Clone sheet by converting to AOA and back
         const newSheet = {};
 
+        // Find the column index of "產品名稱" header (search first 5 rows)
+        let productNameCol = -1;
+        const sheetRange = XLSX.utils.decode_range(sheet['!ref'] || 'A1:A1');
+        outer: for (let r = sheetRange.s.r; r <= Math.min(sheetRange.s.r + 4, sheetRange.e.r); r++) {
+          for (let c = sheetRange.s.c; c <= sheetRange.e.c; c++) {
+            const addr = XLSX.utils.encode_cell({r, c});
+            const hCell = sheet[addr];
+            if (hCell && hCell.v && String(hCell.v).includes('產品名稱')) {
+              productNameCol = c;
+              break outer;
+            }
+          }
+        }
+
         Object.keys(sheet).forEach(key => {
           if (key.startsWith('!')) {
             newSheet[key] = sheet[key];
@@ -458,7 +472,10 @@ function processFile() {
           const cell = sheet[key];
           if (!cell) { newSheet[key] = cell; return; }
 
-          if (cell.t === 's' && typeof cell.v === 'string') {
+          // Only clean cells in the "產品名稱" column
+          const decoded = XLSX.utils.decode_cell(key);
+          if (productNameCol >= 0 && decoded.c === productNameCol &&
+              cell.t === 's' && typeof cell.v === 'string') {
             const cleaned = cleanText(cell.v);
             if (cleaned !== cell.v) totalReplaced++;
             newSheet[key] = Object.assign({}, cell, {
