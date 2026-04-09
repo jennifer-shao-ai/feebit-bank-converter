@@ -241,6 +241,25 @@
 .collab-badge.offline { background:#fef3c7; color:#92400e; }
 .collab-dot { width:6px; height:6px; border-radius:50%; background:currentColor; }
 
+/* Coupon cards */
+.coupon-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:14px; }
+.coupon-card { background:white; border-radius:var(--radius); padding:14px; box-shadow:0 1px 3px rgba(0,0,0,0.08); position:relative; }
+.coupon-title { font-weight:600; font-size:14px; margin-bottom:6px; }
+.coupon-notes { font-size:12px; color:var(--gray-600); margin-bottom:8px; line-height:1.5; white-space:pre-wrap; }
+.coupon-expiry { font-size:11px; color:var(--danger); font-weight:500; margin-bottom:8px; }
+.coupon-imgs { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; }
+.coupon-imgs img { width:100%; border-radius:6px; object-fit:contain; cursor:pointer; max-height:200px; }
+.coupon-actions { display:flex; gap:5px; margin-top:8px; }
+.coupon-actions .btn { font-size:11px; padding:3px 8px; flex:1; }
+/* coupon multi-upload */
+.coupon-upload-area { width:100%; min-height:80px; border:2px dashed var(--gray-200); border-radius:8px; padding:10px; display:flex; flex-wrap:wrap; gap:6px; align-items:center; cursor:pointer; position:relative; background:var(--gray-50); transition:border-color 0.15s; }
+.coupon-upload-area:hover { border-color:var(--primary); }
+.coupon-upload-area .ph-label { font-size:13px; color:var(--gray-400); }
+.coupon-upload-area input[type=file] { position:absolute; inset:0; opacity:0; cursor:pointer; }
+.coupon-thumb { width:80px; height:80px; object-fit:cover; border-radius:6px; }
+.coupon-thumb-wrap { position:relative; }
+.coupon-thumb-del { position:absolute; top:-4px; right:-4px; background:var(--danger); color:white; border:none; border-radius:50%; width:18px; height:18px; font-size:11px; cursor:pointer; display:flex; align-items:center; justify-content:center; line-height:1; }
+
 /* Member chips */
 .member-list { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
 .member-chip { display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:20px; background:var(--primary-light); color:var(--primary-dark); font-size:12px; font-weight:500; }
@@ -400,8 +419,9 @@
       <div class="tp-tab active" onclick="switchTab('itinerary',this)">🗺 行程</div>
       <div class="tp-tab" onclick="switchTab('shopping',this)">🛍 待買清單</div>
       <div class="tp-tab" onclick="switchTab('expense',this)">💴 分帳</div>
-      <div class="tp-tab" onclick="switchTab('friends',this)">👥 朋友清單</div>
       <div class="tp-tab" onclick="switchTab('checklist',this)">🎒 行前準備</div>
+      <div class="tp-tab" onclick="switchTab('documents',this)">📄 文件保險箱</div>
+      <div class="tp-tab" onclick="switchTab('coupons',this)">🎫 優惠券</div>
     </div>
 
     <!-- 行程 -->
@@ -441,19 +461,6 @@
       <div id="settle-section"></div>
     </div>
 
-    <!-- 朋友清單 -->
-    <div id="tab-friends" class="tp-tab-content">
-      <div class="section-header">
-        <h3>朋友待買清單</h3>
-        <button class="btn btn-primary add-btn" onclick="showAddFriendModal()">+ 新增朋友清單</button>
-      </div>
-      <div style="margin-bottom:16px">
-        <button class="btn btn-outline" onclick="shareMyList()" style="font-size:13px">📤 分享我的待買清單</button>
-        <span style="font-size:12px;color:var(--gray-400);margin-left:10px">朋友的商品也會顯示在「待買清單」分頁</span>
-      </div>
-      <div id="friends-container"></div>
-    </div>
-
     <!-- 行前準備 -->
     <div id="tab-checklist" class="tp-tab-content">
       <div class="section-header">
@@ -465,13 +472,26 @@
         <input type="text" id="check-new-input" placeholder="新增項目…" onkeydown="if(event.key==='Enter')addChecklistItem()">
         <button class="btn btn-primary" onclick="addChecklistItem()">+ 新增</button>
       </div>
+    </div>
 
-      <div class="section-header" style="margin-top:28px">
+    <!-- 文件保險箱 -->
+    <div id="tab-documents" class="tp-tab-content">
+      <div class="section-header">
         <h3>📄 文件保險箱</h3>
         <button class="btn btn-primary add-btn" onclick="showAddDocModal()">+ 新增文件</button>
       </div>
       <p style="font-size:12px;color:var(--gray-400);margin-bottom:14px">護照影本、訂房確認、保險單等重要資訊存放於此</p>
       <div id="documents-container"></div>
+    </div>
+
+    <!-- 優惠券 -->
+    <div id="tab-coupons" class="tp-tab-content">
+      <div class="section-header">
+        <h3>🎫 優惠券</h3>
+        <button class="btn btn-primary add-btn" onclick="showAddCouponModal()">+ 新增優惠券</button>
+      </div>
+      <p style="font-size:12px;color:var(--gray-400);margin-bottom:14px">貼上或拍照儲存網路優惠券資訊</p>
+      <div id="coupons-container"></div>
     </div>
   </div>
 </div>
@@ -582,8 +602,8 @@ const TRANSIT_MODES = [
   { key:'custom', icon:'✏️', label:'自訂'  },
 ];
 
-let S = { trips:[], currentId:null, friends:[], rates:{} };
-let _ownerFilter = null; // null=全部, 'self'=我的, or friend name
+let S = { trips:[], currentId:null, rates:{} };
+let _ownerFilter = null;
 let _catFilter = null;
 let _locFilter = new Set();
 
@@ -600,7 +620,6 @@ function currSym(c) { return {JPY:'¥',TWD:'NT$',KRW:'₩',USD:'$',EUR:'€',HKD
 function load() {
   try { const d = localStorage.getItem(STORAGE_KEY); if(d) S = JSON.parse(d); } catch(e){}
   if (!S.rates) S.rates = {};
-  if (!S.friends) S.friends = [];
   if (!S.trips) S.trips = [];
 }
 function save() {
@@ -640,13 +659,8 @@ function init() {
         save();
         showImportBanner(data.trip.name);
       } else if (data.type === 'list') {
-        const already = S.friends.find(f => f._shareId === data._shareId);
-        if (!already && data._shareId) {
-          S.friends.push({ name: data.name || '旅伴', listData: data.listData || [], _shareId: data._shareId });
-          save();
-        }
+        // 分享清單連結已不再支援（朋友清單功能已移除）
         if (!S.currentId && S.trips.length > 0) S.currentId = S.trips[0].id;
-        setTimeout(() => switchTab('friends', document.querySelectorAll('.tp-tab')[3]), 100);
       }
     } catch(e) { load(); }
     history.replaceState(null, '', location.pathname + '?share');
@@ -673,7 +687,7 @@ function showImportBanner(tripName) {
 }
 
 function newTripObj(name, dest, start, end) {
-  const t = { id:uid(), name, destination:dest, startDate:start, endDate:end, days:[], shoppingList:[], expenses:[], members:[], collabRoomId:null, paidOff:[], checklist:[], documents:[], locations:[] };
+  const t = { id:uid(), name, destination:dest, startDate:start, endDate:end, days:[], shoppingList:[], expenses:[], members:[], collabRoomId:null, paidOff:[], checklist:[], documents:[], locations:[], coupons:[] };
   if (start && end) {
     let d = new Date(start), e = new Date(end);
     while (d <= e) { t.days.push({ id:uid(), date:d.toISOString().slice(0,10), spots:[] }); d.setDate(d.getDate()+1); }
@@ -690,9 +704,9 @@ function renderAll() {
   renderMembersBar();
   renderShopping();
   renderExpenses();
-  renderFriends();
   renderChecklist();
   renderDocuments();
+  renderCoupons();
 }
 
 // ── MEMBERS ────────────────────────────────────
@@ -988,18 +1002,18 @@ function clearTransit() {
 // ── SHOPPING ───────────────────────────────────
 function getAllShopItems() {
   const t = trip(); if (!t) return [];
-  const own = (t.shoppingList||[]).map(item => ({ ...item, _owner: null }));
-  const friends = S.friends.flatMap((f, fi) =>
-    (f.listData||[]).map(item => ({ ...item, _owner: f.name, _ownerColor: FRIEND_COLORS[fi % FRIEND_COLORS.length], _friendIdx: fi }))
-  );
-  return [...own, ...friends];
+  const members = getMembers();
+  return (t.shoppingList||[]).map(item => ({
+    ...item,
+    _owner: item.creator || null,
+    _ownerColor: item.creator ? FRIEND_COLORS[members.indexOf(item.creator) % FRIEND_COLORS.length] : null
+  }));
 }
 
 function getLocationsAll() {
   const t = trip(); if (!t) return [];
   const locs = new Set(t.locations||[]);
   (t.shoppingList||[]).forEach(i => i.whereToBuy && locs.add(i.whereToBuy));
-  S.friends.forEach(f => (f.listData||[]).forEach(i => i.whereToBuy && locs.add(i.whereToBuy)));
   return [...locs];
 }
 
@@ -1030,14 +1044,14 @@ function updateRate(currency, val) {
 function renderOwnerFilter() {
   const el = document.getElementById('owner-filter');
   if (!el) return;
-  if (S.friends.length === 0) { el.innerHTML=''; return; }
+  const members = getMembers();
+  if (members.length === 0) { el.innerHTML=''; return; }
   const opts = [
     { key: null, label: '全部' },
-    { key: 'self', label: '我的' },
-    ...S.friends.map((f, fi) => ({ key: f.name, label: f.name, color: FRIEND_COLORS[fi % FRIEND_COLORS.length] }))
+    ...members.map((m, mi) => ({ key: m, label: m, color: FRIEND_COLORS[mi % FRIEND_COLORS.length] }))
   ];
   el.innerHTML = `<div class="owner-filter-bar">
-    <span style="font-size:12px;color:var(--gray-400);flex-shrink:0">誰的：</span>
+    <span style="font-size:12px;color:var(--gray-400);flex-shrink:0">建立人：</span>
     ${opts.map(o => {
       const isActive = _ownerFilter === o.key;
       const style = isActive
@@ -1089,8 +1103,7 @@ function renderShopping() {
   const grid = document.getElementById('shop-grid');
   let items = getAllShopItems();
   if (_ownerFilter !== null) {
-    if (_ownerFilter === 'self') items = items.filter(i => i._owner === null);
-    else items = items.filter(i => i._owner === _ownerFilter);
+    items = items.filter(i => i._owner === _ownerFilter);
   }
   if (_catFilter !== null) items = items.filter(i => i.category === _catFilter);
   if (_locFilter.size > 0) items = items.filter(i => _locFilter.has(i.whereToBuy||''));
@@ -1111,8 +1124,7 @@ function renderShopping() {
 
 function renderShopCard(item, origIdx) {
   const photo = item.photo ? `<img src="${item.photo}">` : '🛍';
-  const isFriend = item._owner !== null;
-  const ownerBadge = isFriend
+  const ownerBadge = item._owner
     ? `<div class="shop-owner-badge" style="background:${item._ownerColor||'#f97316'}">${esc(item._owner)}</div>`
     : '';
   const catBadge = item.category ? `<span class="shop-cat">${esc(item.category)}</span>` : '';
@@ -1123,14 +1135,12 @@ function renderShopCard(item, origIdx) {
     ? `<div class="shop-price">${currSym(cur)} ${Number(item.price).toLocaleString()}</div>
        ${priceTWD ? `<div class="shop-twd">≈ ${fmtTWD(priceTWD)}</div>` : ''}`
     : '';
-  const actions = !isFriend ? `<div class="shop-actions">
+  const actions = `<div class="shop-actions">
     <button class="btn btn-outline" onclick="showEditShopItem(${origIdx})">編輯</button>
     <button class="btn btn-outline" style="color:var(--danger)" onclick="deleteShopItem(${origIdx})">刪除</button>
-  </div>` : `<div style="font-size:11px;color:var(--gray-400);margin-top:6px">唯讀</div>`;
-  const checkBtn = !isFriend
-    ? `<div class="shop-check ${item.done?'checked':''}" onclick="toggleShop(${origIdx})">${item.done?'✓':''}</div>`
-    : (item.done ? `<div style="position:absolute;top:10px;right:10px;color:var(--success);font-size:13px">✓</div>` : '');
-  return `<div class="shop-card ${item.done?'done':''} ${isFriend?'shop-card-friend':''}" ${isFriend?`style="border-top:3px solid ${item._ownerColor||'#f97316'}"`:''}">
+  </div>`;
+  const checkBtn = `<div class="shop-check ${item.done?'checked':''}" onclick="toggleShop(${origIdx})">${item.done?'✓':''}</div>`;
+  return `<div class="shop-card ${item.done?'done':''}">
     <div class="shop-photo">${photo}</div>
     ${ownerBadge}
     <div class="shop-name">${esc(item.name||'未命名')}</div>
@@ -1368,45 +1378,6 @@ function viewReceipt(i) {
   <div class="modal-actions" style="margin-top:16px"><button class="btn btn-outline" onclick="closeModal()">關閉</button></div>`);
 }
 
-// ── FRIENDS ────────────────────────────────────
-function renderFriends() {
-  const cont = document.getElementById('friends-container');
-  if (!S.friends||S.friends.length===0) {
-    cont.innerHTML='<div class="empty-state"><div class="icon">👥</div><p>貼入朋友的分享連結，查看他們的待買清單（也會顯示在待買清單分頁）</p></div>'; return;
-  }
-  cont.innerHTML = S.friends.map((f,fi)=>{
-    const color = FRIEND_COLORS[fi % FRIEND_COLORS.length];
-    const items = f.listData||[];
-    const cards = items.length===0
-      ? '<p style="color:var(--gray-400);font-size:13px">清單為空</p>'
-      : `<div class="shop-grid">${items.map(item=>renderFriendCard(item, color)).join('')}</div>`;
-    return `<div class="friend-section">
-      <div class="friend-section-header">
-        <span class="friend-section-name" style="color:${color}">● ${esc(f.name)}</span>
-        <span class="readonly-badge">唯讀</span>
-        <button class="btn btn-outline" style="font-size:11px;padding:3px 8px;color:var(--danger);margin-left:auto" onclick="removeFriend(${fi})">移除</button>
-      </div>
-      ${cards}
-    </div>`;
-  }).join('');
-}
-
-function renderFriendCard(item, color) {
-  const photo = item.photo ? `<img src="${item.photo}">` : '🛍';
-  return `<div class="shop-card ${item.done?'done':''}" style="border-top:3px solid ${color}">
-    <div class="shop-photo">${photo}</div>
-    <div class="shop-name">${esc(item.name||'未命名')}</div>
-    ${item.whereToBuy?`<span class="shop-where">📍 ${esc(item.whereToBuy)}</span>`:''}
-    ${item.price?`<div class="shop-price">${esc(item.currency||'')} ${Number(item.price).toLocaleString()}</div>`:''}
-    ${item.notes?`<div class="shop-notes">${esc(item.notes)}</div>`:''}
-    ${item.done?'<div style="color:var(--success);font-size:12px;margin-top:6px;font-weight:500">✅ 已買</div>':''}
-  </div>`;
-}
-function removeFriend(fi) {
-  if (!confirm('移除此朋友的清單？')) return;
-  S.friends.splice(fi,1); save(); renderFriends(); renderShopping();
-}
-
 // ── CHECKLIST ──────────────────────────────────
 function ensureChecklist() {
   const t = trip(); if (!t) return;
@@ -1511,7 +1482,7 @@ function openDocModal(doc) {
     <textarea id="d-text" placeholder="護照號碼、訂單確認碼、飯店電話…">${esc(doc.text||'')}</textarea>
   </div>
   <div class="form-group"><label>文件圖片（選填）</label>
-    <div class="photo-upload-area" id="docPhotoArea" onclick="document.getElementById('docPhotoFile').click()" style="aspect-ratio:16/9">
+    <div class="photo-upload-area" id="docPhotoArea" style="aspect-ratio:16/9">
       ${doc.photo?`<img src="${doc.photo}">`:'<div class="ph-label">📷 點擊上傳照片</div>'}
       <input type="file" id="docPhotoFile" accept="image/*" onchange="previewPhoto(this,'docPhotoArea')">
     </div>
@@ -1545,6 +1516,106 @@ function viewDocPhoto(i) {
   openModal(`<h2 style="margin-bottom:14px">${esc(doc.title)}</h2>
   <img src="${doc.photo}" style="width:100%;border-radius:8px">
   <div class="modal-actions" style="margin-top:14px"><button class="btn btn-outline" onclick="closeModal()">關閉</button></div>`);
+}
+
+// ── COUPONS ────────────────────────────────────
+function renderCoupons() {
+  const t = trip();
+  const el = document.getElementById('coupons-container');
+  if (!el) return;
+  if (!t) { el.innerHTML=''; return; }
+  const coupons = t.coupons || [];
+  if (coupons.length === 0) {
+    el.innerHTML='<div class="empty-state"><div class="icon">🎫</div><p>尚無優惠券</p></div>'; return;
+  }
+  el.innerHTML = `<div class="coupon-grid">${coupons.map((c,i)=>renderCouponCard(c,i)).join('')}</div>`;
+}
+
+function renderCouponCard(c, i) {
+  const imgs = (c.images||[]).map(src=>`<img src="${src}" class="coupon-imgs" style="width:100%;border-radius:6px;margin-bottom:6px;cursor:pointer;object-fit:contain;max-height:200px" onclick="viewCouponImg('${src}')">`).join('');
+  const expiry = c.expiry ? `<div class="coupon-expiry">⏰ 截止：${c.expiry}</div>` : '';
+  return `<div class="coupon-card">
+    <div class="coupon-title">${esc(c.title||'優惠券')}</div>
+    ${expiry}
+    ${c.notes?`<div class="coupon-notes">${esc(c.notes)}</div>`:''}
+    ${imgs}
+    <div class="coupon-actions">
+      <button class="btn btn-outline" onclick="showEditCouponModal(${i})">編輯</button>
+      <button class="btn btn-outline" style="color:var(--danger)" onclick="deleteCoupon(${i})">刪除</button>
+    </div>
+  </div>`;
+}
+
+function viewCouponImg(src) {
+  openModal(`<img src="${src}" style="width:100%;border-radius:8px">
+  <div class="modal-actions" style="margin-top:14px"><button class="btn btn-outline" onclick="closeModal()">關閉</button></div>`);
+}
+
+let _ci = null;
+let _couponImgs = [];
+function showAddCouponModal() { _ci=null; _couponImgs=[]; openCouponModal({}); }
+function showEditCouponModal(i) { _ci=i; _couponImgs=[...(trip().coupons[i].images||[])]; openCouponModal(trip().coupons[i]); }
+
+function openCouponModal(c) {
+  openModal(`<h2 style="margin-bottom:14px">${_ci!==null?'編輯優惠券':'新增優惠券'}</h2>
+  <div class="form-group"><label>優惠券名稱</label><input id="c-title" type="text" placeholder="例：全家 85折券" value="${esc(c.title||'')}"></div>
+  <div class="form-group"><label>截止日期（選填）</label><input id="c-expiry" type="date" value="${c.expiry||''}"></div>
+  <div class="form-group"><label>備注</label><textarea id="c-notes" placeholder="使用條件、適用商品…">${esc(c.notes||'')}</textarea></div>
+  <div class="form-group"><label>優惠券圖片（可多張）</label>
+    <div class="coupon-upload-area" id="couponUploadArea">
+      <span class="ph-label">📷 點擊或拖曳上傳圖片</span>
+      <input type="file" id="couponImgFile" accept="image/*" multiple onchange="addCouponImages(this)">
+    </div>
+    <div id="coupon-thumbs" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px"></div>
+  </div>
+  <div class="modal-actions">
+    <button class="btn btn-primary" onclick="saveCouponModal()">儲存</button>
+    <button class="btn btn-outline" onclick="closeModal()">取消</button>
+  </div>`);
+  renderCouponThumbs();
+}
+
+function addCouponImages(input) {
+  const files = Array.from(input.files);
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => { _couponImgs.push(e.target.result); renderCouponThumbs(); };
+    reader.readAsDataURL(file);
+  });
+  input.value = '';
+}
+
+function renderCouponThumbs() {
+  const el = document.getElementById('coupon-thumbs');
+  if (!el) return;
+  el.innerHTML = _couponImgs.map((src,i)=>`
+    <div class="coupon-thumb-wrap">
+      <img src="${src}" class="coupon-thumb">
+      <button class="coupon-thumb-del" onclick="removeCouponImg(${i})">×</button>
+    </div>`).join('');
+}
+
+function removeCouponImg(i) { _couponImgs.splice(i,1); renderCouponThumbs(); }
+
+function saveCouponModal() {
+  const t = trip(); if (!t) return;
+  const title = document.getElementById('c-title').value.trim();
+  if (!title) return alert('請輸入優惠券名稱');
+  if (!t.coupons) t.coupons=[];
+  const coupon = {
+    id: _ci!==null ? t.coupons[_ci].id : uid(),
+    title,
+    expiry: document.getElementById('c-expiry').value || null,
+    notes: document.getElementById('c-notes').value.trim(),
+    images: [..._couponImgs]
+  };
+  if (_ci!==null) t.coupons[_ci]=coupon; else t.coupons.push(coupon);
+  save(); closeModal(); renderCoupons();
+}
+
+function deleteCoupon(i) {
+  if (!confirm('確定刪除此優惠券？')) return;
+  trip().coupons.splice(i,1); save(); renderCoupons();
 }
 
 // ── TRIP MANAGEMENT ────────────────────────────
@@ -1635,15 +1706,6 @@ function shareTrip() {
   const url = location.origin + location.pathname + '?share#' + encode({ type:'trip', trip:t });
   showShareModal('📋 匯出行程連結', url, '朋友開啟後會匯入行程到自己的裝置，<strong>各自獨立編輯</strong>。');
 }
-function shareMyList() {
-  const t = trip(); if (!t) return alert('請先選擇旅行');
-  const name = prompt('輸入你的名字（朋友會看到）：', '') || '旅伴';
-  if (!name) return;
-  const shareId = uid();
-  const url = location.origin + location.pathname + '?share#' + encode({ type:'list', name, _shareId: shareId, listData: t.shoppingList||[] });
-  showShareModal('📤 分享待買清單', url, '朋友開啟後會自動加到「朋友清單」分頁（唯讀）。');
-}
-
 // ── MODALS ─────────────────────────────────────
 function openModal(html) {
   document.getElementById('modal-body').innerHTML = html;
@@ -1696,7 +1758,7 @@ function showSpotModal(di, si) {
   const mustBuyPills = (s.mustBuy||[]).map(m=>`<span class="tag-pill">${esc(m)}<span class="rm" onclick="removeTag(this)">×</span></span>`).join('');
   openModal(`<h2 style="margin-bottom:14px">${si!==null?'編輯景點':'新增景點'}</h2>
   <div class="form-group"><label>景點照片</label>
-    <div class="photo-upload-area" id="spotPhotoArea" onclick="document.getElementById('spotPhotoFile').click()" style="aspect-ratio:16/7">
+    <div class="photo-upload-area" id="spotPhotoArea" style="aspect-ratio:16/7">
       ${s.photo?`<img src="${s.photo}">`:'<div class="ph-label">📷 點擊上傳照片（選填）</div>'}
       <input type="file" id="spotPhotoFile" accept="image/*" onchange="previewPhoto(this,'spotPhotoArea')">
     </div>
@@ -1768,7 +1830,7 @@ function openShopModal(item) {
   const cats = ['', ...CAT_LABELS];
   openModal(`<h2 style="margin-bottom:14px">${_si!==null?'編輯商品':'新增待買商品'}</h2>
   <div class="form-group"><label>商品照片</label>
-    <div class="photo-upload-area" id="shopPhotoArea" onclick="document.getElementById('shopPhotoFile').click()">
+    <div class="photo-upload-area" id="shopPhotoArea">
       ${item.photo?`<img src="${item.photo}">`:'<div class="ph-label">📷<br>點擊上傳照片</div>'}
       <input type="file" id="shopPhotoFile" accept="image/*" onchange="previewPhoto(this,'shopPhotoArea')">
     </div>
@@ -1792,10 +1854,18 @@ function openShopModal(item) {
     </div>
     <div class="form-group" style="flex:0 0 110px"><label>價格</label><input id="m-iprice" type="number" placeholder="0" value="${item.price||''}"></div>
   </div>
-  <div class="form-group"><label>分類</label>
-    <select id="m-icat">
-      ${cats.map(c=>`<option value="${c}" ${(item.category||'')===c?'selected':''}>${c||'— 不設分類 —'}</option>`).join('')}
-    </select>
+  <div class="form-row">
+    <div class="form-group"><label>分類</label>
+      <select id="m-icat">
+        ${cats.map(c=>`<option value="${c}" ${(item.category||'')===c?'selected':''}>${c||'— 不設分類 —'}</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-group"><label>清單建立人</label>
+      <select id="m-icreator">
+        <option value="">— 不指定 —</option>
+        ${getMembers().map(m=>`<option value="${escAttr(m)}" ${(item.creator||'')===m?'selected':''}>${esc(m)}</option>`).join('')}
+      </select>
+    </div>
   </div>
   <div class="form-group"><label>備注</label><textarea id="m-inotes" placeholder="可退稅、限量、品項說明…">${esc(item.notes||'')}</textarea></div>
   <div class="modal-actions">
@@ -1807,10 +1877,15 @@ function openShopModal(item) {
 function previewPhoto(input, areaId) {
   const file = input.files[0]; if (!file) return;
   const reader = new FileReader();
-  reader.onload = e => {
+  reader.onload = ev => {
     const area = document.getElementById(areaId);
-    area._photo = e.target.result;
-    area.innerHTML = `<img src="${e.target.result}"><input type="file" accept="image/*" onchange="previewPhoto(this,'${areaId}')" style="position:absolute;inset:0;opacity:0;cursor:pointer">`;
+    area._photo = ev.target.result;
+    let img = area.querySelector('img');
+    if (!img) { img = document.createElement('img'); area.insertBefore(img, area.firstChild); }
+    img.src = ev.target.result;
+    const lbl = area.querySelector('.ph-label');
+    if (lbl) lbl.remove();
+    input.value = '';
   };
   reader.readAsDataURL(file);
 }
@@ -1835,6 +1910,7 @@ function saveShopModal() {
     currency: document.getElementById('m-icur').value || 'JPY',
     price: document.getElementById('m-iprice').value||null,
     category: document.getElementById('m-icat').value||null,
+    creator: document.getElementById('m-icreator').value||null,
     notes: document.getElementById('m-inotes').value.trim(),
     done: _si!==null ? t.shoppingList[_si].done : false
   };
@@ -1890,7 +1966,7 @@ function openExpenseModal(e) {
        </div>` : '';
   openModal(`<h2 style="margin-bottom:14px">${_ei!==null?'編輯費用':'新增費用'}</h2>
   <div class="form-group"><label>收據照片</label>
-    <div class="photo-upload-area" id="rcptPhotoArea" onclick="document.getElementById('rcptPhotoFile').click()" style="aspect-ratio:16/6">
+    <div class="photo-upload-area" id="rcptPhotoArea" style="aspect-ratio:16/6">
       ${e.receiptPhoto?`<img src="${e.receiptPhoto}">`:'<div class="ph-label">📷 點擊上傳收據照片</div>'}
       <input type="file" id="rcptPhotoFile" accept="image/*" onchange="previewPhoto(this,'rcptPhotoArea')">
     </div>
@@ -2020,32 +2096,6 @@ function saveExpenseModal() {
   if (!t.expenses) t.expenses=[];
   if (_ei!==null) t.expenses[_ei]=exp; else t.expenses.push(exp);
   save(); closeModal(); renderExpenses();
-}
-
-// Friend modal
-function showAddFriendModal() {
-  openModal(`<h2 style="margin-bottom:10px">新增朋友清單</h2>
-  <p style="font-size:13px;color:var(--gray-600);margin-bottom:14px">請朋友點擊「分享我的待買清單」，將連結傳給你，貼入下方</p>
-  <div class="form-group"><label>朋友的分享連結</label>
-    <textarea id="m-furl" placeholder="https://jennifer-shao-ai.github.io/feebit/travel-planner.html?share#…" style="min-height:80px"></textarea>
-  </div>
-  <div class="modal-actions">
-    <button class="btn btn-primary" onclick="saveFriendModal()">新增</button>
-    <button class="btn btn-outline" onclick="closeModal()">取消</button>
-  </div>`);
-}
-function saveFriendModal() {
-  const url = document.getElementById('m-furl').value.trim();
-  if (!url) return alert('請貼入分享連結');
-  try {
-    const hi = url.indexOf('#'); if (hi===-1) throw 0;
-    const data = JSON.parse(decodeURIComponent(escape(atob(url.slice(hi+1)))));
-    if (data.type!=='list') return alert('這是行程連結，不是清單連結。請朋友點「分享我的待買清單」');
-    if (!S.friends) S.friends=[];
-    S.friends.push({ name: data.name||'朋友', listData: data.listData||[], _shareId: data._shareId });
-    save(); closeModal(); renderFriends(); renderShopping();
-    switchTab('friends', document.querySelectorAll('.tp-tab')[3]);
-  } catch(e) { alert('連結格式錯誤，請確認是正確的分享連結'); }
 }
 
 // ── HELPERS ────────────────────────────────────
