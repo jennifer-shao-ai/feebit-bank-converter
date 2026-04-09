@@ -111,6 +111,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Microsoft
     <div class="nav-item" onclick="location.href='coupang-invoice.html'" id="nav-coupang">
       <span class="icon">🧾</span> 酷澎發票轉檔
     </div>
+    <div class="nav-item" onclick="location.href='coupang-reconcile.html'" id="nav-reconcile">
+      <span class="icon">🔍</span> 酷澎對帳
+    </div>
     <div class="nav-item soon" id="nav-price">
       <span class="icon">💰</span> 定價試算
       <span class="soon-tag">即將推出</span>
@@ -169,7 +172,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Microsoft
     </a>
   </div>
 
-  <div class="sidebar-footer">v1.3 · Feebit © 2026</div>
+  <div class="sidebar-footer">v1.4 · Feebit © 2026</div>
 </div>
 
 <!-- ── SIDEBAR OVERLAY ── -->
@@ -210,6 +213,12 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Microsoft
           <div class="hc-icon">🧾</div>
           <div class="hc-name">酷澎發票轉檔</div>
           <div class="hc-desc">上傳酷澎 Excel，自動清理 Sku Name 欄特殊符號，保留英文、數字、中文</div>
+          <div class="hc-tag">可使用</div>
+        </div>
+        <div class="home-card" onclick="location.href='coupang-reconcile.html'">
+          <div class="hc-icon">🔍</div>
+          <div class="hc-name">酷澎對帳</div>
+          <div class="hc-desc">上傳訂單與結款檔，跨月累積比對、品牌銷售排行、日期區間篩選</div>
           <div class="hc-tag">可使用</div>
         </div>
         <div class="home-card soon">
@@ -271,7 +280,6 @@ const PAGE_META = {
 };
 
 function navigate(page) {
-  // 切換頁面與側欄 active
   document.querySelectorAll('.tool-page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
@@ -280,16 +288,11 @@ function navigate(page) {
   const meta = PAGE_META[page] || { title: page, badge: '' };
   document.getElementById('topbar-title').textContent = meta.title;
   document.getElementById('topbar-badge').textContent = meta.badge;
-  // 更新 URL hash（不觸發頁面跳動）
   history.replaceState(null, '', page === 'home' ? location.pathname : '#' + page);
-  // 分享按鈕顯示控制
   document.getElementById('share-btn').style.display = page === 'home' ? 'none' : '';
-  // 回頂部
   window.scrollTo(0, 0);
-  // 手機版自動收合側邊欄
   if (window.innerWidth <= 768) closeSidebar();
 }
-// ── SHARE ────────────────────────────────────────────────────
 function shareLink() {
   const url = location.origin + location.pathname + location.hash;
   navigator.clipboard.writeText(url).then(() => {
@@ -299,8 +302,6 @@ function shareLink() {
     setTimeout(() => { btn.textContent = orig; }, 2000);
   });
 }
-
-// ── SIDEBAR TOGGLE ───────────────────────────────────────────
 function toggleSidebar() {
   document.getElementById('sidebar').classList.toggle('open');
   document.getElementById('sidebar-overlay').classList.toggle('active');
@@ -309,9 +310,6 @@ function closeSidebar() {
   document.getElementById('sidebar').classList.remove('open');
   document.getElementById('sidebar-overlay').classList.remove('active');
 }
-
-// ── INIT ─────────────────────────────────────────────────────
-// 首頁不需 hash routing（各工具為獨立頁面）
 </script>
 </body>
 </html>
