@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>酷澎對帳 · 飛比特營運工具箱</title>
+<title>酷澎商城對帳 · 飛比特營運工具箱</title>
 <link rel="icon" href="favicon.svg">
 <link rel="stylesheet" href="style.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
@@ -147,7 +147,7 @@ tr.matched.hidden-row { display: none; }
     <a class="nav-item" href="bank-converter.html"><span class="icon">🏦</span> 帳務轉換</a>
     <a class="nav-item" href="accounting-ops.html"><span class="icon">📅</span> 例行帳務</a>
     <a class="nav-item" href="coupang-invoice.html"><span class="icon">🧾</span> 酷澎發票轉檔</a>
-    <a class="nav-item active" href="coupang-reconcile.html"><span class="icon">🔍</span> 酷澎對帳</a>
+    <a class="nav-item active" href="coupang-reconcile.html"><span class="icon">🔍</span> 酷澎商城對帳</a>
     <div class="nav-item soon"><span class="icon">💰</span> 定價試算<span class="soon-tag">即將推出</span></div>
   </div>
   <div class="sidebar-section">
@@ -187,7 +187,7 @@ tr.matched.hidden-row { display: none; }
   <div class="topbar">
     <div style="display:flex;align-items:center;gap:10px">
       <button class="hamburger" onclick="toggleSidebar()">☰</button>
-      <span class="topbar-title">酷澎對帳</span>
+      <span class="topbar-title">酷澎商城對帳</span>
     </div>
     <span class="topbar-badge">v1.0</span>
   </div>
@@ -666,7 +666,7 @@ function exportExcel() {
   XLSX.utils.book_append_sheet(wb, ws3, '訂單總表');
 
   const ts = new Date().toISOString().slice(0, 10);
-  XLSX.writeFile(wb, `酷澎對帳_${ts}.xlsx`);
+  XLSX.writeFile(wb, `酷澎商城對帳_${ts}.xlsx`);
   toast('✅ Excel 已下載');
 }
 
@@ -709,3 +709,4 @@ updateDbStats();
 </script>
 </body>
 </html>
+
