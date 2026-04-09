@@ -36,7 +36,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Microsoft
 .nav-item.soon { opacity: 0.4; cursor: default; pointer-events: none; }
 .nav-item .icon { font-size: 15px; width: 20px; text-align: center; flex-shrink: 0; }
 .nav-item .soon-tag { margin-left: auto; font-size: 9px; background: rgba(255,255,255,0.15); padding: 1px 5px; border-radius: 3px; letter-spacing: 0.5px; }
-.sidebar-footer { margin-top: auto; padding: 16px; border-top: 1px solid rgba(255,255,255,0.08); color: rgba(255,255,255,0.25); font-size: 11px; position: sticky; bottom: 0; background: var(--sidebar-bg); }
+.sidebar-footer { margin-top: auto; padding: 16px; border-top: 1px solid rgba(255,255,255,0.08); color: rgba(255,255,255,0.25); font-size: 11px; flex-shrink: 0; background: var(--sidebar-bg); }
 
 /* ── STANDALONE (share mode) ── */
 .standalone #sidebar { display: none; }
