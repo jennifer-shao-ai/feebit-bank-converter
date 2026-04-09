@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>酷澎對帳 · 飛比特營運工具箱</title>
+<link rel="icon" href="favicon.svg">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+<style>
+/* ── 上傳區 ── */
+.upload-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+@media(max-width:600px){ .upload-grid{ grid-template-columns:1fr; } }
+.upload-zone {
+  border: 2px dashed var(--gray-300); border-radius: 12px; padding: 28px 16px;
+  text-align: center; cursor: pointer; transition: all 0.2s; background: #fff;
+}
+.upload-zone:hover, .upload-zone.drag-over { border-color: var(--primary); background: #eff6ff; }
+.upload-zone.has-file { border-color: var(--success); background: #f0fdf4; }
+.upload-icon { font-size: 32px; margin-bottom: 8px; }
+.upload-title { font-size: 13px; font-weight: 600; color: var(--gray-800); margin-bottom: 4px; }
+.upload-sub { font-size: 11px; color: var(--gray-400); }
+.upload-fn { font-size: 12px; font-weight: 600; color: var(--success); margin-top: 6px; }
+.upload-type { font-size: 10px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase;
+  color: var(--primary); background: var(--primary-light); padding: 2px 7px; border-radius: 4px; display: inline-block; margin-bottom: 4px; }
+input[type=file] { display: none; }
+
+/* ── 資料庫狀態 ── */
+.db-card {
+  background: #fff; border: 1px solid var(--gray-200); border-radius: 12px;
+  padding: 16px 20px; margin-bottom: 20px; display: flex; align-items: center;
+  gap: 24px; flex-wrap: wrap;
+}
+.db-stat { text-align: center; }
+.db-stat-num { font-size: 22px; font-weight: 700; color: var(--primary); }
+.db-stat-label { font-size: 11px; color: var(--gray-400); }
+.db-actions { margin-left: auto; display: flex; gap: 8px; }
+
+/* ── 篩選列 ── */
+.filter-row {
+  background: #fff; border: 1px solid var(--gray-200); border-radius: 12px;
+  padding: 14px 20px; margin-bottom: 20px;
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.filter-row label { font-size: 12px; font-weight: 600; color: var(--gray-600); }
+.filter-row input[type=date] {
+  border: 1px solid var(--gray-200); border-radius: 6px; padding: 6px 10px;
+  font-size: 13px; outline: none;
+}
+.filter-row input[type=date]:focus { border-color: var(--primary); }
+
+/* ── 按鈕 ── */
+.btn { padding: 8px 18px; border-radius: 8px; font-size: 13px; font-weight: 600;
+  cursor: pointer; border: none; transition: all .15s; display: inline-flex; align-items: center; gap: 6px; }
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-primary:hover { background: var(--primary-dark); }
+.btn-primary:disabled { background: var(--gray-300); cursor: not-allowed; }
+.btn-outline { background: #fff; color: var(--gray-600); border: 1px solid var(--gray-200); }
+.btn-outline:hover { border-color: var(--gray-400); color: var(--gray-800); }
+.btn-danger { background: #fff; color: var(--danger); border: 1px solid #fecaca; }
+.btn-danger:hover { background: #fef2f2; }
+.btn-success { background: var(--success); color: #fff; }
+.btn-success:hover { background: #15803d; }
+
+/* ── 統計卡 ── */
+.summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+@media(max-width:500px){ .summary-grid{ grid-template-columns:1fr 1fr; } }
+.stat-card { background: #fff; border-radius: 10px; padding: 14px 16px; text-align: center;
+  border: 2px solid transparent; }
+.stat-card.matched { border-color: #bbf7d0; }
+.stat-card.unmatched { border-color: #fde68a; }
+.stat-card.total { border-color: var(--gray-200); }
+.stat-num { font-size: 26px; font-weight: 700; }
+.stat-card.matched .stat-num { color: var(--success); }
+.stat-card.unmatched .stat-num { color: var(--warning); }
+.stat-card.total .stat-num { color: var(--gray-800); }
+.stat-label { font-size: 11px; color: var(--gray-400); margin-top: 2px; }
+
+/* ── 表格共用 ── */
+.table-wrap { background: #fff; border-radius: 12px; border: 1px solid var(--gray-200);
+  overflow: hidden; margin-bottom: 24px; }
+.table-header { padding: 14px 18px; border-bottom: 1px solid var(--gray-100);
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.table-title { font-size: 14px; font-weight: 700; }
+.table-sub { font-size: 11px; color: var(--gray-400); margin-top: 2px; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th { background: var(--gray-50); padding: 9px 12px; text-align: left;
+  font-weight: 600; color: var(--gray-600); border-bottom: 1px solid var(--gray-100);
+  white-space: nowrap; }
+td { padding: 9px 12px; border-bottom: 1px solid var(--gray-50);
+  color: var(--gray-800); }
+tr:last-child td { border-bottom: none; }
+tr.matched td { background: #f0fdf4; }
+tr.unmatched td { background: #fffbeb; }
+tr.matched.hidden-row { display: none; }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 10px;
+  font-size: 10px; font-weight: 700; }
+.badge-matched { background: #bbf7d0; color: #15803d; }
+.badge-unmatched { background: #fde68a; color: #92400e; }
+
+/* ── 品牌排行 ── */
+.brand-rank { display: inline-block; width: 22px; height: 22px; border-radius: 50%;
+  text-align: center; line-height: 22px; font-size: 11px; font-weight: 700; margin-right: 4px; }
+.rank-1 { background: #ffd700; color: #7a4f00; }
+.rank-2 { background: #c0c0c0; color: #3f3f3f; }
+.rank-3 { background: #cd7f32; color: #fff; }
+.rank-other { background: var(--gray-100); color: var(--gray-600); }
+
+/* ── 空狀態 ── */
+.empty-state { padding: 48px 24px; text-align: center; color: var(--gray-400); }
+.empty-state .empty-icon { font-size: 40px; margin-bottom: 10px; }
+.empty-state .empty-text { font-size: 13px; }
+
+/* ── 訊息 ── */
+.toast {
+  position: fixed; bottom: 24px; right: 24px; background: var(--gray-800); color: #fff;
+  padding: 12px 20px; border-radius: 10px; font-size: 13px; z-index: 999;
+  opacity: 0; transition: opacity .3s; pointer-events: none; max-width: 320px;
+}
+.toast.show { opacity: 1; }
+
+/* ── 進度 ── */
+.progress-bar { height: 4px; background: var(--gray-100); border-radius: 2px; overflow: hidden; margin-top: 6px; }
+.progress-fill { height: 100%; background: var(--primary); border-radius: 2px; transition: width .3s; }
+
+/* ── Section 標題 ── */
+.section-head { display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 12px; }
+.section-title { font-size: 15px; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<!-- ── SIDEBAR ── -->
+<div id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand">飛比特 Feebit</div>
+    <div class="sub">營運工具箱</div>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">總覽</div>
+    <div class="nav-item" onclick="location.href='index.html'"><span class="icon">🏠</span> 首頁</div>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">財務</div>
+    <a class="nav-item" href="bank-converter.html"><span class="icon">🏦</span> 帳務轉換</a>
+    <a class="nav-item" href="accounting-ops.html"><span class="icon">📅</span> 例行帳務</a>
+    <a class="nav-item" href="coupang-invoice.html"><span class="icon">🧾</span> 酷澎發票轉檔</a>
+    <a class="nav-item active" href="coupang-reconcile.html"><span class="icon">🔍</span> 酷澎對帳</a>
+    <div class="nav-item soon"><span class="icon">💰</span> 定價試算<span class="soon-tag">即將推出</span></div>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">行銷</div>
+    <div class="nav-item soon"><span class="icon">📢</span> 廣告文案<span class="soon-tag">即將推出</span></div>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">客服</div>
+    <div class="nav-item soon"><span class="icon">💬</span> 客服回覆<span class="soon-tag">即將推出</span></div>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">業務</div>
+    <div class="nav-item soon"><span class="icon">🤝</span> 廠商談判<span class="soon-tag">即將推出</span></div>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">庫存</div>
+    <a class="nav-item" href="stock-analysis.html"><span class="icon">📦</span> 庫存訂貨分析</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">研發</div>
+    <a class="nav-item" href="research-notes.html"><span class="icon">📚</span> 研發筆記</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">生活</div>
+    <a class="nav-item" href="travel-planner.html"><span class="icon">✈️</span> 旅行規劃</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">系統</div>
+    <a class="nav-item" href="tools.html"><span class="icon">🔧</span> 使用工具</a>
+  </div>
+  <div class="sidebar-footer">v1.0 · Feebit © 2026</div>
+</div>
+<div id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<!-- ── MAIN ── -->
+<div id="main">
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:10px">
+      <button class="hamburger" onclick="toggleSidebar()">☰</button>
+      <span class="topbar-title">酷澎對帳</span>
+    </div>
+    <span class="topbar-badge">v1.0</span>
+  </div>
+
+  <div class="page">
+
+    <!-- ── 資料庫狀態 ── -->
+    <div class="db-card">
+      <div class="db-stat">
+        <div class="db-stat-num" id="db-orders">0</div>
+        <div class="db-stat-label">累積訂單筆數</div>
+      </div>
+      <div class="db-stat">
+        <div class="db-stat-num" id="db-settlements">0</div>
+        <div class="db-stat-label">累積結款筆數</div>
+      </div>
+      <div class="db-stat" style="color:var(--gray-400);font-size:11px;text-align:left;max-width:200px">
+        資料儲存於瀏覽器，每月匯入新檔案後自動累積不重複
+      </div>
+      <div class="db-actions">
+        <button class="btn btn-outline" onclick="clearOrders()">清除訂單</button>
+        <button class="btn btn-danger" onclick="clearAll()">清除全部</button>
+      </div>
+    </div>
+
+    <!-- ── 上傳區 ── -->
+    <div class="upload-grid">
+      <!-- 訂單檔 -->
+      <div>
+        <div class="upload-zone" id="zone-order" onclick="document.getElementById('fi-order').click()"
+          ondragover="dragOver(event,'zone-order')" ondragleave="dragLeave('zone-order')" ondrop="dropFile(event,'order')">
+          <div class="upload-type">訂單檔</div>
+          <div class="upload-icon">📋</div>
+          <div class="upload-title">上傳訂單 CSV / Excel</div>
+          <div class="upload-sub">蝦皮後台匯出的訂單明細</div>
+          <div class="upload-fn" id="fn-order"></div>
+        </div>
+        <input type="file" id="fi-order" accept=".csv,.xlsx,.xls" onchange="handleFile(event,'order')">
+      </div>
+      <!-- 結款檔 -->
+      <div>
+        <div class="upload-zone" id="zone-settle" onclick="document.getElementById('fi-settle').click()"
+          ondragover="dragOver(event,'zone-settle')" ondragleave="dragLeave('zone-settle')" ondrop="dropFile(event,'settle')">
+          <div class="upload-type">結款檔</div>
+          <div class="upload-icon">💳</div>
+          <div class="upload-title">上傳結款 CSV / Excel</div>
+          <div class="upload-sub">MSF_PAYMENT_METHOD_DETAIL</div>
+          <div class="upload-fn" id="fn-settle"></div>
+        </div>
+        <input type="file" id="fi-settle" accept=".csv,.xlsx,.xls" onchange="handleFile(event,'settle')">
+      </div>
+    </div>
+
+    <!-- ── 日期篩選 + 執行 ── -->
+    <div class="filter-row">
+      <label>訂購日期篩選</label>
+      <input type="date" id="date-from" placeholder="開始日期">
+      <span style="color:var(--gray-400)">～</span>
+      <input type="date" id="date-to" placeholder="結束日期">
+      <button class="btn btn-outline" onclick="clearDates()">清除</button>
+      <button class="btn btn-primary" id="btn-run" onclick="runMatch()">🔍 執行比對</button>
+      <button class="btn btn-success" id="btn-export" onclick="exportExcel()" style="display:none">📥 匯出 Excel</button>
+    </div>
+
+    <!-- ── 統計 ── -->
+    <div class="summary-grid" id="summary-grid" style="display:none">
+      <div class="stat-card matched"><div class="stat-num" id="s-matched">0</div><div class="stat-label">已對帳</div></div>
+      <div class="stat-card unmatched"><div class="stat-num" id="s-unmatched">0</div><div class="stat-label">未對帳（待結款）</div></div>
+      <div class="stat-card total"><div class="stat-num" id="s-total">0</div><div class="stat-label">合計訂單</div></div>
+    </div>
+
+    <!-- ── 品牌銷售排行 ── -->
+    <div id="brand-section" style="display:none">
+      <div class="section-head">
+        <div class="section-title">品牌銷售額排行</div>
+        <div style="font-size:11px;color:var(--gray-400)">依選項價格 × 數量加總</div>
+      </div>
+      <div class="table-wrap">
+        <table id="brand-table">
+          <thead><tr>
+            <th>排行</th><th>品牌</th><th>銷售筆數</th>
+            <th>銷售額（元）</th><th>佔比</th>
+          </tr></thead>
+          <tbody id="brand-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── 對帳明細 ── -->
+    <div id="result-section" style="display:none">
+      <div class="section-head">
+        <div class="section-title">對帳明細</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn btn-outline" id="toggle-matched" onclick="toggleMatched()">隱藏已對帳</button>
+          <span style="font-size:11px;color:var(--gray-400)" id="result-count"></span>
+        </div>
+      </div>
+      <div class="table-wrap" style="overflow-x:auto">
+        <table id="result-table">
+          <thead><tr id="result-thead"></tr></thead>
+          <tbody id="result-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /page -->
+</div><!-- /main -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── 常數 ────────────────────────────────────────────────
+const LS_ORDERS      = 'feebit_coupang_orders';
+const LS_SETTLEMENTS = 'feebit_coupang_settlements';
+const ORDER_ID_COL   = '訂單編號';
+
+// ── 品牌規則 ─────────────────────────────────────────────
+const BRAND_PATTERNS = [
+  /^(KUMANO)/i, /^(rom&nd)/i, /^(Heimish)/i, /^(illiyoon)/i,
+  /^(SKIN1004)/i, /^(COSRX)/i, /^(innisfree)/i, /^(LANEIGE)/i,
+  /^(Sulwhasoo)/i, /^(Dr\.Jart\+?)/i, /^(日本KUMANO)/i,
+];
+function extractBrand(name) {
+  if (!name) return '其他';
+  for (const re of BRAND_PATTERNS) {
+    const m = name.match(re);
+    if (m) return m[1].replace(/^日本/, '').replace(/^(KUMANO).*$/, 'KUMANO');
+  }
+  const m2 = name.match(/^([\w&.]+)/);
+  return m2 ? m2[1] : (name.slice(0, 8) || '其他');
+}
+
+// ── localStorage 存取 ────────────────────────────────────
+function loadOrders()      { return JSON.parse(localStorage.getItem(LS_ORDERS) || '[]'); }
+function loadSettlements() { return JSON.parse(localStorage.getItem(LS_SETTLEMENTS) || '[]'); }
+function saveOrders(d)      { localStorage.setItem(LS_ORDERS, JSON.stringify(d)); }
+function saveSettlements(d) { localStorage.setItem(LS_SETTLEMENTS, JSON.stringify(d)); }
+
+// ── 資料庫狀態 ──────────────────────────────────────────
+function updateDbStats() {
+  document.getElementById('db-orders').textContent      = loadOrders().length.toLocaleString();
+  document.getElementById('db-settlements').textContent = loadSettlements().length.toLocaleString();
+}
+
+// ── 欄位偵測 ────────────────────────────────────────────
+function detectType(cols) {
+  const s = new Set(cols);
+  if (s.has('項目類別') || s.has('銷售確認日期') || s.has('履約確認日期')) return 'settle';
+  if (s.has('捆綁配送編號') || s.has('快遞公司') || s.has('物流通單編號')) return 'order';
+  return null;
+}
+
+// ── 拖拉事件 ────────────────────────────────────────────
+function dragOver(e, id) { e.preventDefault(); document.getElementById(id).classList.add('drag-over'); }
+function dragLeave(id)   { document.getElementById(id).classList.remove('drag-over'); }
+function dropFile(e, type) {
+  e.preventDefault();
+  const zoneId = type === 'order' ? 'zone-order' : 'zone-settle';
+  dragLeave(zoneId);
+  const file = e.dataTransfer.files[0];
+  if (file) processFile(file, type === 'order' ? 'order' : 'settle');
+}
+function handleFile(e, type) { if (e.target.files[0]) processFile(e.target.files[0], type); }
+
+// ── 處理上傳檔案 ─────────────────────────────────────────
+async function processFile(file, hintType) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  let rows = [];
+  try {
+    if (ext === 'csv') {
+      rows = await parseCSV(file);
+    } else {
+      rows = await parseExcel(file);
+    }
+  } catch(e) { toast('❌ 讀取失敗：' + e.message); return; }
+
+  if (!rows.length) { toast('⚠️ 檔案沒有資料'); return; }
+
+  const cols = Object.keys(rows[0]);
+  const detectedType = detectType(cols) || hintType;
+
+  if (!cols.includes(ORDER_ID_COL)) {
+    toast(`⚠️ 找不到「${ORDER_ID_COL}」欄位，請確認格式`); return;
+  }
+
+  const now = new Date().toISOString().slice(0, 10);
+  rows.forEach(r => { r._src = file.name; r._importDate = now; });
+
+  if (detectedType === 'order') {
+    const existing = loadOrders();
+    const combined = dedup([...existing, ...rows], [ORDER_ID_COL, '選項ID'].filter(c => cols.includes(c) || c === ORDER_ID_COL));
+    saveOrders(combined);
+    const added = combined.length - existing.length;
+    document.getElementById('fn-order').textContent = `✅ ${file.name}（+${Math.max(added,0)} 筆）`;
+    document.getElementById('zone-order').classList.add('has-file');
+    toast(`訂單：新增 ${Math.max(added,0)} 筆，累計 ${combined.length} 筆`);
+  } else if (detectedType === 'settle') {
+    const existing = loadSettlements();
+    const dedupcols = [ORDER_ID_COL];
+    if (cols.includes('項目類別')) dedupcols.push('項目類別');
+    if (cols.includes('廠商商品代號')) dedupcols.push('廠商商品代號');
+    const combined = dedup([...existing, ...rows], dedupcols);
+    saveSettlements(combined);
+    const added = combined.length - existing.length;
+    document.getElementById('fn-settle').textContent = `✅ ${file.name}（+${Math.max(added,0)} 筆）`;
+    document.getElementById('zone-settle').classList.add('has-file');
+    toast(`結款：新增 ${Math.max(added,0)} 筆，累計 ${combined.length} 筆`);
+  } else {
+    toast('⚠️ 無法識別檔案類型');
+    return;
+  }
+  updateDbStats();
+}
+
+// ── 解析 CSV（PapaParse）────────────────────────────────
+function parseCSV(file) {
+  return new Promise((resolve, reject) => {
+    Papa.parse(file, {
+      header: true, skipEmptyLines: true, encoding: 'UTF-8',
+      complete: r => resolve(r.data),
+      error: e => reject(e),
+    });
+  });
+}
+
+// ── 解析 Excel（SheetJS）────────────────────────────────
+function parseExcel(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const wb = XLSX.read(e.target.result, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        resolve(XLSX.utils.sheet_to_json(ws, { raw: false, defval: '' }));
+      } catch(err) { reject(err); }
+    };
+    reader.onerror = reject;
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+// ── 去重 ────────────────────────────────────────────────
+function dedup(rows, keys) {
+  const seen = new Set();
+  return rows.filter(r => {
+    const k = keys.map(c => String(r[c] ?? '')).join('|');
+    if (seen.has(k)) return false;
+    seen.add(k); return true;
+  });
+}
+
+// ── 比對執行 ────────────────────────────────────────────
+function runMatch() {
+  let orders = loadOrders();
+  const settlements = loadSettlements();
+
+  if (!orders.length) { toast('⚠️ 尚無訂單資料，請先上傳訂單檔'); return; }
+
+  // 日期篩選
+  const from = document.getElementById('date-from').value;
+  const to   = document.getElementById('date-to').value;
+  if (from || to) {
+    orders = orders.filter(o => {
+      const d = o['訂購日期'] ? o['訂購日期'].slice(0, 10) : '';
+      if (from && d < from) return false;
+      if (to   && d > to)   return false;
+      return true;
+    });
+  }
+
+  // 比對
+  const settledIds = new Set(settlements.map(s => String(s[ORDER_ID_COL] || '').trim()));
+  const dateCol = settlements[0] && settlements[0]['銷售確認日期'] ? '銷售確認日期' : '履約確認日期';
+  const amtCols = settlements[0] ? Object.keys(settlements[0]).filter(c => /信用卡|現金|其他/.test(c)) : [];
+
+  // build lookup maps
+  const dateMap = {}, amtMap = {};
+  settlements.filter(s => s['項目類別'] === 'VENDOR_ITEM').forEach(s => {
+    const id = String(s[ORDER_ID_COL] || '').trim();
+    if (!dateMap[id]) dateMap[id] = s[dateCol] || '';
+    const amt = amtCols.reduce((a, c) => a + (parseFloat(s[c]) || 0), 0);
+    amtMap[id] = (amtMap[id] || 0) + amt;
+  });
+
+  const annotated = orders.map(o => ({
+    ...o,
+    _status:  settledIds.has(String(o[ORDER_ID_COL] || '').trim()) ? 'matched' : 'unmatched',
+    _settleDate: dateMap[String(o[ORDER_ID_COL] || '').trim()] || '',
+    _settleAmt:  amtMap[String(o[ORDER_ID_COL] || '').trim()] || '',
+  }));
+
+  const matched   = annotated.filter(r => r._status === 'matched').length;
+  const unmatched = annotated.filter(r => r._status === 'unmatched').length;
+
+  // 更新統計
+  document.getElementById('s-matched').textContent   = matched;
+  document.getElementById('s-unmatched').textContent = unmatched;
+  document.getElementById('s-total').textContent     = annotated.length;
+  document.getElementById('summary-grid').style.display = 'grid';
+  document.getElementById('btn-export').style.display = '';
+
+  // 品牌排行
+  renderBrand(annotated);
+
+  // 對帳明細
+  renderResult(annotated);
+
+  // 儲存 annotated 供匯出用
+  window._lastResult = annotated;
+}
+
+// ── 品牌排行渲染 ─────────────────────────────────────────
+function renderBrand(orders) {
+  const nameCol = ['顯示產品名稱', '顯示商品名稱', '註冊商品名稱'].find(c => orders[0] && c in orders[0]);
+  const map = {};
+  orders.forEach(o => {
+    const brand = extractBrand(nameCol ? o[nameCol] : '');
+    const qty   = parseFloat(o['數量'] || 1) || 1;
+    const price = parseFloat(o['選項價格'] || o['銷售價格'] || 0) || 0;
+    if (!map[brand]) map[brand] = { count: 0, amount: 0 };
+    map[brand].count  += 1;
+    map[brand].amount += price * qty;
+  });
+  const total = Object.values(map).reduce((a, v) => a + v.amount, 0);
+  const sorted = Object.entries(map).sort((a, b) => b[1].amount - a[1].amount);
+
+  const tbody = document.getElementById('brand-body');
+  tbody.innerHTML = '';
+  sorted.forEach(([brand, v], i) => {
+    const rank = i + 1;
+    const rankClass = rank <= 3 ? `rank-${rank}` : 'rank-other';
+    const pct = total > 0 ? (v.amount / total * 100).toFixed(1) : '0.0';
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><span class="brand-rank ${rankClass}">${rank}</span></td>
+      <td><strong>${brand}</strong></td>
+      <td style="text-align:center">${v.count.toLocaleString()}</td>
+      <td style="text-align:right;font-weight:600">$${v.amount.toLocaleString()}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:6px">
+          <div class="progress-bar" style="flex:1"><div class="progress-fill" style="width:${pct}%"></div></div>
+          <span style="font-size:11px;color:var(--gray-600);min-width:36px">${pct}%</span>
+        </div>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById('brand-section').style.display = '';
+}
+
+// ── 對帳明細渲染 ─────────────────────────────────────────
+const SHOW_COLS = ['訂單編號','訂購日期','顯示產品名稱','顯示商品名稱','數量','選項價格','運費','訂購人姓名','快遞公司','實際發貨日期','配送完成日期'];
+let _showMatched = true;
+
+function renderResult(orders) {
+  // 排序：未對帳在上
+  const sorted = [...orders].sort((a, b) => {
+    if (a._status === b._status) return 0;
+    return a._status === 'unmatched' ? -1 : 1;
+  });
+
+  // 決定欄位
+  const available = orders[0] ? Object.keys(orders[0]).filter(c => !c.startsWith('_')) : [];
+  const cols = ['_status', '_settleDate', '_settleAmt', ...SHOW_COLS.filter(c => available.includes(c))];
+  const headers = ['對帳狀態', '結款確認日', '結款金額', ...SHOW_COLS.filter(c => available.includes(c))];
+
+  // 表頭
+  const thead = document.getElementById('result-thead');
+  thead.innerHTML = headers.map(h => `<th>${h}</th>`).join('');
+
+  const tbody = document.getElementById('result-body');
+  tbody.innerHTML = '';
+  sorted.forEach(row => {
+    const tr = document.createElement('tr');
+    tr.className = row._status === 'matched' ? 'matched' : 'unmatched';
+    if (row._status === 'matched') tr.classList.add('hidden-row');
+    tr.innerHTML = cols.map((c, i) => {
+      if (c === '_status') {
+        const cls = row._status === 'matched' ? 'badge-matched' : 'badge-unmatched';
+        const txt = row._status === 'matched' ? '已對帳' : '未對帳';
+        return `<td><span class="badge ${cls}">${txt}</span></td>`;
+      }
+      const val = String(row[c] ?? '');
+      return `<td>${escHtml(val)}</td>`;
+    }).join('');
+    tbody.appendChild(tr);
+  });
+
+  const mc = sorted.filter(r => r._status === 'matched').length;
+  const uc = sorted.filter(r => r._status === 'unmatched').length;
+  document.getElementById('result-count').textContent = `已對帳 ${mc} 筆（隱藏中）／ 未對帳 ${uc} 筆`;
+  document.getElementById('result-section').style.display = '';
+
+  // 預設隱藏已對帳
+  _showMatched = false;
+  applyMatchedVisibility();
+}
+
+function toggleMatched() {
+  _showMatched = !_showMatched;
+  applyMatchedVisibility();
+}
+function applyMatchedVisibility() {
+  document.querySelectorAll('#result-body tr.matched').forEach(tr => {
+    tr.classList.toggle('hidden-row', !_showMatched);
+  });
+  const btn = document.getElementById('toggle-matched');
+  btn.textContent = _showMatched ? '隱藏已對帳' : '顯示已對帳';
+}
+
+// ── 匯出 Excel（xlsx-js-style）──────────────────────────
+function exportExcel() {
+  const result = window._lastResult;
+  if (!result || !result.length) { toast('請先執行比對'); return; }
+
+  const wb = XLSX.utils.book_new();
+
+  // ── Sheet 1: 比對結果 ──
+  const sorted = [...result].sort((a, b) => a._status === 'unmatched' ? -1 : b._status === 'unmatched' ? 1 : 0);
+  const available = Object.keys(result[0]).filter(c => !c.startsWith('_'));
+  const cols = ['_status', '_settleDate', '_settleAmt', ...SHOW_COLS.filter(c => available.includes(c))];
+  const hdrs = ['對帳狀態', '結款確認日', '結款金額', ...SHOW_COLS.filter(c => available.includes(c))];
+
+  const headerStyle = { fill: { fgColor: { rgb: '2E4692' } }, font: { bold: true, color: { rgb: 'FFFFFF' } }, alignment: { horizontal: 'center' } };
+  const matchStyle   = { fill: { fgColor: { rgb: 'C6EFCE' } } };
+  const unmatchStyle = { fill: { fgColor: { rgb: 'FFEB9C' } } };
+
+  const wsData = [hdrs.map(h => ({ v: h, s: headerStyle }))];
+  sorted.forEach(row => {
+    const style = row._status === 'matched' ? matchStyle : unmatchStyle;
+    wsData.push(cols.map((c, i) => {
+      let v = c === '_status' ? (row._status === 'matched' ? '已對帳' : '未對帳') : (row[c] ?? '');
+      return { v: String(v), s: style };
+    }));
+  });
+  const ws1 = XLSX.utils.aoa_to_sheet(wsData);
+  ws1['!cols'] = hdrs.map(() => ({ wch: 16 }));
+  XLSX.utils.book_append_sheet(wb, ws1, '比對結果');
+
+  // ── Sheet 2: 品牌排行 ──
+  const nameCol = ['顯示產品名稱', '顯示商品名稱'].find(c => result[0] && c in result[0]);
+  const brandMap = {};
+  result.forEach(o => {
+    const brand = extractBrand(nameCol ? o[nameCol] : '');
+    const qty   = parseFloat(o['數量'] || 1) || 1;
+    const price = parseFloat(o['選項價格'] || o['銷售價格'] || 0) || 0;
+    if (!brandMap[brand]) brandMap[brand] = { count: 0, amount: 0 };
+    brandMap[brand].count++;
+    brandMap[brand].amount += price * qty;
+  });
+  const total = Object.values(brandMap).reduce((a, v) => a + v.amount, 0);
+  const brandSorted = Object.entries(brandMap).sort((a, b) => b[1].amount - a[1].amount);
+  const brandHdr = ['排行', '品牌', '銷售筆數', '銷售額（元）', '佔比(%)'];
+  const bStyle  = { fill: { fgColor: { rgb: '2E4692' } }, font: { bold: true, color: { rgb: 'FFFFFF' } }, alignment: { horizontal: 'center' } };
+  const topStyle = { fill: { fgColor: { rgb: 'DDEEFF' } }, font: { bold: true } };
+  const brandData = [brandHdr.map(h => ({ v: h, s: bStyle }))];
+  brandSorted.forEach(([brand, v], i) => {
+    const pct = total > 0 ? +((v.amount / total * 100).toFixed(1)) : 0;
+    const s = i < 3 ? topStyle : {};
+    brandData.push([
+      { v: i + 1, s }, { v: brand, s }, { v: v.count, s },
+      { v: v.amount, s }, { v: pct, s },
+    ]);
+  });
+  const ws2 = XLSX.utils.aoa_to_sheet(brandData);
+  ws2['!cols'] = [{ wch: 8 }, { wch: 20 }, { wch: 10 }, { wch: 14 }, { wch: 10 }];
+  XLSX.utils.book_append_sheet(wb, ws2, '品牌銷售排行');
+
+  // ── Sheet 3: 訂單總表 ──
+  const allOrders = loadOrders();
+  const orderKeys = allOrders[0] ? Object.keys(allOrders[0]).filter(c => !c.startsWith('_')) : [];
+  const ws3Data = [orderKeys.map(h => ({ v: h, s: { fill: { fgColor: { rgb: '2E4692' } }, font: { bold: true, color: { rgb: 'FFFFFF' } } } }))];
+  allOrders.forEach(o => ws3Data.push(orderKeys.map(c => ({ v: String(o[c] ?? '') }))));
+  const ws3 = XLSX.utils.aoa_to_sheet(ws3Data);
+  ws3['!cols'] = orderKeys.map(() => ({ wch: 14 }));
+  XLSX.utils.book_append_sheet(wb, ws3, '訂單總表');
+
+  const ts = new Date().toISOString().slice(0, 10);
+  XLSX.writeFile(wb, `酷澎對帳_${ts}.xlsx`);
+  toast('✅ Excel 已下載');
+}
+
+// ── 輔助函式 ────────────────────────────────────────────
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function clearDates() {
+  document.getElementById('date-from').value = '';
+  document.getElementById('date-to').value = '';
+}
+function clearOrders() {
+  if (!confirm('確定清除所有累積訂單資料？')) return;
+  localStorage.removeItem(LS_ORDERS);
+  updateDbStats(); toast('訂單資料已清除');
+}
+function clearAll() {
+  if (!confirm('確定清除所有訂單和結款資料？')) return;
+  localStorage.removeItem(LS_ORDERS);
+  localStorage.removeItem(LS_SETTLEMENTS);
+  updateDbStats(); toast('全部資料已清除');
+}
+function toast(msg, dur = 3000) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), dur);
+}
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebar-overlay').classList.toggle('active');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('active');
+}
+
+// ── 初始化 ───────────────────────────────────────────────
+updateDbStats();
+</script>
+</body>
+</html>
