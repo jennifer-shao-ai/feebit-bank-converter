@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>蝦皮撥款轉換 | Feebit</title>
+<link rel="icon" href="favicon.svg">
+<style>
+:root {
+  --primary: #2563eb; --primary-light: #dbeafe; --primary-dark: #1d4ed8;
+  --success: #16a34a; --warning: #d97706; --danger: #dc2626;
+  --gray-50: #f9fafb; --gray-100: #f3f4f6; --gray-200: #e5e7eb;
+  --gray-300: #d1d5db; --gray-400: #9ca3af; --gray-500: #6b7280;
+  --gray-600: #4b5563; --gray-700: #374151; --gray-800: #1f2937;
+  --sidebar-bg: #0f172a; --sidebar-w: 220px; --radius: 8px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Microsoft JhengHei', sans-serif; background: var(--gray-100); color: var(--gray-800); min-height: 100vh; display: flex; }
+
+/* ── SIDEBAR ── */
+#sidebar {
+  width: var(--sidebar-w); min-height: 100vh; background: var(--sidebar-bg);
+  display: flex; flex-direction: column; flex-shrink: 0; position: fixed;
+  top: 0; left: 0; bottom: 0; z-index: 100; overflow-y: auto;
+  scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.1) transparent;
+}
+.sidebar-logo { padding: 20px 16px 16px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+.sidebar-logo .brand { color: white; font-size: 16px; font-weight: 700; letter-spacing: 0.5px; }
+.sidebar-logo .sub { color: rgba(255,255,255,0.4); font-size: 11px; margin-top: 2px; }
+.sidebar-section { padding: 16px 8px 4px; }
+.sidebar-label { color: rgba(255,255,255,0.3); font-size: 10px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; padding: 0 8px; margin-bottom: 4px; }
+.nav-item {
+  display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 6px;
+  cursor: pointer; color: rgba(255,255,255,0.55); font-size: 13px; font-weight: 500;
+  transition: all 0.15s; margin-bottom: 2px; text-decoration: none;
+}
+.nav-item:hover { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.9); }
+.nav-item.active { background: var(--primary); color: white; }
+.nav-item.soon { opacity: 0.4; cursor: default; pointer-events: none; }
+.nav-item .icon { font-size: 15px; width: 20px; text-align: center; flex-shrink: 0; }
+.nav-item .soon-tag { margin-left: auto; font-size: 9px; background: rgba(255,255,255,0.15); padding: 1px 5px; border-radius: 3px; letter-spacing: 0.5px; }
+.sidebar-footer { margin-top: auto; padding: 16px; border-top: 1px solid rgba(255,255,255,0.08); color: rgba(255,255,255,0.25); font-size: 11px; position: sticky; bottom: 0; background: var(--sidebar-bg); }
+
+/* ── MAIN ── */
+#main { margin-left: var(--sidebar-w); flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
+.topbar { background: white; border-bottom: 1px solid var(--gray-200); padding: 0 24px; height: 52px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50; }
+.topbar-title { font-size: 15px; font-weight: 600; }
+.topbar-badge { background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; }
+.page { padding: 24px; flex: 1; max-width: 960px; }
+
+/* ── CARDS ── */
+.card { background: white; border-radius: var(--radius); padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 16px; }
+.card-title { font-size: 14px; font-weight: 600; margin-bottom: 14px; color: var(--gray-800); display: flex; align-items: center; gap: 8px; }
+
+/* ── FORM ── */
+.form-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 4px; }
+.form-group { display: flex; flex-direction: column; gap: 4px; }
+.form-group label { font-size: 12px; font-weight: 500; color: var(--gray-600); }
+.form-group input[type="text"], .form-group input[type="date"] {
+  border: 1px solid var(--gray-300); border-radius: 6px; padding: 7px 10px;
+  font-size: 13px; font-family: inherit; color: var(--gray-800); outline: none;
+  transition: border-color 0.15s;
+}
+.form-group input:focus { border-color: var(--primary); }
+.form-group input[type="text"] { min-width: 200px; }
+
+/* ── UPLOAD ZONE ── */
+#drop-zone {
+  border: 2px dashed var(--gray-300); border-radius: 10px; padding: 40px 24px;
+  text-align: center; cursor: pointer; transition: all 0.2s; background: var(--gray-50);
+}
+#drop-zone.drag-over { border-color: var(--primary); background: var(--primary-light); }
+#drop-zone.has-file { border-color: var(--success); background: #f0fdf4; border-style: solid; }
+#drop-zone .dz-icon { font-size: 36px; margin-bottom: 10px; }
+#drop-zone .dz-title { font-size: 14px; font-weight: 600; color: var(--gray-700); margin-bottom: 4px; }
+#drop-zone .dz-sub { font-size: 12px; color: var(--gray-500); }
+#file-input { display: none; }
+
+/* ── BUTTONS ── */
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; font-family: inherit; transition: all 0.15s; }
+.btn-primary { background: var(--primary); color: white; }
+.btn-primary:hover { background: var(--primary-dark); }
+.btn-success { background: var(--success); color: white; }
+.btn-success:hover { background: #15803d; }
+.btn-outline { background: white; color: var(--gray-700); border: 1px solid var(--gray-300); }
+.btn-outline:hover { background: var(--gray-50); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── STATUS ── */
+.status-bar { padding: 10px 14px; border-radius: 6px; font-size: 13px; margin-bottom: 12px; display: none; }
+.status-bar.success { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; display: block; }
+.status-bar.error { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; display: block; }
+.status-bar.info { background: var(--primary-light); color: var(--primary-dark); border: 1px solid #bfdbfe; display: block; }
+
+/* ── PREVIEW TABLE ── */
+.table-wrap { overflow-x: auto; margin-top: 4px; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th { background: var(--gray-50); color: var(--gray-600); font-weight: 600; padding: 8px 10px; text-align: left; border-bottom: 2px solid var(--gray-200); white-space: nowrap; }
+td { padding: 7px 10px; border-bottom: 1px solid var(--gray-100); white-space: nowrap; }
+tr:hover td { background: var(--gray-50); }
+.amt { font-weight: 600; color: var(--success); }
+.badge { display: inline-block; padding: 1px 6px; border-radius: 4px; font-size: 11px; font-weight: 500; }
+.badge-blue { background: var(--primary-light); color: var(--primary-dark); }
+
+/* ── SUMMARY ── */
+.summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.summary-card { background: var(--gray-50); border-radius: 8px; padding: 14px; border: 1px solid var(--gray-200); }
+.summary-card .s-label { font-size: 11px; color: var(--gray-500); margin-bottom: 4px; }
+.summary-card .s-value { font-size: 20px; font-weight: 700; color: var(--gray-800); }
+.summary-card .s-sub { font-size: 11px; color: var(--gray-500); margin-top: 2px; }
+
+/* ── HAMBURGER ── */
+.hamburger { display: none; background: none; border: none; cursor: pointer; padding: 6px; border-radius: 6px; color: var(--gray-800); font-size: 20px; line-height: 1; }
+#sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 99; }
+#sidebar-overlay.active { display: block; }
+
+/* ── MOBILE ── */
+@media (max-width: 768px) {
+  #sidebar { transform: translateX(-100%); transition: transform 0.25s ease; }
+  #sidebar.open { transform: translateX(0); }
+  #main { margin-left: 0; }
+  .hamburger { display: flex; align-items: center; justify-content: center; }
+  .page { padding: 16px; }
+  .topbar { padding: 0 16px; }
+  .nav-item.soon { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── SIDEBAR ── -->
+<div id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand">飛比特 Feebit</div>
+    <div class="sub">營運工具箱</div>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-label">總覽</div>
+    <a class="nav-item" href="index.html"><span class="icon">🏠</span> 首頁</a>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-label">財務</div>
+    <a class="nav-item" href="bank-converter.html"><span class="icon">🏦</span> 帳務轉換</a>
+    <a class="nav-item active" href="shopee-converter.html"><span class="icon">🛒</span> 蝦皮撥款轉換</a>
+    <a class="nav-item" href="accounting-ops.html"><span class="icon">📅</span> 例行帳務</a>
+    <a class="nav-item" href="coupang-invoice.html"><span class="icon">🧾</span> 酷澎發票轉檔</a>
+    <a class="nav-item" href="coupang-reconcile.html"><span class="icon">🔍</span> 酷澎商城對帳</a>
+    <div class="nav-item soon"><span class="icon">💰</span> 定價試算<span class="soon-tag">即將推出</span></div>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-label">行銷</div>
+    <div class="nav-item soon"><span class="icon">📢</span> 廣告文案<span class="soon-tag">即將推出</span></div>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-label">客服</div>
+    <div class="nav-item soon"><span class="icon">💬</span> 客服回覆<span class="soon-tag">即將推出</span></div>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-label">庫存</div>
+    <a class="nav-item" href="stock-analysis.html"><span class="icon">📦</span> 庫存訂貨分析</a>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-label">研發</div>
+    <a class="nav-item" href="research-notes.html"><span class="icon">📚</span> 研發筆記</a>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-label">生活</div>
+    <a class="nav-item" href="travel-planner.html"><span class="icon">✈️</span> 旅行規劃</a>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-label">系統</div>
+    <a class="nav-item" href="tools.html"><span class="icon">🔧</span> 使用工具</a>
+  </div>
+
+  <div class="sidebar-footer">v1.0 · 蝦皮撥款轉換</div>
+</div>
+
+<div id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<!-- ── MAIN ── -->
+<div id="main">
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:10px">
+      <button class="hamburger" onclick="toggleSidebar()">☰</button>
+      <span class="topbar-title">蝦皮撥款轉換</span>
+    </div>
+    <span class="topbar-badge">v1.0</span>
+  </div>
+
+  <div class="page">
+
+    <!-- 設定 -->
+    <div class="card">
+      <div class="card-title">⚙️ 轉換設定</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>自帳戶名稱（Ragic 來源欄位）</label>
+          <input type="text" id="cfg-source" value="蝦皮賣場(彰山5222)" placeholder="蝦皮賣場(彰山5222)">
+        </div>
+        <div class="form-group">
+          <label>批次日期（交易編號用）</label>
+          <input type="date" id="cfg-date">
+        </div>
+        <div class="form-group">
+          <label>主類別</label>
+          <input type="text" id="cfg-main-cat" value="賣場/通路費用">
+        </div>
+        <div class="form-group">
+          <label>子類別</label>
+          <input type="text" id="cfg-sub-cat" value="結帳蝦皮">
+        </div>
+      </div>
+    </div>
+
+    <!-- 上傳 -->
+    <div class="card">
+      <div class="card-title">📂 上傳蝦皮錢包明細</div>
+      <div id="drop-zone" onclick="document.getElementById('file-input').click()"
+           ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
+        <div class="dz-icon">📋</div>
+        <div class="dz-title" id="dz-title">點擊選擇或拖曳檔案</div>
+        <div class="dz-sub">支援蝦皮「結算報表」CSV（UTF-8）</div>
+      </div>
+      <input type="file" id="file-input" accept=".csv" onchange="handleFile(this.files[0])">
+    </div>
+
+    <!-- 狀態 -->
+    <div id="status" class="status-bar"></div>
+
+    <!-- 匯總 & 操作 -->
+    <div id="result-section" style="display:none">
+      <div class="summary-grid" id="summary-grid"></div>
+
+      <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+        <button class="btn btn-success" onclick="downloadCSV()">⬇️ 下載 Ragic CSV</button>
+        <button class="btn btn-outline" onclick="resetAll()">🔄 重新上傳</button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📋 預覽（前 20 筆）</div>
+        <div class="table-wrap">
+          <table id="preview-table">
+            <thead>
+              <tr>
+                <th>交易編號</th>
+                <th>交易日期</th>
+                <th>自帳戶</th>
+                <th>金額</th>
+                <th>主類別</th>
+                <th>子類別</th>
+                <th>描述</th>
+                <th>類型</th>
+              </tr>
+            </thead>
+            <tbody id="preview-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /page -->
+</div><!-- /main -->
+
+<script>
+// ── 側邊欄 ──────────────────────────────────
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebar-overlay').classList.toggle('active');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('active');
+}
+
+// ── 初始化 ──────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  const today = new Date();
+  document.getElementById('cfg-date').value = formatYMD(today);
+});
+
+// ── 日期格式工具 ──────────────────────────────
+function formatYMD(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+function formatBatchDate(dateStr) {
+  // "2026-04-11" → "20260411"
+  return dateStr.replace(/-/g, '');
+}
+function convertDateTime(dt) {
+  // Input: "2026-03-31 00:58:07"
+  // Returns: { date, timeShort, timeFull }
+  const [datePart, timePart] = dt.trim().split(' ');
+  const ragicDate = datePart.replace(/-/g, '/');
+  const [h, min, sec] = (timePart || '00:00:00').split(':');
+  return {
+    date: ragicDate,
+    timeShort: `${ragicDate} ${h}:${min}`,
+    timeFull: `${ragicDate} ${h}:${min}:${sec || '00'}`,
+  };
+}
+
+// ── CSV 解析 ─────────────────────────────────
+function parseCSVLine(line) {
+  const result = [];
+  let cur = '', inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"') {
+      if (inQ && line[i + 1] === '"') { cur += '"'; i++; }
+      else inQ = !inQ;
+    } else if (c === ',' && !inQ) {
+      result.push(cur); cur = '';
+    } else {
+      cur += c;
+    }
+  }
+  result.push(cur);
+  return result;
+}
+
+function parseShopeeCSV(text) {
+  // Remove BOM
+  if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+
+  const lines = text.split(/\r?\n/);
+
+  // Find the column header row (contains 交易日期 and 交易類型)
+  let headerIdx = -1;
+  for (let i = 0; i < lines.length; i++) {
+    const l = lines[i];
+    if (l.includes('交易日期') && l.includes('交易類型') && l.includes('金額')) {
+      headerIdx = i;
+      break;
+    }
+  }
+  if (headerIdx === -1) throw new Error('找不到「交易日期」欄位標頭，請確認上傳的是蝦皮結算報表 CSV');
+
+  const headers = parseCSVLine(lines[headerIdx]);
+  const idx = {
+    date:   headers.findIndex(h => h.trim() === '交易日期'),
+    type:   headers.findIndex(h => h.trim() === '交易類型'),
+    desc:   headers.findIndex(h => h.trim() === '描述'),
+    order:  headers.findIndex(h => h.trim() === '訂單編號' || h.trim().includes('訂單')),
+    dir:    headers.findIndex(h => h.trim().includes('進帳') || h.trim().includes('支出')),
+    amt:    headers.findIndex(h => h.trim() === '金額'),
+    status: headers.findIndex(h => h.trim() === '狀態'),
+    fee:    headers.findIndex(h => h.trim() === '手續費'),
+  };
+
+  const rows = [];
+  for (let i = headerIdx + 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    const cols = parseCSVLine(line);
+    if (cols.length < 6) continue;
+
+    const amtRaw = idx.amt >= 0 ? cols[idx.amt].trim() : '0';
+    const amt = parseFloat(amtRaw.replace(/,/g, '')) || 0;
+    if (amt === 0) continue; // skip zero rows
+
+    rows.push({
+      datetime: idx.date >= 0 ? cols[idx.date].trim() : '',
+      type:     idx.type >= 0 ? cols[idx.type].trim() : '',
+      desc:     idx.desc >= 0 ? cols[idx.desc].trim() : '',
+      dir:      idx.dir >= 0 ? cols[idx.dir].trim() : '',
+      amount:   amt,
+      fee:      idx.fee >= 0 ? (parseFloat(cols[idx.fee].trim().replace(/,/g, '')) || 0) : 0,
+    });
+  }
+
+  return rows;
+}
+
+// ── 轉換邏輯 ─────────────────────────────────
+function convertToRagic(rows) {
+  const batchDate = formatBatchDate(document.getElementById('cfg-date').value);
+  const sourceAccount = document.getElementById('cfg-source').value.trim() || '蝦皮賣場(彰山5222)';
+  const mainCat = document.getElementById('cfg-main-cat').value.trim() || '賣場/通路費用';
+  const subCat = document.getElementById('cfg-sub-cat').value.trim() || '結帳蝦皮';
+
+  const ragicRows = [];
+  let seq = 1;
+
+  for (const row of rows) {
+    const absAmt = Math.abs(row.amount);
+    const isPayout = row.amount < 0; // 支出 from Shopee wallet = 進帳 to bank
+    const dt = convertDateTime(row.datetime);
+    const txId = `T-${batchDate}-${String(seq).padStart(3, '0')}`;
+
+    ragicRows.push([
+      '',                                          // 帳戶編號
+      txId,                                        // 交易編號
+      dt.date,                                     // 交易日期
+      isPayout ? '轉帳收入' : '轉帳支出',            // 交易類型
+      'TWD',                                       // 帳務幣別
+      sourceAccount,                               // 自帳戶
+      '',                                          // 至帳戶
+      'TWD',                                       // 主幣別
+      absAmt,                                      // 外幣金額
+      '',                                          // 相關帳目
+      '1',                                         // 可幣
+      row.fee,                                     // 手續費
+      '',                                          // 對帳單時間
+      absAmt,                                      // 主幣別金額
+      isPayout ? mainCat : '',                     // 主類別
+      isPayout ? subCat : '',                      // 子類別
+      '',                                          // 收款人
+      '',                                          // 簽收
+      '',                                          // 標籤
+      '',                                          // 收發不傳送
+      row.desc || '自動撥款',                       // 描述
+      '個人',                                      // 類別
+      '活存入款',                                   // 類型
+      '',                                          // 轉帳空白檢查
+      absAmt,                                      // 計算稅額
+      dt.timeShort,                                // 確認交易執行時間
+      dt.timeFull,                                 // 確認交易空白檢查
+      '',                                          // 建立日期
+    ]);
+
+    seq++;
+  }
+
+  return ragicRows;
+}
+
+// ── CSV 輸出 ─────────────────────────────────
+const RAGIC_HEADERS = [
+  '帳戶編號','交易編號','交易日期','交易類型','帳務幣別',
+  '自帳戶','至帳戶','主幣別','外幣金額','相關帳目',
+  '可幣','手續費','對帳單時間','主幣別金額','主類別',
+  '子類別','收款人','簽收','標籤','收發不傳送',
+  '描述','類別','類型','轉帳空白檢查','計算稅額',
+  '確認交易執行時間','確認交易空白檢查','建立日期'
+];
+
+function escapeCSV(v) {
+  const s = String(v ?? '');
+  if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+    return '"' + s.replace(/"/g, '""') + '"';
+  }
+  return s;
+}
+
+function rowToCSV(arr) {
+  return arr.map(escapeCSV).join(',');
+}
+
+// ── 狀態 ─────────────────────────────────────
+let convertedRows = [];
+let sourceRows = [];
+
+function showStatus(msg, type) {
+  const el = document.getElementById('status');
+  el.textContent = msg;
+  el.className = 'status-bar ' + type;
+}
+function hideStatus() {
+  document.getElementById('status').className = 'status-bar';
+}
+
+// ── 拖曳 ─────────────────────────────────────
+function onDragOver(e) {
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.add('drag-over');
+}
+function onDragLeave(e) {
+  document.getElementById('drop-zone').classList.remove('drag-over');
+}
+function onDrop(e) {
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) handleFile(file);
+}
+
+// ── 處理檔案 ─────────────────────────────────
+function handleFile(file) {
+  if (!file) return;
+  if (!file.name.toLowerCase().endsWith('.csv')) {
+    showStatus('請上傳 .csv 格式的檔案', 'error');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const text = e.target.result;
+      sourceRows = parseShopeeCSV(text);
+
+      if (sourceRows.length === 0) {
+        showStatus('解析完成，但沒有找到有效的交易資料，請確認檔案格式', 'error');
+        return;
+      }
+
+      convertedRows = convertToRagic(sourceRows);
+      renderResult(file.name);
+
+    } catch (err) {
+      showStatus('解析失敗：' + err.message, 'error');
+    }
+  };
+  reader.readAsText(file, 'UTF-8');
+
+  // Update drop zone
+  const dz = document.getElementById('drop-zone');
+  dz.classList.add('has-file');
+  document.getElementById('dz-title').textContent = '✅ ' + file.name;
+}
+
+// ── 渲染結果 ─────────────────────────────────
+function renderResult(filename) {
+  const totalAmt = sourceRows.reduce((s, r) => s + Math.abs(r.amount), 0);
+
+  // Summary
+  document.getElementById('summary-grid').innerHTML = `
+    <div class="summary-card">
+      <div class="s-label">筆數</div>
+      <div class="s-value">${sourceRows.length}</div>
+      <div class="s-sub">筆交易</div>
+    </div>
+    <div class="summary-card">
+      <div class="s-label">撥款總額</div>
+      <div class="s-value">$${totalAmt.toLocaleString()}</div>
+      <div class="s-sub">TWD</div>
+    </div>
+    <div class="summary-card">
+      <div class="s-label">來源帳戶</div>
+      <div class="s-value" style="font-size:13px;margin-top:4px">${document.getElementById('cfg-source').value}</div>
+      <div class="s-sub">自帳戶</div>
+    </div>
+    <div class="summary-card">
+      <div class="s-label">批次日期</div>
+      <div class="s-value" style="font-size:14px;margin-top:4px">${document.getElementById('cfg-date').value}</div>
+      <div class="s-sub">交易編號基準</div>
+    </div>
+  `;
+
+  // Preview table (max 20 rows)
+  const tbody = document.getElementById('preview-body');
+  tbody.innerHTML = '';
+  const preview = convertedRows.slice(0, 20);
+  for (const row of preview) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><span class="badge badge-blue">${escapeHtml(row[1])}</span></td>
+      <td>${escapeHtml(row[2])}</td>
+      <td>${escapeHtml(row[5])}</td>
+      <td class="amt">$${Number(row[13]).toLocaleString()}</td>
+      <td>${escapeHtml(row[14])}</td>
+      <td>${escapeHtml(row[15])}</td>
+      <td>${escapeHtml(row[20])}</td>
+      <td>${escapeHtml(row[22])}</td>
+    `;
+    tbody.appendChild(tr);
+  }
+  if (convertedRows.length > 20) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td colspan="8" style="text-align:center;color:var(--gray-500);font-style:italic">...還有 ${convertedRows.length - 20} 筆未顯示，下載 CSV 後可查看全部</td>`;
+    tbody.appendChild(tr);
+  }
+
+  document.getElementById('result-section').style.display = '';
+  showStatus(`✅ 解析成功！共 ${sourceRows.length} 筆撥款紀錄，總金額 $${totalAmt.toLocaleString()} TWD`, 'success');
+}
+
+function escapeHtml(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── 下載 ─────────────────────────────────────
+function downloadCSV() {
+  if (!convertedRows.length) return;
+
+  const lines = [rowToCSV(RAGIC_HEADERS)];
+  for (const row of convertedRows) lines.push(rowToCSV(row));
+  const csv = lines.join('\r\n');
+
+  // UTF-8 BOM + CSV
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const batchDate = document.getElementById('cfg-date').value.replace(/-/g, '');
+  a.href = url;
+  a.download = `ragic_shopee_${batchDate}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── 重置 ─────────────────────────────────────
+function resetAll() {
+  convertedRows = [];
+  sourceRows = [];
+  document.getElementById('file-input').value = '';
+  const dz = document.getElementById('drop-zone');
+  dz.classList.remove('has-file', 'drag-over');
+  document.getElementById('dz-title').textContent = '點擊選擇或拖曳檔案';
+  document.getElementById('result-section').style.display = 'none';
+  hideStatus();
+}
+</script>
+</body>
+</html>
