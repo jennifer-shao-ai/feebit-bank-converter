@@ -22,6 +22,10 @@
 /* Day cards */
 .day-card { background:white; border-radius:var(--radius); padding:16px 20px; margin-bottom:16px; box-shadow:0 1px 3px rgba(0,0,0,0.08); }
 .day-header { display:flex; align-items:center; gap:10px; margin-bottom:14px; flex-wrap:wrap; }
+.day-toggle-btn { background:none; border:none; cursor:pointer; color:var(--gray-400); font-size:13px; padding:2px 6px; border-radius:4px; transition:all 0.15s; flex-shrink:0; }
+.day-toggle-btn:hover { background:var(--gray-100); color:var(--primary); }
+.day-body { overflow:hidden; }
+.day-body.collapsed { display:none; }
 .day-label { background:var(--primary); color:white; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:600; flex-shrink:0; }
 .day-date { color:var(--gray-600); font-size:13px; flex:1; }
 
@@ -37,8 +41,8 @@
 .spot-meta-item a:hover { text-decoration:underline; }
 .spot-tags { display:flex; flex-wrap:wrap; gap:5px; margin-top:8px; }
 .spot-tag { background:var(--primary-light); color:var(--primary-dark); padding:2px 8px; border-radius:4px; font-size:11px; font-weight:500; }
-.spot-tips { margin-top:8px; padding:8px 12px; background:#fffbeb; border-left:3px solid var(--warning); border-radius:0 6px 6px 0; font-size:12px; color:var(--gray-600); line-height:1.5; }
-.spot-notes { margin-top:6px; padding:8px 12px; background:#f0fdf4; border-left:3px solid var(--success); border-radius:0 6px 6px 0; font-size:12px; color:var(--gray-600); line-height:1.5; }
+.spot-tips { margin-top:8px; padding:8px 12px; background:#fffbeb; border-left:3px solid var(--warning); border-radius:0 6px 6px 0; font-size:12px; color:var(--gray-600); line-height:1.5; white-space:pre-wrap; }
+.spot-notes { margin-top:6px; padding:8px 12px; background:#f0fdf4; border-left:3px solid var(--success); border-radius:0 6px 6px 0; font-size:12px; color:var(--gray-600); line-height:1.5; white-space:pre-wrap; }
 .spot-actions { display:flex; gap:6px; margin-top:10px; }
 .spot-actions .btn { font-size:12px; padding:4px 10px; }
 
@@ -241,6 +245,10 @@
 .collab-badge.offline { background:#fef3c7; color:#92400e; }
 .collab-dot { width:6px; height:6px; border-radius:50%; background:currentColor; }
 
+/* Coupon link */
+.coupon-link { font-size:12px; color:var(--primary); text-decoration:none; display:inline-flex; align-items:center; gap:4px; margin-bottom:6px; word-break:break-all; }
+.coupon-link:hover { text-decoration:underline; }
+
 /* Coupon cards */
 .coupon-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:14px; }
 .coupon-card { background:white; border-radius:var(--radius); padding:14px; box-shadow:0 1px 3px rgba(0,0,0,0.08); position:relative; }
@@ -378,7 +386,7 @@
     <div class="sidebar-label">系統</div>
     <a class="nav-item" href="tools.html"><span class="icon">🔧</span> 使用工具</a>
   </div>
-  <div class="sidebar-footer">v2.0 · Feebit © 2026</div>
+  <div class="sidebar-footer">v3.0 · Feebit © 2026</div>
 </div>
 
 <!-- MAIN -->
@@ -387,7 +395,7 @@
     <div class="tp-bar-left">
       <button class="btn-hamburger" onclick="openSidebar()">☰</button>
       <span class="topbar-title">旅行規劃</span>
-      <span style="font-size:11px;color:var(--gray-400);margin-left:4px">v2.0</span>
+      <span style="font-size:11px;color:var(--gray-400);margin-left:4px">v3.0</span>
     </div>
     <div class="tp-bar-center">
       <select id="tripSelector" class="trip-selector" onchange="switchTrip(this.value)"></select>
@@ -606,6 +614,16 @@ let S = { trips:[], currentId:null, rates:{} };
 let _ownerFilter = null;
 let _catFilter = null;
 let _locFilter = new Set();
+let _collapsedDays = new Set();
+
+function toggleDayCollapse(dayId) {
+  if (_collapsedDays.has(dayId)) _collapsedDays.delete(dayId);
+  else _collapsedDays.add(dayId);
+  const body = document.querySelector(`.day-body[data-day="${dayId}"]`);
+  const btn = document.querySelector(`.day-toggle-btn[data-day="${dayId}"]`);
+  if (body) body.classList.toggle('collapsed', _collapsedDays.has(dayId));
+  if (btn) btn.textContent = _collapsedDays.has(dayId) ? '▶' : '▼';
+}
 
 function getRate(currency) {
   if (!currency || currency === 'TWD') return 1;
@@ -838,6 +856,7 @@ function renderDay(day, di) {
     });
   }
   const mapsUrl = buildGoogleMapsUrl(di);
+  const isCollapsed = _collapsedDays.has(day.id);
   const mapsBtn = spots.length > 0
     ? `<a href="${mapsUrl}" target="_blank" rel="noopener" class="btn btn-outline add-btn" style="font-size:12px;padding:4px 10px;white-space:nowrap;text-decoration:none">🗺 今日路線</a>`
     : '';
@@ -845,14 +864,18 @@ function renderDay(day, di) {
   const delBtn = `<button class="btn btn-outline add-btn" style="font-size:12px;padding:4px 10px;color:var(--danger);margin-left:4px" onclick="deleteDay(${di})">刪除</button>`;
   return `<div class="day-card">
     <div class="day-header">
+      <button class="day-toggle-btn" data-day="${day.id}" onclick="toggleDayCollapse('${day.id}')" title="${isCollapsed?'展開':'收合'}">${isCollapsed?'▶':'▼'}</button>
       <span class="day-label">Day ${di+1}</span>
       <span class="day-date">${day.date||'未設定日期'}</span>
+      <span style="font-size:11px;color:var(--gray-400)">${spots.length} 個景點</span>
       ${mapsBtn}${addBtn}${delBtn}
     </div>
-    <div class="spot-list">${spotsHTML}</div>
-    <div class="quick-add-row">
-      <input class="quick-input" type="text" placeholder="快速新增：大阪城 10:00 或 10:00 大阪城" onkeydown="if(event.key==='Enter')quickAddSpot(this,${di})">
-      <button class="btn btn-outline" style="font-size:12px;padding:4px 10px;white-space:nowrap" onclick="quickAddSpot(this.previousElementSibling,${di})">新增</button>
+    <div class="day-body${isCollapsed?' collapsed':''}" data-day="${day.id}">
+      <div class="spot-list">${spotsHTML}</div>
+      <div class="quick-add-row">
+        <input class="quick-input" type="text" placeholder="快速新增：大阪城 10:00 或 10:00 大阪城" onkeydown="if(event.key==='Enter')quickAddSpot(this,${di})">
+        <button class="btn btn-outline" style="font-size:12px;padding:4px 10px;white-space:nowrap" onclick="quickAddSpot(this.previousElementSibling,${di})">新增</button>
+      </div>
     </div>
   </div>`;
 }
@@ -870,11 +893,21 @@ function renderTransit(spot, di, si) {
   const icon = tr.customIcon || modeInfo.icon;
   const label = tr.mode === 'custom' ? (tr.customLabel || '自訂') : modeInfo.label;
   const dur = tr.duration ? `${tr.duration} 分鐘` : '';
+  const stationParts = [];
+  if (tr.fromStation) stationParts.push(esc(tr.fromStation));
+  if (tr.toStation) stationParts.push(esc(tr.toStation));
+  const stationStr = stationParts.join(' → ');
+  const fareStr = tr.fare ? `${currSym(tr.fareCurrency||'JPY')}${Number(tr.fare).toLocaleString()}` : '';
+  const extraParts = [stationStr, fareStr].filter(Boolean);
+  const extraLine = extraParts.length ? `<span style="font-size:10px;color:var(--gray-400);margin-top:1px">${extraParts.join(' · ')}</span>` : '';
   return `<div class="transit-block">
     <div class="transit-line"></div>
     <div class="transit-content">
       <span class="transit-icon">${icon}</span>
-      <span class="transit-text">${label}${dur ? ' · ' + dur : ''}</span>
+      <div style="display:flex;flex-direction:column;align-items:flex-start">
+        <span class="transit-text">${label}${dur ? ' · ' + dur : ''}</span>
+        ${extraLine}
+      </div>
       <button class="transit-edit-btn" onclick="showTransitModal(${di},${si})">編輯</button>
     </div>
     <div class="transit-line"></div>
@@ -953,18 +986,36 @@ function showTransitModal(di, si) {
   const customSection = tr.mode === 'custom'
     ? `style="display:flex;gap:8px;margin-top:8px"`
     : `style="display:none;gap:8px;margin-top:8px"`;
-  openModal(`<h2 style="margin-bottom:14px">交通時間</h2>
+  openModal(`<h2 style="margin-bottom:14px">交通資訊</h2>
   <p style="font-size:12px;color:var(--gray-600);margin-bottom:12px">景點前往下一站的交通方式</p>
   <div class="form-group"><label>移動方式</label>
     <div class="transit-mode-grid" id="transit-mode-grid">${modeButtons}</div>
   </div>
-  <div class="form-row" style="align-items:center;gap:10px">
-    <div class="form-group" style="flex:0 0 120px"><label>所需時間（分鐘）</label>
+  <div class="form-row" style="align-items:flex-start;gap:10px">
+    <div class="form-group" style="flex:0 0 110px"><label>所需時間（分鐘）</label>
       <input id="tr-dur" type="number" placeholder="15" min="0" value="${tr.duration||''}">
     </div>
     <div id="tr-custom-wrap" ${customSection}>
       <div class="form-group"><label>自訂圖示</label><input id="tr-icon" type="text" placeholder="🚠" value="${tr.customIcon||''}" style="width:70px;text-align:center"></div>
       <div class="form-group" style="flex:1"><label>自訂說明</label><input id="tr-label" type="text" placeholder="例：纜車" value="${tr.customLabel||''}"></div>
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-group"><label>上車站 / 起點</label>
+      <input id="tr-from" type="text" placeholder="例：大阪站" value="${esc(tr.fromStation||'')}">
+    </div>
+    <div class="form-group"><label>下車站 / 出口</label>
+      <input id="tr-to" type="text" placeholder="例：梅田站 2號出口" value="${esc(tr.toStation||'')}">
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-group"><label>搭車費用</label>
+      <input id="tr-fare" type="number" placeholder="0" min="0" value="${tr.fare||''}">
+    </div>
+    <div class="form-group" style="flex:0 0 90px"><label>幣別</label>
+      <select id="tr-fare-cur">
+        ${['JPY','TWD','KRW','USD','EUR','HKD'].map(c=>`<option value="${c}" ${(tr.fareCurrency||'JPY')===c?'selected':''}>${c}</option>`).join('')}
+      </select>
     </div>
   </div>
   <div class="modal-actions">
@@ -989,7 +1040,11 @@ function saveTransit() {
     mode: modeKey,
     duration: document.getElementById('tr-dur').value.trim(),
     customIcon: document.getElementById('tr-icon')?.value.trim() || '',
-    customLabel: document.getElementById('tr-label')?.value.trim() || ''
+    customLabel: document.getElementById('tr-label')?.value.trim() || '',
+    fromStation: document.getElementById('tr-from').value.trim(),
+    toStation: document.getElementById('tr-to').value.trim(),
+    fare: document.getElementById('tr-fare').value.trim(),
+    fareCurrency: document.getElementById('tr-fare-cur').value || 'JPY'
   };
   save(); closeModal(); renderItinerary();
 }
@@ -1113,11 +1168,11 @@ function renderShopping() {
   if (items.length === 0) {
     grid.innerHTML='<div class="empty-state" style="grid-column:1/-1"><div class="icon">🔍</div><p>此條件沒有待買商品</p></div>'; return;
   }
-  // Get original index in trip.shoppingList for own items
+  // Get original index in trip.shoppingList
   const t = trip();
   const ownList = t?.shoppingList || [];
   grid.innerHTML = items.map(item => {
-    const origIdx = item._owner === null ? ownList.findIndex(i=>i.id===item.id) : -1;
+    const origIdx = ownList.findIndex(i=>i.id===item.id);
     return renderShopCard(item, origIdx);
   }).join('');
 }
@@ -1287,16 +1342,24 @@ function renderSettle(list) {
   const { transactions, rawOwes, allNames, balance } = calcSettlement(list, members);
 
   // Build transactions HTML
+  // Determine primary display currency (most frequently used in expenses)
+  const allCurrencies = list.map(e=>e.currency||'JPY');
+  const currFreq = {};
+  allCurrencies.forEach(c => currFreq[c] = (currFreq[c]||0) + 1);
+  const primaryCur = Object.entries(currFreq).sort((a,b)=>b[1]-a[1])[0]?.[0] || 'JPY';
+
   const txHTML = transactions.length === 0
     ? `<p style="color:var(--gray-400);font-size:13px;text-align:center;padding:10px 0">✅ 結算完成，大家都不欠錢</p>`
     : transactions.map(tx => {
       const paid = isPaidOff(tx.from, tx.to);
-      // Try to show original currency if all expenses are same currency
-      const currencies = [...new Set(list.map(e=>e.currency||'JPY'))];
-      let origStr = '';
-      if (currencies.length === 1 && currencies[0] !== 'TWD') {
-        const orig = Math.round(tx.amtTWD / getRate(currencies[0]));
-        origStr = `${currSym(currencies[0])}${orig.toLocaleString()}`;
+      let mainAmtStr, subAmtStr;
+      if (primaryCur === 'TWD') {
+        mainAmtStr = fmtTWD(tx.amtTWD);
+        subAmtStr = '';
+      } else {
+        const origAmt = Math.round(tx.amtTWD / getRate(primaryCur));
+        mainAmtStr = `${currSym(primaryCur)}${origAmt.toLocaleString()}`;
+        subAmtStr = `≈ ${fmtTWD(tx.amtTWD)}`;
       }
       return `<div class="settle-tx ${paid?'paid-off':''}">
         <div class="settle-tx-meta">
@@ -1306,8 +1369,8 @@ function renderSettle(list) {
         </div>
         <div style="display:flex;align-items:center;gap:8px">
           <div class="settle-amount">
-            ${fmtTWD(tx.amtTWD)}
-            ${origStr ? `<span class="settle-amount-sub">≈ ${origStr}</span>` : ''}
+            ${mainAmtStr}
+            ${subAmtStr ? `<span class="settle-amount-sub">${subAmtStr}</span>` : ''}
           </div>
           <button class="paid-off-btn ${paid?'done':''}" onclick="togglePaidOff('${escAttr(tx.from)}','${escAttr(tx.to)}',${tx.amtTWD})">
             ${paid ? '✓ 已還款' : '標記已還'}
@@ -1350,9 +1413,12 @@ function renderSettle(list) {
     });
   });
 
+  const totalOrigStr = primaryCur !== 'TWD'
+    ? `${currSym(primaryCur)}${Math.round(total / getRate(primaryCur)).toLocaleString()} ≈ `
+    : '';
   ss.innerHTML = `<div class="settle-card">
     <h3 style="margin-bottom:4px;font-size:15px">結算</h3>
-    <p style="font-size:12px;color:var(--gray-600);margin-bottom:14px">總花費 ${fmtTWD(total)}</p>
+    <p style="font-size:12px;color:var(--gray-600);margin-bottom:14px">總花費 ${totalOrigStr}${fmtTWD(total)}</p>
     ${txHTML}
     ${allNames.length>0?`<div style="margin-top:16px;border-top:1px solid var(--gray-200);padding-top:12px">
       <div style="font-size:11px;color:var(--gray-400);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">各人淨收支（台幣）</div>
@@ -1450,27 +1516,41 @@ function renderDocuments() {
     el.innerHTML='<div class="empty-state" style="padding:24px"><div class="icon">📄</div><p>尚無文件</p></div>'; return;
   }
   const typeIcons = { '護照影本':'📔', '機票':'✈️', '訂房確認':'🏨', '保險單':'🛡️', '其他':'📄' };
-  el.innerHTML = docs.map((doc, i) => `
-    <div class="doc-card">
+  el.innerHTML = docs.map((doc, i) => {
+    const isPdf = doc.photo && doc.photo.startsWith('data:application/pdf');
+    const fileHtml = !doc.photo ? ''
+      : isPdf
+        ? `<div style="display:flex;align-items:center;gap:8px;margin-top:8px;padding:8px 10px;background:var(--gray-50);border-radius:6px;cursor:pointer;border:1px solid var(--gray-200)" onclick="viewDocPdf(${i})">
+            <span style="font-size:18px">📄</span>
+            <span style="font-size:12px;color:var(--primary)">查看 PDF 文件</span>
+           </div>`
+        : `<img class="doc-img" src="${doc.photo}" onclick="viewDocPhoto(${i})">`;
+    return `<div class="doc-card">
       <div class="doc-icon">${typeIcons[doc.type] || '📄'}</div>
       <div class="doc-content">
         <div class="doc-title">${esc(doc.title)}</div>
         <span class="doc-type-badge">${esc(doc.type||'其他')}</span>
         ${doc.text ? `<div class="doc-text">${esc(doc.text)}</div>` : ''}
-        ${doc.photo ? `<img class="doc-img" src="${doc.photo}" onclick="viewDocPhoto(${i})">` : ''}
+        ${fileHtml}
         <div class="doc-actions">
           <button class="btn btn-outline" style="font-size:11px;padding:3px 8px" onclick="showEditDocModal(${i})">編輯</button>
           <button class="btn btn-outline" style="font-size:11px;padding:3px 8px;color:var(--danger)" onclick="deleteDocument(${i})">刪除</button>
         </div>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 }
 
 let _docIdx = null;
 function showAddDocModal() { _docIdx=null; openDocModal({}); }
 function showEditDocModal(i) { _docIdx=i; openDocModal(trip().documents[i]); }
 function openDocModal(doc) {
+  const isPdf = doc.photo && doc.photo.startsWith('data:application/pdf');
+  const filePreview = doc.photo
+    ? (isPdf
+        ? `<div style="display:flex;align-items:center;gap:8px;padding:10px;pointer-events:none"><span style="font-size:28px">📄</span><span style="font-size:12px;color:var(--gray-700)">已上傳 PDF 文件</span></div>`
+        : `<img src="${doc.photo}">`)
+    : '<div class="ph-label">📷 點擊上傳圖片或 PDF</div>';
   openModal(`<h2 style="margin-bottom:14px">${_docIdx!==null?'編輯文件':'新增文件'}</h2>
   <div class="form-group"><label>標題 *</label><input id="d-title" type="text" placeholder="例：Jennifer 護照影本" value="${esc(doc.title||'')}"></div>
   <div class="form-group"><label>類型</label>
@@ -1481,17 +1561,46 @@ function openDocModal(doc) {
   <div class="form-group"><label>重要資訊（訂單號、備注…）</label>
     <textarea id="d-text" placeholder="護照號碼、訂單確認碼、飯店電話…">${esc(doc.text||'')}</textarea>
   </div>
-  <div class="form-group"><label>文件圖片（選填）</label>
+  <div class="form-group"><label>文件附件（圖片或 PDF，選填）</label>
     <div class="photo-upload-area" id="docPhotoArea" style="aspect-ratio:16/9">
-      ${doc.photo?`<img src="${doc.photo}">`:'<div class="ph-label">📷 點擊上傳照片</div>'}
-      <input type="file" id="docPhotoFile" accept="image/*" onchange="previewPhoto(this,'docPhotoArea')">
+      ${filePreview}
+      <input type="file" id="docPhotoFile" accept="image/*,application/pdf" onchange="previewDocFile(this,'docPhotoArea')">
     </div>
   </div>
   <div class="modal-actions">
     <button class="btn btn-primary" onclick="saveDocument()">儲存</button>
     <button class="btn btn-outline" onclick="closeModal()">取消</button>
   </div>`);
-  if (doc.photo) document.getElementById('docPhotoArea')._photo = doc.photo;
+  // Always initialize _photo to prevent stale state between opens
+  const area = document.getElementById('docPhotoArea');
+  if (area) area._photo = doc.photo || null;
+}
+
+function previewDocFile(input, areaId) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const area = document.getElementById(areaId);
+    if (!area) return;
+    area._photo = ev.target.result;
+    const lbl = area.querySelector('.ph-label');
+    if (lbl) lbl.remove();
+    // Remove old preview elements
+    area.querySelectorAll('img,.doc-file-preview').forEach(el => el.remove());
+    if (file.type === 'application/pdf') {
+      const div = document.createElement('div');
+      div.className = 'doc-file-preview';
+      div.style.cssText = 'display:flex;align-items:center;gap:8px;padding:10px;pointer-events:none;';
+      div.innerHTML = `<span style="font-size:28px">📄</span><span style="font-size:12px;color:var(--gray-700)">${esc(file.name)}</span>`;
+      area.insertBefore(div, area.querySelector('input'));
+    } else {
+      const img = document.createElement('img');
+      img.src = ev.target.result;
+      area.insertBefore(img, area.querySelector('input'));
+    }
+    input.value = '';
+  };
+  reader.readAsDataURL(file);
 }
 function saveDocument() {
   const t = trip(); if (!t) return;
@@ -1517,6 +1626,12 @@ function viewDocPhoto(i) {
   <img src="${doc.photo}" style="width:100%;border-radius:8px">
   <div class="modal-actions" style="margin-top:14px"><button class="btn btn-outline" onclick="closeModal()">關閉</button></div>`);
 }
+function viewDocPdf(i) {
+  const doc = trip().documents[i];
+  openModal(`<h2 style="margin-bottom:14px">${esc(doc.title)}</h2>
+  <embed src="${doc.photo}" type="application/pdf" width="100%" style="height:70vh;border-radius:8px;border:1px solid var(--gray-200)">
+  <div class="modal-actions" style="margin-top:14px"><button class="btn btn-outline" onclick="closeModal()">關閉</button></div>`);
+}
 
 // ── COUPONS ────────────────────────────────────
 function renderCoupons() {
@@ -1534,9 +1649,11 @@ function renderCoupons() {
 function renderCouponCard(c, i) {
   const imgs = (c.images||[]).map(src=>`<img src="${src}" class="coupon-imgs" style="width:100%;border-radius:6px;margin-bottom:6px;cursor:pointer;object-fit:contain;max-height:200px" onclick="viewCouponImg('${src}')">`).join('');
   const expiry = c.expiry ? `<div class="coupon-expiry">⏰ 截止：${c.expiry}</div>` : '';
+  const urlLink = c.url ? `<a class="coupon-link" href="${escAttr(c.url)}" target="_blank" rel="noopener">🔗 開啟優惠頁面</a>` : '';
   return `<div class="coupon-card">
     <div class="coupon-title">${esc(c.title||'優惠券')}</div>
     ${expiry}
+    ${urlLink}
     ${c.notes?`<div class="coupon-notes">${esc(c.notes)}</div>`:''}
     ${imgs}
     <div class="coupon-actions">
@@ -1560,6 +1677,7 @@ function openCouponModal(c) {
   openModal(`<h2 style="margin-bottom:14px">${_ci!==null?'編輯優惠券':'新增優惠券'}</h2>
   <div class="form-group"><label>優惠券名稱</label><input id="c-title" type="text" placeholder="例：全家 85折券" value="${esc(c.title||'')}"></div>
   <div class="form-group"><label>截止日期（選填）</label><input id="c-expiry" type="date" value="${c.expiry||''}"></div>
+  <div class="form-group"><label>連結（選填）</label><input id="c-url" type="url" placeholder="https://..." value="${esc(c.url||'')}"></div>
   <div class="form-group"><label>備注</label><textarea id="c-notes" placeholder="使用條件、適用商品…">${esc(c.notes||'')}</textarea></div>
   <div class="form-group"><label>優惠券圖片（可多張）</label>
     <div class="coupon-upload-area" id="couponUploadArea">
@@ -1606,6 +1724,7 @@ function saveCouponModal() {
     id: _ci!==null ? t.coupons[_ci].id : uid(),
     title,
     expiry: document.getElementById('c-expiry').value || null,
+    url: document.getElementById('c-url').value.trim() || null,
     notes: document.getElementById('c-notes').value.trim(),
     images: [..._couponImgs]
   };
