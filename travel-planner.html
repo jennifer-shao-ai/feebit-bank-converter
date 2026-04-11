@@ -386,7 +386,7 @@
     <div class="sidebar-label">系統</div>
     <a class="nav-item" href="tools.html"><span class="icon">🔧</span> 使用工具</a>
   </div>
-  <div class="sidebar-footer">v3.0 · Feebit © 2026</div>
+  <div class="sidebar-footer">v3.1 · Feebit © 2026</div>
 </div>
 
 <!-- MAIN -->
@@ -395,7 +395,7 @@
     <div class="tp-bar-left">
       <button class="btn-hamburger" onclick="openSidebar()">☰</button>
       <span class="topbar-title">旅行規劃</span>
-      <span style="font-size:11px;color:var(--gray-400);margin-left:4px">v3.0</span>
+      <span style="font-size:11px;color:var(--gray-400);margin-left:4px">v3.1</span>
     </div>
     <div class="tp-bar-center">
       <select id="tripSelector" class="trip-selector" onchange="switchTrip(this.value)"></select>
@@ -900,13 +900,14 @@ function renderTransit(spot, di, si) {
   const fareStr = tr.fare ? `${currSym(tr.fareCurrency||'JPY')}${Number(tr.fare).toLocaleString()}` : '';
   const extraParts = [stationStr, fareStr].filter(Boolean);
   const extraLine = extraParts.length ? `<span style="font-size:10px;color:var(--gray-400);margin-top:1px">${extraParts.join(' · ')}</span>` : '';
+  const notesLine = tr.notes ? `<span style="font-size:10px;color:var(--gray-400);white-space:pre-wrap;margin-top:1px">${esc(tr.notes)}</span>` : '';
   return `<div class="transit-block">
     <div class="transit-line"></div>
     <div class="transit-content">
       <span class="transit-icon">${icon}</span>
       <div style="display:flex;flex-direction:column;align-items:flex-start">
         <span class="transit-text">${label}${dur ? ' · ' + dur : ''}</span>
-        ${extraLine}
+        ${extraLine}${notesLine}
       </div>
       <button class="transit-edit-btn" onclick="showTransitModal(${di},${si})">編輯</button>
     </div>
@@ -1018,6 +1019,9 @@ function showTransitModal(di, si) {
       </select>
     </div>
   </div>
+  <div class="form-group"><label>備注</label>
+    <textarea id="tr-notes" placeholder="例：需要 IC 卡、注意末班車時間…" style="min-height:56px">${esc(tr.notes||'')}</textarea>
+  </div>
   <div class="modal-actions">
     <button class="btn btn-primary" onclick="saveTransit()">儲存</button>
     ${tr.mode ? `<button class="btn btn-outline" style="color:var(--danger)" onclick="clearTransit()">清除</button>` : ''}
@@ -1041,10 +1045,11 @@ function saveTransit() {
     duration: document.getElementById('tr-dur').value.trim(),
     customIcon: document.getElementById('tr-icon')?.value.trim() || '',
     customLabel: document.getElementById('tr-label')?.value.trim() || '',
-    fromStation: document.getElementById('tr-from').value.trim(),
-    toStation: document.getElementById('tr-to').value.trim(),
-    fare: document.getElementById('tr-fare').value.trim(),
-    fareCurrency: document.getElementById('tr-fare-cur').value || 'JPY'
+    fromStation: document.getElementById('tr-from')?.value.trim() || '',
+    toStation: document.getElementById('tr-to')?.value.trim() || '',
+    fare: document.getElementById('tr-fare')?.value.trim() || '',
+    fareCurrency: document.getElementById('tr-fare-cur')?.value || 'JPY',
+    notes: document.getElementById('tr-notes')?.value.trim() || ''
   };
   save(); closeModal(); renderItinerary();
 }
@@ -1180,7 +1185,7 @@ function renderShopping() {
 function renderShopCard(item, origIdx) {
   const photo = item.photo ? `<img src="${item.photo}">` : '🛍';
   const ownerBadge = item._owner
-    ? `<div class="shop-owner-badge" style="background:${item._ownerColor||'#f97316'}">${esc(item._owner)}</div>`
+    ? `<div class="shop-owner-badge" style="background:${item._ownerColor||'#f97316'};cursor:pointer" onclick="setOwnerFilter(${JSON.stringify(item._owner)})" title="篩選：${escAttr(item._owner)}">${esc(item._owner)}</div>`
     : '';
   const catBadge = item.category ? `<span class="shop-cat">${esc(item.category)}</span>` : '';
   const priceRaw = item.price ? Number(item.price) : 0;
@@ -1384,7 +1389,7 @@ function renderSettle(list) {
     const b = Math.round(balance[m]||0);
     const cls = b>0?'bal-pos':b<0?'bal-neg':'';
     const sign = b>0?'+':'';
-    const label = b>0?'收回':'虧';
+    const label = b>0?'收回':'支出';
     return `<div class="settle-balance-row"><span>${esc(m)}</span><span class="${cls}">${sign}${fmtTWD(Math.abs(b))} ${b!==0?`<span style="font-size:10px;opacity:0.7">(${label})</span>`:''}</span></div>`;
   }).join('');
 
@@ -1902,7 +1907,8 @@ function showSpotModal(di, si) {
     <button class="btn btn-primary" onclick="saveSpotModal()">儲存</button>
     <button class="btn btn-outline" onclick="closeModal()">取消</button>
   </div>`);
-  if (s.photo) document.getElementById('spotPhotoArea')._photo = s.photo;
+  const spotArea = document.getElementById('spotPhotoArea');
+  if (spotArea) spotArea._photo = s.photo || null;
 }
 function handleTag(e) {
   if (e.key!=='Enter') return; e.preventDefault();
@@ -1991,7 +1997,8 @@ function openShopModal(item) {
     <button class="btn btn-primary" onclick="saveShopModal()">儲存</button>
     <button class="btn btn-outline" onclick="closeModal()">取消</button>
   </div>`);
-  if (item.photo) document.getElementById('shopPhotoArea')._photo = item.photo;
+  const shopArea = document.getElementById('shopPhotoArea');
+  if (shopArea) shopArea._photo = item.photo || null;
 }
 function previewPhoto(input, areaId) {
   const file = input.files[0]; if (!file) return;
@@ -2122,7 +2129,8 @@ function openExpenseModal(e) {
     <button class="btn btn-primary" onclick="saveExpenseModal()">儲存</button>
     <button class="btn btn-outline" onclick="closeModal()">取消</button>
   </div>`);
-  if (e.receiptPhoto) document.getElementById('rcptPhotoArea')._photo = e.receiptPhoto;
+  const rcptArea = document.getElementById('rcptPhotoArea');
+  if (rcptArea) rcptArea._photo = e.receiptPhoto || null;
   calcPer();
   if (isCustom) calcCustomTotal();
 }
