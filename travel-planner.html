@@ -332,7 +332,34 @@
   .shop-check { width:26px; height:26px; }
   .btn { min-height:38px; }
   .transit-block { padding-left:12px; }
+  .guide-card { padding:14px; }
+  .guide-section-head { padding:10px 0; }
 }
+
+/* ── GUIDE CARDS ── */
+.guide-card { background:white; border-radius:var(--radius); padding:16px 20px; box-shadow:0 1px 3px rgba(0,0,0,0.08); margin-bottom:14px; }
+.guide-card-header { display:flex; align-items:center; gap:10px; margin-bottom:12px; flex-wrap:wrap; }
+.guide-icon-big { font-size:28px; flex-shrink:0; line-height:1; }
+.guide-name-wrap { flex:1; min-width:0; }
+.guide-title { font-weight:700; font-size:15px; line-height:1.3; }
+.guide-day-badge { display:inline-block; background:var(--primary-light); color:var(--primary-dark); padding:2px 9px; border-radius:12px; font-size:11px; font-weight:600; margin-top:4px; cursor:pointer; }
+.guide-day-badge:hover { background:var(--primary); color:white; }
+.guide-actions { display:flex; gap:5px; flex-shrink:0; }
+.guide-info-bar { display:flex; flex-wrap:wrap; gap:10px; padding:9px 12px; background:var(--gray-50); border-radius:7px; margin-bottom:12px; font-size:12px; color:var(--gray-600); }
+.guide-info-item { display:flex; align-items:center; gap:4px; }
+.guide-info-item a { color:var(--primary); text-decoration:none; }
+.guide-info-item a:hover { text-decoration:underline; }
+.guide-sections { display:flex; flex-direction:column; gap:0; }
+.guide-section { border-top:1px solid var(--gray-100); }
+.guide-section-head { display:flex; align-items:center; gap:8px; padding:11px 0 11px; cursor:pointer; user-select:none; }
+.guide-section-head:hover { color:var(--primary); }
+.guide-section-icon { font-size:15px; flex-shrink:0; }
+.guide-section-title { font-size:13px; font-weight:600; flex:1; }
+.guide-section-toggle { font-size:12px; color:var(--gray-400); transition:transform 0.2s; }
+.guide-section-toggle.open { transform:rotate(180deg); }
+.guide-section-body { display:none; padding:0 0 12px 23px; font-size:13px; color:var(--gray-700); line-height:1.7; white-space:pre-wrap; }
+.guide-section-body.open { display:block; }
+.guide-section-body:empty::after { content:'（尚無內容）'; color:var(--gray-400); font-style:italic; }
 </style>
 </head>
 <body>
@@ -386,7 +413,7 @@
     <div class="sidebar-label">系統</div>
     <a class="nav-item" href="tools.html"><span class="icon">🔧</span> 使用工具</a>
   </div>
-  <div class="sidebar-footer">v3.1 · Feebit © 2026</div>
+  <div class="sidebar-footer">v4.1 · Feebit © 2026</div>
 </div>
 
 <!-- MAIN -->
@@ -395,7 +422,7 @@
     <div class="tp-bar-left">
       <button class="btn-hamburger" onclick="openSidebar()">☰</button>
       <span class="topbar-title">旅行規劃</span>
-      <span style="font-size:11px;color:var(--gray-400);margin-left:4px">v3.1</span>
+      <span style="font-size:11px;color:var(--gray-400);margin-left:4px">v4.1</span>
     </div>
     <div class="tp-bar-center">
       <select id="tripSelector" class="trip-selector" onchange="switchTrip(this.value)"></select>
@@ -430,6 +457,7 @@
       <div class="tp-tab" onclick="switchTab('checklist',this)">🎒 行前準備</div>
       <div class="tp-tab" onclick="switchTab('documents',this)">📄 文件保險箱</div>
       <div class="tp-tab" onclick="switchTab('coupons',this)">🎫 優惠券</div>
+      <div class="tp-tab" onclick="switchTab('guides',this)">📖 景點攻略</div>
     </div>
 
     <!-- 行程 -->
@@ -500,6 +528,16 @@
       </div>
       <p style="font-size:12px;color:var(--gray-400);margin-bottom:14px">貼上或拍照儲存網路優惠券資訊</p>
       <div id="coupons-container"></div>
+    </div>
+
+    <!-- 景點攻略 -->
+    <div id="tab-guides" class="tp-tab-content">
+      <div class="section-header">
+        <h3>📖 景點攻略</h3>
+        <button class="btn btn-primary add-btn" onclick="showAddGuideModal()">+ 新增攻略</button>
+      </div>
+      <p style="font-size:12px;color:var(--gray-400);margin-bottom:14px">主題樂園、重點景點的詳細攻略，含行程動線、必玩推薦與注意事項</p>
+      <div id="guides-container"></div>
     </div>
   </div>
 </div>
@@ -705,7 +743,7 @@ function showImportBanner(tripName) {
 }
 
 function newTripObj(name, dest, start, end) {
-  const t = { id:uid(), name, destination:dest, startDate:start, endDate:end, days:[], shoppingList:[], expenses:[], members:[], collabRoomId:null, paidOff:[], checklist:[], documents:[], locations:[], coupons:[] };
+  const t = { id:uid(), name, destination:dest, startDate:start, endDate:end, days:[], shoppingList:[], expenses:[], members:[], collabRoomId:null, paidOff:[], checklist:[], documents:[], locations:[], coupons:[], guides:[] };
   if (start && end) {
     let d = new Date(start), e = new Date(end);
     while (d <= e) { t.days.push({ id:uid(), date:d.toISOString().slice(0,10), spots:[] }); d.setDate(d.getDate()+1); }
@@ -725,6 +763,7 @@ function renderAll() {
   renderChecklist();
   renderDocuments();
   renderCoupons();
+  renderGuides();
 }
 
 // ── MEMBERS ────────────────────────────────────
@@ -1740,6 +1779,168 @@ function saveCouponModal() {
 function deleteCoupon(i) {
   if (!confirm('確定刪除此優惠券？')) return;
   trip().coupons.splice(i,1); save(); renderCoupons();
+}
+
+// ── GUIDES ─────────────────────────────────────
+const GUIDE_SECTIONS = [
+  { key:'route',     icon:'📍', title:'行程動線' },
+  { key:'mustDo',    icon:'🎯', title:'必玩攻略' },
+  { key:'warnings',  icon:'⚠️',  title:'注意事項' },
+  { key:'transport', icon:'🚌', title:'館內交通' },
+  { key:'notes',     icon:'💡', title:'其他備注' },
+];
+
+function renderGuides() {
+  const t = trip();
+  const el = document.getElementById('guides-container');
+  if (!el) return;
+  if (!t) { el.innerHTML=''; return; }
+  const guides = t.guides || [];
+  if (guides.length === 0) {
+    el.innerHTML='<div class="empty-state"><div class="icon">📖</div><p>尚無攻略<br><span style="font-size:12px">點擊「新增攻略」加入吉卜力公園、環球影城等詳細攻略</span></p></div>';
+    return;
+  }
+  el.innerHTML = guides.map((g, i) => renderGuideCard(g, i)).join('');
+}
+
+function renderGuideCard(g, i) {
+  const t = trip();
+  const linkedDay = (t.days||[]).find(d => d.date === g.linkedDate);
+  const dayLabel = linkedDay ? (() => {
+    const idx = t.days.indexOf(linkedDay);
+    const dw = ['日','一','二','三','四','五','六'];
+    const d = new Date(linkedDay.date + 'T00:00:00');
+    return `DAY${idx+1} ${linkedDay.date.slice(5).replace('-','/')}（${dw[d.getDay()]}）`;
+  })() : null;
+
+  const infoItems = [
+    g.openHours ? `<span class="guide-info-item">⏰ ${esc(g.openHours)}</span>` : '',
+    g.price     ? `<span class="guide-info-item">💴 ${esc(g.price)}</span>` : '',
+    g.website   ? `<span class="guide-info-item">🔗 <a href="${escAttr(g.website)}" target="_blank" rel="noopener">官方網站</a></span>` : '',
+  ].filter(Boolean).join('');
+
+  const sectionsHtml = GUIDE_SECTIONS.map(s => {
+    const content = g[s.key] || '';
+    return `<div class="guide-section">
+      <div class="guide-section-head" onclick="toggleGuideSection(this)">
+        <span class="guide-section-icon">${s.icon}</span>
+        <span class="guide-section-title">${s.title}</span>
+        <span class="guide-section-toggle">▼</span>
+      </div>
+      <div class="guide-section-body">${esc(content)}</div>
+    </div>`;
+  }).join('');
+
+  return `<div class="guide-card">
+    <div class="guide-card-header">
+      <div class="guide-icon-big">${esc(g.icon||'📍')}</div>
+      <div class="guide-name-wrap">
+        <div class="guide-title">${esc(g.name)}</div>
+        ${dayLabel ? `<div class="guide-day-badge" onclick="jumpToDay('${escAttr(g.linkedDate||'')}')" title="跳至行程">🗓 ${dayLabel}</div>` : ''}
+      </div>
+      <div class="guide-actions">
+        <button class="btn btn-outline" style="font-size:12px;padding:4px 10px" onclick="showEditGuideModal(${i})">編輯</button>
+        <button class="btn btn-outline" style="font-size:12px;padding:4px 10px;color:var(--danger)" onclick="deleteGuide(${i})">刪除</button>
+      </div>
+    </div>
+    ${infoItems ? `<div class="guide-info-bar">${infoItems}</div>` : ''}
+    <div class="guide-sections">${sectionsHtml}</div>
+  </div>`;
+}
+
+function toggleGuideSection(headEl) {
+  const body = headEl.nextElementSibling;
+  const arrow = headEl.querySelector('.guide-section-toggle');
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  if (arrow) arrow.classList.toggle('open', !isOpen);
+}
+
+function jumpToDay(date) {
+  if (!date) return;
+  switchTab('itinerary', document.querySelector('.tp-tab'));
+  document.querySelector('.tp-tab').classList.add('active');
+  setTimeout(() => {
+    const dayEls = document.querySelectorAll('[data-day-date]');
+    const target = Array.from(dayEls).find(el => el.dataset.dayDate === date);
+    if (target) target.scrollIntoView({ behavior:'smooth', block:'start' });
+  }, 100);
+}
+
+let _gi = null;
+function showAddGuideModal() { _gi=null; openGuideModal({}); }
+function showEditGuideModal(i) { _gi=i; openGuideModal(trip().guides[i]); }
+
+function openGuideModal(g) {
+  const t = trip();
+  const dayOptions = (t.days||[]).map((d, idx) => {
+    const dw = ['日','一','二','三','四','五','六'];
+    const dt = new Date(d.date + 'T00:00:00');
+    const label = `DAY${idx+1} ${d.date.slice(5).replace('-','/')}（${dw[dt.getDay()]}）`;
+    return `<option value="${d.date}" ${g.linkedDate===d.date?'selected':''}>${label}</option>`;
+  }).join('');
+
+  const sectionFields = GUIDE_SECTIONS.map(s =>
+    `<div class="form-group">
+      <label>${s.icon} ${s.title}</label>
+      <textarea id="g-${s.key}" placeholder="${s.title}內容…" style="min-height:80px">${esc(g[s.key]||'')}</textarea>
+    </div>`
+  ).join('');
+
+  openModal(`<h2 style="margin-bottom:14px">${_gi!==null?'編輯攻略':'新增景點攻略'}</h2>
+  <div class="form-row">
+    <div class="form-group" style="flex:0 0 70px">
+      <label>圖示</label>
+      <input id="g-icon" type="text" placeholder="🌳" value="${esc(g.icon||'')}" style="text-align:center;font-size:20px;padding:4px 6px">
+    </div>
+    <div class="form-group">
+      <label>景點名稱 *</label>
+      <input id="g-name" type="text" placeholder="例：吉卜力公園" value="${esc(g.name||'')}">
+    </div>
+  </div>
+  <div class="form-group">
+    <label>關聯行程天數</label>
+    <select id="g-date">
+      <option value="">— 不關聯 —</option>
+      ${dayOptions}
+    </select>
+  </div>
+  <div class="form-row">
+    <div class="form-group"><label>開放時間</label><input id="g-hours" type="text" placeholder="例：9:00～17:00" value="${esc(g.openHours||'')}"></div>
+    <div class="form-group"><label>票價</label><input id="g-price" type="text" placeholder="例：成人 ¥2,500" value="${esc(g.price||'')}"></div>
+  </div>
+  <div class="form-group"><label>官方網站</label><input id="g-website" type="url" placeholder="https://..." value="${esc(g.website||'')}"></div>
+  <hr style="border:none;border-top:1px solid var(--gray-200);margin:8px 0 14px">
+  ${sectionFields}
+  <div class="modal-actions">
+    <button class="btn btn-primary" onclick="saveGuideModal()">儲存</button>
+    <button class="btn btn-outline" onclick="closeModal()">取消</button>
+  </div>`);
+  setTimeout(()=>document.getElementById('g-name')?.focus(),100);
+}
+
+function saveGuideModal() {
+  const t = trip(); if (!t) return;
+  const name = document.getElementById('g-name').value.trim();
+  if (!name) return alert('請輸入景點名稱');
+  if (!t.guides) t.guides=[];
+  const g = {
+    id: _gi!==null ? t.guides[_gi].id : uid(),
+    icon:      document.getElementById('g-icon').value.trim() || '📍',
+    name,
+    linkedDate: document.getElementById('g-date').value || null,
+    openHours:  document.getElementById('g-hours').value.trim(),
+    price:      document.getElementById('g-price').value.trim(),
+    website:    document.getElementById('g-website').value.trim(),
+  };
+  GUIDE_SECTIONS.forEach(s => { g[s.key] = document.getElementById('g-'+s.key).value.trim(); });
+  if (_gi!==null) t.guides[_gi]=g; else t.guides.push(g);
+  save(); closeModal(); renderGuides();
+}
+
+function deleteGuide(i) {
+  if (!confirm('確定刪除此攻略？')) return;
+  trip().guides.splice(i,1); save(); renderGuides();
 }
 
 // ── TRIP MANAGEMENT ────────────────────────────
