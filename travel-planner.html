@@ -821,7 +821,7 @@ function _seedNagoyaOsaka() {
   if (!existing) {
     existing = newTripObj(seed.name, seed.destination, seed.startDate, seed.endDate);
     S.trips.unshift(existing);
-    S.currentId = existing.id;
+    // 不改變 currentId，保留使用者原本選取的行程
   }
   let changed = false;
   for (const [date, spots] of Object.entries(seed.days)) {
