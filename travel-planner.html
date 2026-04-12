@@ -691,8 +691,186 @@ const _NAGOYA_OSAKA_SEED = {
   destination:'名古屋・奈良・大阪',
   startDate:'2026-12-25',
   endDate:'2027-01-02',
+  documents:[
+    {title:'去程班機 CI 0154',type:'機票',text:'中華航空 CI 0154\n2026/12/25\n07:35 桃園國際機場 第二航廈 起飛\n11:05 名古屋中部國際機場 第一航廈 抵達'},
+    {title:'回程班機 CI 0173',type:'機票',text:'中華航空 CI 0173\n2027/01/02\n19:00 關西國際機場 第一航廈 起飛\n21:05 桃園國際機場 第二航廈 抵達'},
+    {title:'名古屋飯店 Sotetsu Fresa Inn',type:'訂房確認',text:'Sotetsu Fresa Inn Nagoya-Shinkansenguchi\n入住：2026/12/25　退房：2026/12/29\n愛知縣 名古屋市 Nakamura-ku, Tsubakicho 19-16\nCheck in：15:00－00:00\n雙人房×1 ＋ 單人房×1　禁煙・不含早餐\n費用：¥92,984'},
+    {title:'大阪飯店 Nihobashi House nb-1',type:'訂房確認',text:'Nihobashi House nb-1\n入住：2026/12/29　退房：2027/01/02\n大阪府 大阪市 中央区日本橋一丁目10-12 シャンクレール日本橋\nCheck in：16:00 以後（密碼鎖，無需鑰匙）\n公寓房，可容納5人\n費用已全額刷卡付清'},
+  ],
+  coupons:[
+    {title:'LaLaport名古屋港AQULS 外國人優惠',expiry:'2026-12-28',url:null,notes:'至服務台出示護照＋此優惠券\n兌換：休足時間1片＋外國人專屬優惠券\n（DAY4 名古屋港購物）'},
+  ],
   days:{
+    '2026-12-25':[
+      {time:'05:00',name:'桃園國際機場 集合出發',notes:'班機：CI 0154\n07:35 桃園第二航廈起飛',tips:'建議提早2小時到達辦理報到'},
+      {time:'11:05',name:'✈️ 名古屋中部國際機場 抵達',notes:'第一航廈入境',tips:'出關＋領行李預計2小時，約13:30完成'},
+      {time:'13:30',name:'出關＆領行李',notes:'',tips:''},
+      {time:'14:40',name:'🚉 名古屋車站（太閣通口）',notes:'從機場到名古屋車站：\n① 名鐵常滑・空港線特急 ¥980 約40分鐘\n② ミュースカイ 新鵜沼行 ¥980+指定席¥450 約30分鐘',tips:''},
+      {time:'15:00',name:'飯店 check in（Sotetsu Fresa Inn）',notes:'Nakamura-ku, Tsubakicho 19-16\nCheck in 15:00－00:00\n雙人房＋單人房，禁煙不含早餐\n¥92,984',tips:'放好行李先休息'},
+      {time:'16:00',name:'🚉 名古屋車站出發',notes:'搭名古屋市營東山線（黃線）兩站→榮 ¥210 5分鐘\n雨天可走ESCA地下街E1入口B1連通車站',tips:''},
+      {time:'16:10',name:'🚉 榮車站',notes:'',tips:''},
+      {time:'16:15',name:'榮車站周邊散策',notes:'3coins+ plus 榮店 10:00-20:00\nUniqlo 榮店 10:00-20:00\nLoft 附近可逛',tips:''},
+      {time:'17:30',name:'晚餐 ひつまぶし花岡',notes:'鰻魚飯三吃，名古屋名物',tips:''},
+      {time:'19:00',name:'榮地下街散策',notes:'營業時間 10:00-20:00',tips:''},
+      {time:'20:00',name:'Harbs蛋糕 榮本店',notes:'營業時間 11:00-21:00\n⚠️ 20:00前要進去！',tips:'必吃！發源地是名古屋，水果千層蛋糕超好吃'},
+      {time:'20:30',name:'綠洲21',notes:'營業時間 06:00-23:00',tips:''},
+      {time:'20:45',name:'橡子共和國 栄公園店',notes:'營業時間 10:00-21:00\n龍貓扭蛋一個¥500，在綠洲21最下面一層廣場旁',tips:''},
+      {time:'21:30',name:'🚉 久屋大通車站',notes:'搭名古屋市營櫻通線（紅線）6分鐘→名古屋車站 ¥210',tips:'可看看有沒有明天想吃的早餐店'},
+      {time:'21:40',name:'🚉 名古屋車站',notes:'',tips:''},
+      {time:'22:00',name:'飯店周邊超商＆飯店',notes:'買水、能量飲、小零食',tips:''},
+    ],
     '2026-12-26':[
+      {time:'07:30',name:'早餐 名古屋車站周邊',notes:'',tips:''},
+      {time:'08:00',name:'🚉 名古屋車站出發',notes:'搭名古屋市營東山線（黃線）2站→榮 ¥210\n走到榮町站，轉名鐵瀨戶線（紫線）\n榮町→尾張瀨戶 19站 ¥510 37分鐘',tips:''},
+      {time:'09:00',name:'🚉 尾張瀨戶車站',notes:'',tips:''},
+      {time:'09:10',name:'中外陶園 藥師窯',notes:'營業時間 10:00-17:00 週二公休\n⚠️ 出發前確認年始年末休息時間\n部分生肖商品9月後可搶先訂購',tips:''},
+      {time:'09:40',name:'巨大招財貓雕像',notes:'名鐵常滑站東口 招財貓大道（とこなめ招き猫通り）',tips:'超好拍打卡點！'},
+      {time:'10:00',name:'招財貓博物館',notes:'營業時間 10:00-17:00 週二公休',tips:'尾張瀨戶是招財貓發祥地'},
+      {time:'11:00',name:'吾妻軒本店 和菓子',notes:'營業時間 09:00-19:30 週二公休',tips:'必買伴手禮'},
+      {time:'11:30',name:'午餐 尾張瀨戶車站 or 名古屋城車站周邊',notes:'',tips:''},
+      {time:'12:00',name:'🚉 尾張瀨戶車站（返回）',notes:'名鐵瀨戶線 14站→大曽根 ¥460 27分鐘\n轉地下鐵名城線（淺紫線）5站→名古屋城 ¥240 9分鐘',tips:''},
+      {time:'12:50',name:'🚉 名古屋城車站',notes:'',tips:''},
+      {time:'13:00',name:'名古屋城',notes:'日本三大名城之一\n營業時間 9:00-16:30（最後入場16:00）\n⚠️ 休園日：12/29-31、1/1',tips:'門票 ¥500'},
+      {time:'14:30',name:'二之丸庭園',notes:'',tips:''},
+      {time:'15:00',name:'二之丸茶亭',notes:'營業時間 9:00-16:30',tips:''},
+      {time:'16:40',name:'🚉 名古屋城車站 or 名城公園車站',notes:'地下鐵名城線2站→榮 3分鐘\n轉東山線2站→名古屋 ¥240 5分鐘\n\n⭐ 如有時間可補逛榮周邊，或第一天沒吃到的Harbs！\n（大須商店街 DAY4會去）',tips:''},
+      {time:'16:50',name:'🚉 名古屋車站',notes:'車站內有很多店，附近有Bic Camera',tips:''},
+      {time:'18:00',name:'晚餐 矢場丼 名古屋站名鐵店',notes:'',tips:''},
+      {time:'19:30',name:'中部地方廣場',notes:'營業時間 11:00-20:00',tips:''},
+      {time:'20:30',name:'Sky Promenade 空中長廊',notes:'營業時間 11:00-22:00',tips:'夜景必看！'},
+      {time:'22:00',name:'飯店',notes:'',tips:''},
+    ],
+    '2026-12-27':[
+      {time:'07:00',name:'早餐',notes:'名古屋車站或周邊\n公園外有LAWSON可買點心',tips:''},
+      {time:'07:30',name:'🚉 名古屋車站出發',notes:'搭地鐵東山線往藤が丘，轉リニモ（東部丘陵線）',tips:'⚠️ 吉卜力公園入場嚴格按預約時段，一定要提早出門！'},
+      {time:'08:40',name:'🚉 愛・地球博記念公園車站',notes:'從藤が丘搭リニモ約15分鐘 ¥210',tips:''},
+      {time:'08:50',name:'吉卜力公園 Ghibli Park',notes:'營業時間 9:00-17:00\n記名制，入場需檢查身分證（護照）\n預計行程：魔女之谷→大倉庫→動動力之森→貓公車→怪物之理→青春之丘',tips:'⚠️ 票券超難搶！事先在官網購票，建議買全園通票'},
+      {time:'12:00',name:'午餐 公園內餐廳',notes:'大倉庫—大陸橫斷飛行咖啡廳：飛行披薩（義大利香腸起司）、味噌豬排三明治、BLT三明治\n魔女之谷—飛天烤爐：牧羊人派、烤豬肉、神秘咖哩、馬芬杯子蛋糕\n魔女之谷—熱狗攤熱鐵皮屋頂：貓咪造型麵包熱狗堡、魔女啤酒\n青春之丘—琪琪工作的麵包店：每日現烤，中午前易售罄',tips:'建議提早排隊或利用景點間空檔用餐'},
+      {time:'17:20',name:'🚉 愛・地球博記念公園車站（離場）',notes:'搭リニモ回藤が丘，轉地鐵東山線，換名鐵前往長島',tips:''},
+      {time:'18:00',name:'晚餐（長島或車上）',notes:'近鐵名古屋→近鐵長島 急行約17分（土休日）或準急約25分\n近鐵長島站轉公車¥250→名花之里 10分鐘\n總車程約35分鐘',tips:''},
+      {time:'18:50',name:'名花之里（なばなの里）',notes:'日本最大冬季燈海\n佔地約30萬平方公尺，各季節花海＋大型溫室「安地斯的花園」',tips:'需購票，確認閉園時間'},
+    ],
+    '2026-12-28':[
+      {time:'07:30',name:'早餐 名古屋車站或周邊',notes:'',tips:''},
+      {time:'08:00',name:'🚉 名古屋車站出發',notes:'',tips:''},
+      {time:'08:30',name:'🚉 神宮前車站',notes:'',tips:''},
+      {time:'08:40',name:'熱田神宮',notes:'全天開放\n寶藏館 9:00-16:30（最晚受理16:00）',tips:'日本三大神宮之一，供奉草薙神劍，建議晨早參拜'},
+      {time:'10:00',name:'🚉 神宮前車站→矢場町車站',notes:'',tips:''},
+      {time:'10:30',name:'🚉 矢場町車站',notes:'',tips:''},
+      {time:'11:30',name:'午餐 Maruya 本店 or 大須商店街內',notes:'Maruya 鰻魚飯三吃 11:00-23:00\n（有點貴可換大須商店街其他選擇）',tips:''},
+      {time:'12:30',name:'大須商店街',notes:'名古屋最大商店街！電器、二手衣、古著、美食',tips:''},
+      {time:'13:00',name:'龜嶽林萬松寺',notes:'開放時間 10:00-18:00',tips:'個性寺廟，有機器人表演'},
+      {time:'13:30',name:'大須外郎糕',notes:'營業時間 10:00-18:00\n冰棒造型傳統糕點',tips:'日式傳統點心'},
+      {time:'13:45',name:'鯛福茶庵 八代目澤屋',notes:'營業時間 11:00-19:00\n鯛魚燒・大判燒',tips:'超好拍！大須必訪'},
+      {time:'14:15',name:'ROCKIN\'ROBIN 大須店',notes:'營業時間 11:30-20:00\n迷你漢堡，100%牛肉排＋切達起司',tips:''},
+      {time:'14:45',name:'🚉 大須觀音車站→名古屋港車站',notes:'搭地下鐵鶴舞線→上前津，轉名港線→名古屋港',tips:''},
+      {time:'16:30',name:'名古屋港水族館',notes:'營業時間 9:30-17:30（最後入館16:30）',tips:'白鯨、海豚表演，留至少2小時'},
+      {time:'18:30',name:'萬代扭蛋博物館',notes:'JETTY購物中心2樓\n營業時間 11:00-19:00（週一公休）',tips:''},
+      {time:'19:00',name:'🚉 名古屋港→港區役所車站',notes:'',tips:''},
+      {time:'19:15',name:'LaLaport 名古屋港 AQULS',notes:'營業時間 10:00-20:00\n⭐ 至服務台出示護照兌換休足時間1片＋外國人專屬優惠券',tips:''},
+      {time:'19:30',name:'世界之山將（世界の山ちゃん）',notes:'幻之炸雞翅，重胡椒風味',tips:''},
+      {time:'20:00',name:'晚餐 LaLaport內',notes:'1樓餐飲區與3樓美食廣場',tips:''},
+      {time:'21:00',name:'唐吉柯德 東海通店（可略）',notes:'營業時間 8:00-24:00',tips:''},
+      {time:'21:30',name:'🚉 東海通→名古屋車站',notes:'',tips:''},
+      {time:'22:00',name:'飯店',notes:'',tips:''},
+    ],
+    '2026-12-29':[
+      {time:'07:30',name:'早餐 名古屋車站周邊或超商',notes:'',tips:''},
+      {time:'08:00',name:'飯店 check out',notes:'Sotetsu Fresa Inn\nCheck out 時間：11:00',tips:''},
+      {time:'08:30',name:'🚉 名古屋車站出發→奈良',notes:'搭近鐵特急「ひのとり」往大和八木，約2小時\n需加購特急券',tips:''},
+      {time:'10:30',name:'🚉 奈良車站・近鐵奈良車站',notes:'',tips:''},
+      {time:'10:45',name:'寄放行李',notes:'近鐵奈良車站投幣式儲物櫃：3個地點（1個在檢票口內，2個在外）\n部分可用電子貨幣，其餘需¥100硬幣（無兌換機）\n備案：711超商 ecbo cloak，日期近了再查預約',tips:'先寄行李再輕裝逛'},
+      {time:'11:00',name:'奈良伴手禮百貨・東向商店街',notes:'車站旁，先逛一圈再決定買什麼',tips:''},
+      {time:'12:00',name:'午餐 近鐵奈良車站附近',notes:'',tips:''},
+      {time:'13:00',name:'春日大社',notes:'本殿開放 07:00-17:00（11-2月）\n特別參拜至16:00-16:30，可深入本殿近看國寶釣燈籠',tips:'世界文化遺產'},
+      {time:'13:30',name:'奈良公園',notes:'餵鹿仙貝 ¥200',tips:'⚠️ 不要摸母鹿和小鹿，鹿很搶食，包包要拿好！'},
+      {time:'14:30',name:'大佛布丁本舖 東大寺門前夢風廣場店',notes:'營業時間 10:00-19:00',tips:'必買！大佛造型布丁超可愛'},
+      {time:'15:00',name:'依水園 寧樂美術館',notes:'營業時間 9:30-16:30（入場截止16:00）週二公休\n12月花季：敷鬆葉',tips:'門票 ¥1,200'},
+      {time:'15:30',name:'東大寺',notes:'大佛殿 8:00-17:00\n法華堂・戒壇院千手堂 8:30-16:00\n展覽館 9:30-17:00（最後入場16:30）',tips:'門票 ¥600，大佛殿柱子有個洞，鑽過去祈求好運！'},
+      {time:'17:00',name:'🚉 近鐵奈良車站',notes:'',tips:''},
+      {time:'17:30',name:'晚餐 近鐵奈良車站附近 or 去大阪再吃',notes:'',tips:''},
+      {time:'18:30',name:'🚉 近鐵日本橋車站（大阪）',notes:'近鐵奈良線直達 約40分鐘',tips:''},
+      {time:'19:00',name:'飯店 check in（Nihobashi House nb-1）',notes:'大阪府 大阪市中央区日本橋一丁目10-12 シャンクレール日本橋\nCheck in 16:00以後，密碼鎖不需鑰匙\n公寓房可容納5人，費用已全額付清\n入住 12/29－2027/1/2',tips:''},
+      {time:'20:00',name:'難波・心齋橋 散策（如有時間）',notes:'逛街熱身，明天開始認真掃貨',tips:''},
+    ],
+    '2026-12-30':[
+      {time:'08:00',name:'早餐 溫蒂漢堡 或 黑門市場',notes:'黑門市場：海鮮丼、螃蟹、和牛燒烤',tips:'⚠️ 黑門市場觀光客多，注意隨身物品'},
+      {time:'09:00',name:'🚉 難波車站→大阪城公園車站',notes:'搭地鐵中央線',tips:''},
+      {time:'09:30',name:'大阪城',notes:'',tips:'門票 ¥600'},
+      {time:'11:30',name:'🚉 大阪城公園車站→今宮戎車站',notes:'',tips:''},
+      {time:'12:00',name:'今宮戎神社',notes:'祈求商業繁盛',tips:''},
+      {time:'12:30',name:'玉出超市',notes:'大阪最便宜超市，買零食食材超划算',tips:''},
+      {time:'13:00',name:'🚉 惠美須町→近鐵日本橋 / 回飯店卸貨',notes:'',tips:''},
+      {time:'13:30',name:'午餐 一蘭拉麵 or 藏壽司道頓崛',notes:'',tips:''},
+      {time:'15:00',name:'難波・道頓崛・心齋橋 散策',notes:'藥妝店、迪士尼商店、唐吉柯德',tips:''},
+      {time:'17:00',name:'夫婦善哉 紅豆湯',notes:'大阪超老字號，暖呼呼甜蜜蜜',tips:'必吃！'},
+      {time:'19:00',name:'晚餐 難波・道頓崛・心齋橋',notes:'',tips:''},
+    ],
+    '2026-12-31':[
+      {time:'08:00',name:'早餐 溫蒂漢堡 或 黑門市場',notes:'',tips:''},
+      {time:'09:00',name:'🚉 近鐵日本橋→大阪港車站',notes:'搭地鐵中央線',tips:''},
+      {time:'10:00',name:'天保山購物中心',notes:'大型商場＋摩天輪',tips:''},
+      {time:'11:30',name:'午餐 天保山購物中心內',notes:'',tips:''},
+      {time:'12:00',name:'海遊館',notes:'',tips:'門票 ¥2,700，留2.5～3小時'},
+      {time:'15:30',name:'搭船→環球影城',notes:'海遊館前港口船班直達USJ，約20分鐘',tips:'⚠️ 注意班次時間！'},
+      {time:'19:00',name:'環球影城 入園',notes:'詳見景點攻略 → 環球影城攻略',tips:'🎆 跨年特別活動！巫師魔法世界跨年倒數煙火'},
+      {time:'19:30',name:'晚餐 環球影城內',notes:'',tips:''},
+      {time:'00:00',name:'🎆 Happy New Year！2027',notes:'',tips:''},
+      {time:'01:00',name:'🚉 櫻島車站→近鐵日本橋',notes:'',tips:'跨年後人潮很多，耐心等車'},
+    ],
+    '2027-01-01':[
+      {time:'09:00',name:'早餐 飯店・難波周邊或超商',notes:'',tips:''},
+      {time:'10:00',name:'🚉 近鐵日本橋→櫻島車站',notes:'',tips:''},
+      {time:'10:30',name:'環球影城 第二天',notes:'詳見景點攻略 → 環球影城攻略',tips:'⚠️ 元旦人潮超多！提早到提早排，下載USJ官方App確認等候時間'},
+      {time:'13:00',name:'午餐 環球影城內',notes:'',tips:''},
+      {time:'17:00',name:'環球影城 離場',notes:'',tips:''},
+      {time:'18:00',name:'🚉 櫻島→近鐵日本橋',notes:'',tips:''},
+      {time:'19:00',name:'晚餐 環球周邊或大阪市區',notes:'可回心齋橋吃一頓犒賞自己',tips:''},
+    ],
+    '2027-01-02':[
+      {time:'08:00',name:'早餐 飯店・難波周邊或超商',notes:'',tips:''},
+      {time:'09:00',name:'飯店 check out',notes:'Nihobashi House nb-1\nCheck out 時間：10:00',tips:''},
+      {time:'09:30',name:'🚉 近鐵日本橋→住吉大社車站',notes:'搭南海電鐵或近鐵',tips:''},
+      {time:'09:45',name:'住吉大社 新年參拜',notes:'大阪最重要神社，元旦初詣超熱鬧',tips:'⚠️ 人多行李看好，反弓橋很難走小心腳步'},
+      {time:'11:00',name:'特定品牌福袋（如有目標）',notes:'事先查好品牌開賣時間與地點',tips:''},
+      {time:'11:30',name:'凹累（關西空港前一站）',notes:'AEON商場，最後補貨',tips:''},
+      {time:'16:00',name:'關西國際機場',notes:'班機：CI 0173\n19:00 關西第一航廈起飛→21:05 桃園第二航廈',tips:'⚠️ 至少提早2小時到達，暫訂16:00可視退稅狀況調整'},
+      {time:'21:05',name:'✈️ 桃園國際機場 抵達',notes:'平安回家！',tips:''},
+    ],
+  }
+};
+
+function _seedNagoyaOsaka() {
+  const seed = _NAGOYA_OSAKA_SEED;
+  let existing = S.trips.find(t => t.name === seed.name);
+  if (!existing) {
+    existing = newTripObj(seed.name, seed.destination, seed.startDate, seed.endDate);
+    S.trips.unshift(existing);
+    // 不改變 currentId，保留使用者原本選取的行程
+  }
+  let changed = false;
+  for (const [date, spots] of Object.entries(seed.days)) {
+    let day = existing.days.find(d => d.date === date);
+    if (!day) {
+      day = { id:uid(), date, spots:[] };
+      existing.days.push(day);
+      existing.days.sort((a,b) => a.date.localeCompare(b.date));
+    }
+    if (day.spots.length === 0) {
+      day.spots = spots.map(s => ({ ...s, id:uid(), openHours:'', mapUrl:'', mustBuy:[], photo:null, transitAfter:null }));
+      changed = true;
+    }
+  }
+  if (!existing.documents || existing.documents.length === 0) {
+    existing.documents = (seed.documents||[]).map(d => ({ ...d, id:uid(), photo:null }));
+    changed = true;
+  }
+  if (!existing.coupons || existing.coupons.length === 0) {
+    existing.coupons = (seed.coupons||[]).map(c => ({ ...c, id:uid(), images:[] }));
+    changed = true;
+  }
+  if (changed) save();
+}
       {time:'07:30',name:'早餐 名古屋車站周邊',notes:'名古屋車站地下街或出口附近有很多早餐選擇',tips:''},
       {time:'08:00',name:'🚉 名古屋車站出發',notes:'',tips:'搭名鐵瀨戶線往尾張瀨戶，約60分鐘'},
       {time:'09:00',name:'🚉 尾張瀨戶車站',notes:'',tips:''},
