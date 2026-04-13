@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>帳務分析 — 飛比特</title>
+<link rel="icon" href="favicon.svg">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+/* ── upload zone ── */
+.fd-upload{border:2px dashed var(--gray-300);border-radius:var(--radius);padding:48px 24px;text-align:center;cursor:pointer;transition:all 0.2s;background:white;margin-bottom:24px}
+.fd-upload:hover,.fd-upload.drag-over{border-color:var(--primary);background:var(--primary-light)}
+/* ── range tabs ── */
+.range-tabs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+.range-tab{padding:6px 18px;border-radius:20px;border:1px solid var(--gray-300);background:white;cursor:pointer;font-size:13px;transition:all 0.15s}
+.range-tab.active{background:var(--primary);color:white;border-color:var(--primary)}
+/* ── summary cards ── */
+.summary-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px}
+.sc{background:white;border-radius:var(--radius);padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.sc .sc-label{font-size:12px;color:var(--gray-600);margin-bottom:8px}
+.sc .sc-value{font-size:26px;font-weight:700}
+/* ── charts ── */
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px}
+.chart-card{background:white;border-radius:var(--radius);padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.chart-card.full{grid-column:1/-1}
+.chart-card h3{font-size:13px;font-weight:600;margin-bottom:14px;color:var(--gray-700)}
+/* ── validate ── */
+.validate-section{background:white;border-radius:var(--radius);padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.08);margin-bottom:24px}
+.vrow{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-top:12px}
+.vresult{margin-top:12px;padding:10px 14px;border-radius:var(--radius);font-size:13px;line-height:1.6}
+.vresult.ok{background:#dcfce7;color:#15803d}
+.vresult.err{background:#fee2e2;color:#b91c1c}
+/* ── table ── */
+.table-card{background:white;border-radius:var(--radius);padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.08);overflow-x:auto;margin-bottom:24px}
+.table-card table{width:100%;border-collapse:collapse;font-size:12px}
+.table-card th{background:var(--gray-50);padding:8px 10px;text-align:right;border-bottom:2px solid var(--gray-200);font-weight:600;white-space:nowrap}
+.table-card th:first-child{text-align:left}
+.table-card td{padding:7px 10px;border-bottom:1px solid var(--gray-100);text-align:right;white-space:nowrap}
+.table-card td:first-child{text-align:left;font-size:12px;color:var(--gray-700)}
+.table-card tr:hover td{background:var(--gray-50)}
+td.c-income{color:var(--success);font-weight:600}
+td.c-expense{color:var(--danger);font-weight:600}
+tr.total-row td{font-weight:700;background:var(--gray-100)!important;border-top:2px solid var(--gray-300)}
+/* ── modal ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal-box{background:white;border-radius:12px;padding:24px;width:600px;max-width:90vw;max-height:90vh;overflow-y:auto}
+/* ── unmapped warning ── */
+.unmapped-warn{background:#fef3c7;border:1px solid #d97706;border-radius:var(--radius);padding:12px 16px;font-size:12px;margin-bottom:16px;display:none}
+/* ── responsive ── */
+@media(max-width:768px){
+  .summary-cards{grid-template-columns:1fr 1fr}
+  .charts-grid{grid-template-columns:1fr}
+  .chart-card.full{grid-column:1}
+}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<div id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand">飛比特 Feebit</div>
+    <div class="sub">營運工具箱</div>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">總覽</div>
+    <a class="nav-item" href="index.html"><span class="icon">🏠</span> 首頁</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">財務</div>
+    <a class="nav-item" href="bank-converter.html"><span class="icon">🏦</span> 帳務轉換</a>
+    <a class="nav-item" href="accounting-ops.html"><span class="icon">📅</span> 例行帳務</a>
+    <a class="nav-item active" href="finance-dashboard.html"><span class="icon">📊</span> 帳務分析</a>
+    <a class="nav-item" href="coupang-invoice.html"><span class="icon">🧾</span> 酷澎發票轉檔</a>
+    <a class="nav-item" href="coupang-reconcile.html"><span class="icon">🔍</span> 酷澎商城對帳</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">庫存</div>
+    <a class="nav-item" href="stock-analysis.html"><span class="icon">📦</span> 庫存訂貨分析</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">研發</div>
+    <a class="nav-item" href="research-notes.html"><span class="icon">📚</span> 研發筆記</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">生活</div>
+    <a class="nav-item" href="travel-planner.html"><span class="icon">✈️</span> 旅行規劃</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">系統</div>
+    <a class="nav-item" href="tools.html"><span class="icon">🔧</span> 使用工具</a>
+  </div>
+  <div class="sidebar-footer">帳務分析 v1.0 · Feebit © 2026</div>
+</div>
+<div id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<!-- MAIN -->
+<div id="main">
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:10px">
+      <button class="hamburger" onclick="toggleSidebar()">☰</button>
+      <span class="topbar-title">帳務分析</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button class="btn btn-outline" onclick="openDbModal()" style="font-size:12px;padding:4px 10px">⚙️ 初始化DB</button>
+      <button class="btn btn-primary" onclick="document.getElementById('csv-input').click()" style="font-size:12px;padding:4px 12px">⬆ 上傳CSV</button>
+      <input type="file" id="csv-input" accept=".csv" style="display:none">
+      <span class="topbar-badge">v1.0</span>
+    </div>
+  </div>
+
+  <div class="page">
+
+    <!-- range tabs (always visible) -->
+    <div class="range-tabs">
+      <button class="range-tab active" data-range="month"  onclick="setRange(this,'month')">本月</button>
+      <button class="range-tab"        data-range="quarter" onclick="setRange(this,'quarter')">本季</button>
+      <button class="range-tab"        data-range="half"    onclick="setRange(this,'half')">半年</button>
+      <button class="range-tab"        data-range="year"    onclick="setRange(this,'year')">本年</button>
+      <button class="range-tab"        data-range="all"     onclick="setRange(this,'all')">全部</button>
+    </div>
+
+    <!-- upload zone -->
+    <div id="upload-zone" class="fd-upload">
+      <div style="font-size:48px;margin-bottom:12px">📂</div>
+      <div style="font-size:15px;font-weight:600;margin-bottom:8px">上傳 TWD2601 CSV 開始使用</div>
+      <div style="color:var(--gray-600);font-size:13px">拖曳或點擊上傳 Ragic 匯出的交易明細<br>資料自動存入資料庫，歷史紀錄永久保留，重複資料自動略過</div>
+    </div>
+
+    <!-- dashboard (hidden until data) -->
+    <div id="dashboard" style="display:none">
+
+      <!-- unmapped warning -->
+      <div id="unmapped-warn" class="unmapped-warn"></div>
+
+      <!-- summary cards -->
+      <div class="summary-cards">
+        <div class="sc"><div class="sc-label">💚 總收入</div><div class="sc-value" id="v-income" style="color:var(--success)">-</div></div>
+        <div class="sc"><div class="sc-label">🔴 總支出</div><div class="sc-value" id="v-expense" style="color:var(--danger)">-</div></div>
+        <div class="sc"><div class="sc-label">📊 淨利</div><div class="sc-value" id="v-profit">-</div></div>
+      </div>
+
+      <!-- charts -->
+      <div class="charts-grid">
+        <div class="chart-card">
+          <h3>支出類別佔比</h3>
+          <div style="height:280px;position:relative"><canvas id="pie-chart"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>月收支趨勢</h3>
+          <div style="height:280px;position:relative"><canvas id="line-chart"></canvas></div>
+        </div>
+        <div class="chart-card full">
+          <h3>年度淨利</h3>
+          <div style="height:180px;position:relative"><canvas id="bar-chart"></canvas></div>
+        </div>
+      </div>
+
+      <!-- validate -->
+      <div class="validate-section">
+        <div style="font-size:14px;font-weight:600">🔍 與 Google 表單核對</div>
+        <div class="vrow">
+          <div>
+            <div style="font-size:11px;color:var(--gray-600);margin-bottom:4px">Google表單 總收入（TWD）</div>
+            <input type="number" id="gs-income" placeholder="0" style="padding:7px 10px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:14px;width:200px">
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--gray-600);margin-bottom:4px">Google表單 總支出（TWD）</div>
+            <input type="number" id="gs-expense" placeholder="0" style="padding:7px 10px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:14px;width:200px">
+          </div>
+          <button class="btn btn-primary" onclick="doValidate()">核對</button>
+        </div>
+        <div id="vresult"></div>
+      </div>
+
+      <!-- monthly summary table -->
+      <div class="table-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <div style="font-size:14px;font-weight:600">月度類別彙總</div>
+          <button class="btn btn-outline" onclick="exportCSV()" style="font-size:12px;padding:4px 12px">⬇ 匯出 Google 表單格式</button>
+        </div>
+        <div id="summary-table"></div>
+      </div>
+
+    </div><!-- /dashboard -->
+  </div><!-- /page -->
+</div><!-- /main -->
+
+<!-- DB Setup Modal -->
+<div class="modal-overlay" id="db-modal">
+  <div class="modal-box">
+    <h3 style="margin-bottom:8px">⚙️ 初始化資料庫（第一次使用執行一次）</h3>
+    <p style="font-size:12px;color:var(--gray-600);margin-bottom:12px">到 Supabase → SQL Editor → 貼上以下 SQL 並執行</p>
+    <textarea id="db-sql" readonly style="width:100%;height:220px;font-size:11px;font-family:monospace;padding:10px;border:1px solid var(--gray-200);border-radius:var(--radius);background:var(--gray-50);resize:none"></textarea>
+    <div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end">
+      <button class="btn btn-outline" onclick="copySql()">複製 SQL</button>
+      <button class="btn btn-primary" onclick="closeDbModal()">關閉</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── SUPABASE ──
+const SB_URL  = 'https://tokhhoyzztaynppcatci.supabase.co';
+const SB_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRva2hob3l6enRheW5wcGNhdGNpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMDAyODMsImV4cCI6MjA5MDg3NjI4M30.PQB4lJGF3OMatv5wIedCu3zIWq0urrFbniBRYTbNtUU';
+const db = supabase.createClient(SB_URL, SB_KEY);
+
+// ── CATEGORY MAP: [主kw, 子kw, label] ──
+const CAT_MAP = [
+  ['銷售','蝦皮','銷售場/渠道-蝦皮'],['銷售','SHOPEE','銷售場/渠道-蝦皮'],
+  ['銷售','松果','銷售場/渠道-官網'],['銷售','泰好玩','銷售場/渠道-官網'],
+  ['銷售','iPASS','銷售場/渠道-官網'],['銷售','8160','銷售場/渠道-官網'],
+  ['銷售','官網','銷售場/渠道-官網'],
+  ['銷售','露天','銷售場/渠道-露天/露天商城'],
+  ['銷售','MOMO','銷售場/渠道-MOMO / MO商+'],['銷售','富邦','銷售場/渠道-MOMO / MO商+'],
+  ['銷售','寶雅','銷售場/渠道-寶雅'],
+  ['銷售','家樂福','銷售場/渠道-其他'],['銷售','公館','銷售場/渠道-其他'],
+  ['薪資','正職','薪資-正職&工讀'],['薪資','工讀','薪資-正職&工讀'],
+  ['薪資','外包費','薪資-外包'],
+  ['薪資','年終','年終'],['薪資','犒賞','犒賞'],
+  ['外包','廣告','外包-廣告'],['外包','美編','外包-美編'],['外包','社群','外包-社群'],
+  ['廣告','FB','FB廣告費'],['廣告','Google','Google廣告費'],['廣告','Line','Line中台費'],
+  ['貨運','新竹','新竹貨運'],['貨運','豪美','豪美貨運（加拿大貨運）'],['貨運','東風','東風'],
+  ['進貨','','進貨貨款'],
+  ['保費','勞保','勞保'],['保費','健保','健保'],['保費','代繳','代繳勞保'],
+  ['勞保','','勞保'],['健保','','健保'],
+  ['軟體','SHOPLINE','SHOPLINE加值/續約/費用'],['系統','SHOPLINE','SHOPLINE加值/續約/費用'],
+  ['軟體','ERP','ERP系統-數碼回饋'],
+  ['會計師','','會計師-正式'],
+  ['實體','帶貨','實體-帶貨'],
+  ['其他','加工','人事/加工'],['其他','現金匯款','現金匯款手續費'],
+  ['其他','環保','環保署申報'],['其他','責任險','產品責任險'],
+];
+function mapCat(m,s){
+  const ml=(m||'').toLowerCase(), sl=(s||'').toLowerCase();
+  for(const [mk,sk,cat] of CAT_MAP){
+    if(mk && ml.includes(mk.toLowerCase()))
+      if(!sk||sl.includes(sk.toLowerCase())) return cat;
+  }
+  return `【未對應】${m}${s?'/'+s:''}`;
+}
+
+// ── STATE ──
+let curRange='month', curData=[], pieC, lineC, barC;
+
+// ── RANGE ──
+function setRange(el, r){
+  curRange=r;
+  document.querySelectorAll('.range-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  loadData();
+}
+function getRangeDates(r){
+  const now=new Date(), today=now.toISOString().slice(0,10);
+  if(r==='month') return {from:new Date(now.getFullYear(),now.getMonth(),1).toISOString().slice(0,10),to:today};
+  if(r==='quarter'){const q=Math.floor(now.getMonth()/3);return{from:new Date(now.getFullYear(),q*3,1).toISOString().slice(0,10),to:today};}
+  if(r==='half'){const d=new Date(now);d.setMonth(d.getMonth()-6);return{from:d.toISOString().slice(0,10),to:today};}
+  if(r==='year') return {from:`${now.getFullYear()}-01-01`,to:today};
+  return {from:'2020-01-01',to:today};
+}
+
+// ── LOAD DATA ──
+async function loadData(){
+  const {from,to}=getRangeDates(curRange);
+  const {data,error}=await db.from('finance_transactions')
+    .select('txn_date,type,amount,gs_cat').gte('txn_date',from).lte('txn_date',to).order('txn_date');
+  if(error){console.error(error);return;}
+  curData=data||[];
+  const hasDash=document.getElementById('dashboard');
+  if(curData.length){
+    document.getElementById('upload-zone').style.display='none';
+    hasDash.style.display='block';
+    renderAll();
+  } else {
+    document.getElementById('upload-zone').style.display='block';
+    hasDash.style.display='none';
+  }
+}
+
+// ── RENDER ──
+function fmt(n){return'NT$ '+Math.round(n).toLocaleString('zh-TW');}
+function renderAll(){
+  const inc=curData.filter(r=>r.type==='收入'), exp=curData.filter(r=>r.type==='支出');
+  const tInc=inc.reduce((s,r)=>s+Number(r.amount),0);
+  const tExp=exp.reduce((s,r)=>s+Number(r.amount),0);
+  const net=tInc-tExp;
+  document.getElementById('v-income').textContent=fmt(tInc);
+  document.getElementById('v-expense').textContent=fmt(tExp);
+  const vp=document.getElementById('v-profit');
+  vp.textContent=(net>=0?'+':'')+fmt(net);
+  vp.style.color=net>=0?'var(--success)':'var(--danger)';
+  renderPie(exp); renderLine(); renderBar(); renderTable();
+  showUnmapped();
+}
+function showUnmapped(){
+  const un=[...new Set(curData.filter(r=>r.gs_cat?.startsWith('【未對應】')).map(r=>r.gs_cat))];
+  const el=document.getElementById('unmapped-warn');
+  if(un.length){el.style.display='block';el.innerHTML='⚠️ 以下類別未對應，請確認 CSV 格式或更新 CAT_MAP：<br>'+un.join(' / ');}
+  else el.style.display='none';
+}
+
+function renderPie(expenses){
+  const bycat={};
+  expenses.forEach(r=>{bycat[r.gs_cat]=(bycat[r.gs_cat]||0)+Number(r.amount);});
+  const sorted=Object.entries(bycat).sort((a,b)=>b[1]-a[1]).slice(0,14);
+  const COLORS=['#2563eb','#16a34a','#d97706','#dc2626','#7c3aed','#0891b2','#be185d','#065f46','#92400e','#0369a1','#15803d','#b45309','#6d28d9','#9f1239'];
+  if(pieC)pieC.destroy();
+  pieC=new Chart(document.getElementById('pie-chart'),{
+    type:'doughnut',
+    data:{labels:sorted.map(([k])=>k),datasets:[{data:sorted.map(([,v])=>v),backgroundColor:COLORS,borderWidth:2}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'right',labels:{font:{size:10},boxWidth:10,padding:6}},
+      tooltip:{callbacks:{label:c=>` ${c.label}: NT$${Math.round(c.raw).toLocaleString()}`}}}}
+  });
+}
+function renderLine(){
+  const mo={};
+  curData.forEach(r=>{
+    const ym=r.txn_date.slice(0,7);
+    if(!mo[ym])mo[ym]={i:0,e:0};
+    if(r.type==='收入')mo[ym].i+=Number(r.amount); else mo[ym].e+=Number(r.amount);
+  });
+  const months=Object.keys(mo).sort();
+  if(lineC)lineC.destroy();
+  lineC=new Chart(document.getElementById('line-chart'),{
+    type:'line',
+    data:{labels:months,datasets:[
+      {label:'收入',data:months.map(m=>mo[m].i),borderColor:'#16a34a',backgroundColor:'rgba(22,163,74,.1)',tension:.3,fill:true},
+      {label:'支出',data:months.map(m=>mo[m].e),borderColor:'#dc2626',backgroundColor:'rgba(220,38,38,.1)',tension:.3,fill:true}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'top',labels:{font:{size:11}}}},
+      scales:{y:{ticks:{callback:v=>'NT$'+(v/10000).toFixed(0)+'萬'}}}}
+  });
+}
+function renderBar(){
+  const yr={};
+  curData.forEach(r=>{
+    const y=r.txn_date.slice(0,4);
+    if(!yr[y])yr[y]={i:0,e:0};
+    if(r.type==='收入')yr[y].i+=Number(r.amount); else yr[y].e+=Number(r.amount);
+  });
+  const years=Object.keys(yr).sort();
+  const nets=years.map(y=>yr[y].i-yr[y].e);
+  if(barC)barC.destroy();
+  barC=new Chart(document.getElementById('bar-chart'),{
+    type:'bar',
+    data:{labels:years.map(y=>y+'年'),datasets:[{label:'年度淨利',data:nets,backgroundColor:nets.map(v=>v>=0?'#16a34a':'#dc2626'),borderRadius:6}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>'NT$'+Math.round(c.raw).toLocaleString()}}},
+      scales:{y:{ticks:{callback:v=>'NT$'+(v/10000).toFixed(0)+'萬'}}}}
+  });
+}
+function renderTable(){
+  const mo={}, cats=new Set();
+  curData.forEach(r=>{
+    const ym=r.txn_date.slice(0,7);
+    if(!mo[ym])mo[ym]={};
+    const k=r.gs_cat+'__'+r.type;
+    mo[ym][k]=(mo[ym][k]||0)+Number(r.amount);
+    cats.add(r.gs_cat);
+  });
+  const months=Object.keys(mo).sort(), catList=[...cats].sort();
+  let h='<table><thead><tr><th>類別</th>';
+  months.forEach(m=>h+=`<th colspan="2" style="text-align:center">${m}</th>`);
+  h+='</tr><tr><th></th>';
+  months.forEach(()=>h+='<th style="color:var(--success);font-size:10px">收入</th><th style="color:var(--danger);font-size:10px">支出</th>');
+  h+='</tr></thead><tbody>';
+  catList.forEach(cat=>{
+    h+=`<tr><td>${cat}</td>`;
+    months.forEach(m=>{
+      const i=mo[m]?.[cat+'__收入']||0, e=mo[m]?.[cat+'__支出']||0;
+      h+=`<td class="c-income">${i?i.toLocaleString():'-'}</td><td class="c-expense">${e?e.toLocaleString():'-'}</td>`;
+    });
+    h+='</tr>';
+  });
+  h+='<tr class="total-row"><td>合計</td>';
+  months.forEach(m=>{
+    const entries=Object.entries(mo[m]||{});
+    const ti=entries.filter(([k])=>k.endsWith('__收入')).reduce((s,[,v])=>s+v,0);
+    const te=entries.filter(([k])=>k.endsWith('__支出')).reduce((s,[,v])=>s+v,0);
+    h+=`<td class="c-income">${ti.toLocaleString()}</td><td class="c-expense">${te.toLocaleString()}</td>`;
+  });
+  h+='</tr></tbody></table>';
+  document.getElementById('summary-table').innerHTML=h;
+}
+
+// ── VALIDATE ──
+function doValidate(){
+  const gsi=parseFloat(document.getElementById('gs-income').value)||0;
+  const gse=parseFloat(document.getElementById('gs-expense').value)||0;
+  const ti=curData.filter(r=>r.type==='收入').reduce((s,r)=>s+Number(r.amount),0);
+  const te=curData.filter(r=>r.type==='支出').reduce((s,r)=>s+Number(r.amount),0);
+  const di=ti-gsi, de=te-gse, ok=Math.abs(di)<1&&Math.abs(de)<1;
+  const el=document.getElementById('vresult');
+  el.className='vresult '+(ok?'ok':'err');
+  el.innerHTML=ok?'✅ 完全相符！帳務正確。'
+    :`⚠️ 有差異，請確認<br>
+     收入：Ragic ${ti.toLocaleString()} ／ Google表單 ${gsi.toLocaleString()} → 差異 ${di>0?'+':''}${di.toLocaleString()}<br>
+     支出：Ragic ${te.toLocaleString()} ／ Google表單 ${gse.toLocaleString()} → 差異 ${de>0?'+':''}${de.toLocaleString()}`;
+}
+
+// ── EXPORT CSV ──
+function exportCSV(){
+  const mo={}, cats=new Set();
+  curData.forEach(r=>{
+    const ym=r.txn_date.slice(0,7);
+    if(!mo[ym])mo[ym]={};
+    const k=r.gs_cat+'__'+r.type;
+    mo[ym][k]=(mo[ym][k]||0)+Number(r.amount);
+    cats.add(r.gs_cat);
+  });
+  const months=Object.keys(mo).sort(), catList=[...cats].sort();
+  let csv='類別';
+  months.forEach(m=>{csv+=`,${m}_收入,${m}_支出`;});
+  csv+='\n';
+  catList.forEach(cat=>{
+    csv+=cat;
+    months.forEach(m=>{csv+=`,${mo[m]?.[cat+'__收入']||0},${mo[m]?.[cat+'__支出']||0}`;});
+    csv+='\n';
+  });
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}));
+  a.download=`feebit_月度彙總_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+}
+
+// ── FILE UPLOAD ──
+document.getElementById('csv-input').addEventListener('change',e=>handleFile(e.target.files[0]));
+const uploadZone=document.getElementById('upload-zone');
+uploadZone.addEventListener('click',()=>document.getElementById('csv-input').click());
+uploadZone.addEventListener('dragover',e=>{e.preventDefault();uploadZone.classList.add('drag-over');});
+uploadZone.addEventListener('dragleave',()=>uploadZone.classList.remove('drag-over'));
+uploadZone.addEventListener('drop',e=>{e.preventDefault();uploadZone.classList.remove('drag-over');handleFile(e.dataTransfer.files[0]);});
+
+async function handleFile(file){
+  if(!file)return;
+  const btn=document.querySelector('.topbar .btn-primary');
+  btn.textContent='⏳ 上傳中...'; btn.disabled=true;
+  try{
+    const rows=parseCSV(await file.text());
+    if(!rows.length){alert('CSV格式有問題');return;}
+    const records=rows.map(r=>({
+      txn_date:fmtDate(r['交易日期']||Object.values(r)[0]),
+      type:r['收入/支出']||r['收支']||'',
+      currency:r['幣別']||'TWD',
+      amount:parseFloat(r['前幣金額']||r['金額']||0),
+      main_cat:r['主項目']||'',
+      sub_cat:r['子項目']||'',
+      gs_cat:mapCat(r['主項目']||'',r['子項目']||''),
+      payee:r['收款人']||'',
+      description:r['描述']||'',
+      file_name:file.name,
+    })).filter(r=>r.txn_date&&r.amount);
+    const{error}=await db.from('finance_transactions')
+      .upsert(records,{onConflict:'txn_date,type,amount,payee,description',ignoreDuplicates:true});
+    if(error)throw error;
+    alert(`✅ 匯入 ${records.length} 筆，重複資料自動略過`);
+    loadData();
+  }catch(e){alert('上傳失敗：'+e.message);}
+  finally{btn.textContent='⬆ 上傳CSV';btn.disabled=false;}
+}
+function fmtDate(d){
+  if(!d)return null;
+  const s=String(d).replace(/\D/g,'');
+  return s.length===8?`${s.slice(0,4)}-${s.slice(4,6)}-${s.slice(6,8)}`:String(d);
+}
+function parseCSV(text){
+  const lines=text.trim().split('\n').filter(l=>l.trim());
+  if(!lines.length)return[];
+  const raw=lines[0];
+  const hdrs=(raw.charCodeAt(0)===0xFEFF?raw.slice(1):raw).split(',').map(h=>h.trim().replace(/"/g,''));
+  return lines.slice(1).map(l=>{
+    const cols=l.split(',').map(c=>c.trim().replace(/"/g,''));
+    const o={};hdrs.forEach((h,i)=>o[h]=cols[i]||'');return o;
+  });
+}
+
+// ── DB MODAL ──
+document.getElementById('db-sql').value=`-- 在 Supabase SQL Editor 執行一次
+CREATE TABLE IF NOT EXISTS finance_transactions (
+  id bigserial PRIMARY KEY,
+  txn_date date NOT NULL,
+  type text NOT NULL,
+  currency text DEFAULT 'TWD',
+  amount numeric NOT NULL,
+  main_cat text,
+  sub_cat text,
+  gs_cat text,
+  payee text,
+  description text,
+  file_name text,
+  uploaded_at timestamptz DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS finance_txn_uq
+  ON finance_transactions(txn_date, type, amount, payee, description);
+ALTER TABLE finance_transactions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "allow_all" ON finance_transactions FOR ALL USING (true) WITH CHECK (true);`;
+
+function openDbModal(){document.getElementById('db-modal').classList.add('open');}
+function closeDbModal(){document.getElementById('db-modal').classList.remove('open');}
+function copySql(){
+  navigator.clipboard.writeText(document.getElementById('db-sql').value);
+  const b=event.target;b.textContent='✅ 已複製';setTimeout(()=>b.textContent='複製 SQL',2000);
+}
+document.getElementById('db-modal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeDbModal();});
+
+// ── SIDEBAR ──
+function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('sidebar-overlay').classList.toggle('active');}
+function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sidebar-overlay').classList.remove('active');}
+
+// ── INIT ──
+loadData();
+</script>
+</body>
+</html>
