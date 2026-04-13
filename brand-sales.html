@@ -345,7 +345,7 @@
     <div class="upload-zone" id="upload-zone">
       <div class="upload-icon">📈</div>
       <div class="upload-title">上傳商品銷售報表</div>
-      <div class="upload-sub">支援蝦皮後台「商品績效」匯出的 CSV 檔案</div>
+      <div class="upload-sub">支援官網後台「商品績效」匯出的 CSV 檔案</div>
       <input type="file" id="file-input" accept=".csv" onchange="handleFile(event)">
       <button class="btn-upload" onclick="document.getElementById('file-input').click()">選擇 CSV 檔案</button>
     </div>
@@ -545,53 +545,70 @@ function handleFile(evt) {
 }
 
 function parseFile(file) {
-  Papa.parse(file, {
-    encoding: 'UTF-8',
-    skipEmptyLines: true,
-    complete: r => processData(r.data),
-    error:    e => alert('CSV 解析失敗：' + e.message),
-  });
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      // Strip UTF-8 BOM if present
+      let text = e.target.result.replace(/^\uFEFF/, '');
+      const result = Papa.parse(text, { skipEmptyLines: true });
+      processData(result.data);
+    } catch (err) {
+      alert('解析失敗：' + err.message);
+    }
+  };
+  reader.onerror = () => alert('檔案讀取失敗，請重試');
+  reader.readAsText(file, 'UTF-8');
 }
 
 // ══════════════════════════════════════════
 // Data processing
 // ══════════════════════════════════════════
 function processData(rows) {
-  let period = '';
-  let hi = 0; // header row index
-
-  // Detect date-range row (first row, not "No.")
-  if (rows[0] && rows[0][0] !== 'No.' && rows[0][0] !== 'no.') {
-    const raw = rows[0].filter(Boolean).join(' ');
-    period = raw.replace('分析日期範圍', '').replace(/,/g, '').trim();
-    hi = 1;
+  if (!rows || rows.length === 0) {
+    alert('CSV 內容為空，請確認檔案格式');
+    return;
   }
 
-  // Find actual header row
-  while (hi < rows.length && rows[hi][0] !== 'No.' && rows[hi][0] !== 'no.') hi++;
+  // Find header row by locating 'No.' in first column (case-insensitive, BOM-safe)
+  const hi = rows.findIndex(r => r && r[0] && r[0].replace(/^\uFEFF/, '').trim().toUpperCase() === 'NO.');
 
-  // Detect column indices from header
-  const hdr = rows[hi] || [];
+  if (hi === -1) {
+    alert('找不到標題列（No. 欄），請確認是否為商品績效 CSV 格式');
+    return;
+  }
+
+  // Extract period from rows before header
+  let period = '';
+  for (let i = 0; i < hi; i++) {
+    const text = (rows[i] || []).filter(Boolean).join(' ');
+    if (text.trim()) { period = text.replace(/分析日期範圍/g, '').replace(/,/g, '').trim(); break; }
+  }
+
+  // Detect column indices from header (flexible matching)
+  const hdr = rows[hi];
   const col = { no: 0, name: 1, type: 2, orders: 5, sales: 6 };
   hdr.forEach((h, i) => {
-    const v = h.trim();
-    if (v === 'No.' || v === 'no.')           col.no     = i;
-    if (v.includes('商品名'))                 col.name   = i;
-    if (v.includes('成交訂單') || v === '成交量') col.orders = i;
-    if (v.includes('成交淨額') || v.includes('成交金額')) col.sales  = i;
+    const v = (h || '').trim();
+    if (/^no\.?$/i.test(v))                             col.no     = i;
+    if (v === '商品' || v === '商品名稱' || v === '商品名') col.name   = i;
+    if (v === '商品類型' || v === '類型')                  col.type   = i;
+    if (/成交.*(訂單|量)/.test(v) || v === '成交量')       col.orders = i;
+    if (/成交.*淨額/.test(v) || /成交.*金額/.test(v))       col.sales  = i;
   });
 
   const products = [], negative = [];
+  const minCols = Math.max(col.no, col.name, col.orders, col.sales) + 1;
 
   for (let i = hi + 1; i < rows.length; i++) {
     const row = rows[i];
-    if (!row || row.length < 6) continue;
+    if (!row || row.length < minCols) continue;
 
-    const no     = (row[col.no]   || '').trim();
-    const name   = (row[col.name] || '').trim();
-    const type   = (row[col.type] || '').trim();
-    const orders = parseInt(row[col.orders])  || 0;
-    const sales  = parseFloat(row[col.sales]) || 0;
+    const no     = String(row[col.no]   || '').trim();
+    const name   = String(row[col.name] || '').trim();
+    const type   = String(row[col.type] || '').trim();
+    const orders = parseInt(String(row[col.orders] || '').replace(/,/g, ''), 10) || 0;
+    const sales  = parseFloat(String(row[col.sales] || '').replace(/,/g, '')) || 0;
+    if (!no || !name) continue;
 
     // Skip totals row
     if (no === '0' || name === '全部商品') continue;
