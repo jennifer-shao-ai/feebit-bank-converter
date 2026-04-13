@@ -441,21 +441,13 @@ async function handleFile(file){
   const btn=document.querySelector('.topbar .btn-primary');
   btn.textContent='⏳ 上傳中...'; btn.disabled=true;
   try{
-    const rawText=await file.text();
-    const rows=parseCSV(rawText);
+    const rows=parseCSV(await file.text());
     if(!rows.length){alert('CSV格式有問題');return;}
-    // DEBUG
-    const firstRow=rows[0];
-    const keys=Object.keys(firstRow);
-    const sample=rows.slice(0,2).map(r=>JSON.stringify(r));
-    console.log('欄位名稱:', keys);
-    console.log('前2筆:', sample);
-    alert(`DEBUG\n欄位: ${keys.join(' | ')}\n\n第1筆:\n交易日期=${JSON.stringify(firstRow['交易日期'])}\n交易類別=${JSON.stringify(firstRow['交易類別'])}\n主幣別金額=${JSON.stringify(firstRow['主幣別金額'])}`);
     const records=rows.map(r=>({
       txn_date:fmtDate(r['交易日期']),
-      type:r['收入/支出']||r['收支']||(r['交易類別']?.includes('收入')?'收入':r['交易類別']?.includes('支出')?'支出':''),
+      type:(()=>{const t=r['收入/支出']||r['收支']||r['交易類別']||'';if(t.includes('收入'))return'收入';if(t.includes('支出'))return'支出';return t;})(),
       currency:r['幣別']||r['帳戶幣別']||'TWD',
-      amount:parseFloat(r['前幣金額']||r['主幣別金額']||r['金額']||0),
+      amount:parseFloat(r['原幣金額']||r['前幣金額']||r['計算用金額']||r['金額']||0),
       main_cat:r['主項目']||'',
       sub_cat:r['子項目']||'',
       gs_cat:mapCat(r['主項目']||'',r['子項目']||''),
