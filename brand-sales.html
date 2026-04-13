@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>品牌銷售分析 · 飛比特</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans TC', sans-serif;
+      background: #f4f5f7;
+      color: #1a1a2e;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    .header {
+      background: #1a1a2e;
+      color: white;
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,.3);
+    }
+    .header-back {
+      color: rgba(255,255,255,.6);
+      text-decoration: none;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .header-back:hover { color: white; }
+    .header-divider { color: rgba(255,255,255,.3); }
+    .header h1 { font-size: 17px; font-weight: 600; }
+    .header-actions { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+    .period-badge {
+      background: rgba(79,70,229,.35);
+      color: #a5b4fc;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    /* ── Container ── */
+    .container { max-width: 1200px; margin: 0 auto; padding: 28px 24px; }
+
+    /* ── Upload ── */
+    #upload-section { display: flex; justify-content: center; align-items: center; min-height: calc(100vh - 52px); }
+    .upload-card {
+      background: white;
+      border-radius: 16px;
+      padding: 56px 48px;
+      text-align: center;
+      max-width: 520px;
+      width: 100%;
+      box-shadow: 0 4px 24px rgba(0,0,0,.08);
+    }
+    .upload-zone {
+      border: 2px dashed #d1d5db;
+      border-radius: 12px;
+      padding: 40px 24px;
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+      margin-bottom: 20px;
+    }
+    .upload-zone:hover, .upload-zone.drag-over {
+      border-color: #4f46e5;
+      background: #f5f3ff;
+    }
+    .upload-icon { font-size: 52px; margin-bottom: 16px; }
+    .upload-title { font-size: 20px; font-weight: 700; margin-bottom: 8px; color: #1a1a2e; }
+    .upload-sub { font-size: 14px; color: #6b7280; line-height: 1.6; }
+    .upload-hint { font-size: 12px; color: #9ca3af; margin-top: 16px; line-height: 1.6; }
+    #file-input { display: none; }
+    .btn-upload {
+      display: inline-block;
+      margin-top: 20px;
+      padding: 10px 24px;
+      background: #4f46e5;
+      color: white;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+    }
+    .btn-upload:hover { background: #4338ca; }
+
+    /* ── Dashboard ── */
+    #dashboard-section { display: none; }
+
+    /* ── Cards ── */
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 18px 20px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.07);
+    }
+    .card-label { font-size: 12px; color: #6b7280; margin-bottom: 6px; font-weight: 500; }
+    .card-value { font-size: 26px; font-weight: 800; color: #1a1a2e; line-height: 1; }
+    .card-sub { font-size: 12px; color: #9ca3af; margin-top: 6px; }
+    .card-warn { color: #ef4444; font-weight: 600; }
+
+    /* ── Tabs ── */
+    .tabs { display: flex; gap: 0; border-bottom: 2px solid #e5e7eb; margin-bottom: 20px; }
+    .tab {
+      padding: 10px 20px;
+      cursor: pointer;
+      font-size: 14px;
+      color: #6b7280;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      transition: color .15s;
+      user-select: none;
+    }
+    .tab:hover { color: #4f46e5; }
+    .tab.active { color: #4f46e5; border-bottom-color: #4f46e5; font-weight: 600; }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* ── Table wrapper ── */
+    .table-wrap {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.07);
+      overflow: hidden;
+    }
+    .table-header {
+      padding: 14px 20px;
+      border-bottom: 1px solid #f3f4f6;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .table-header h3 { font-size: 15px; font-weight: 700; }
+    .table-hint { font-size: 12px; color: #9ca3af; }
+
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      background: #f9fafb;
+      padding: 10px 16px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 700;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      border-bottom: 1px solid #f3f4f6;
+      white-space: nowrap;
+    }
+    tbody td {
+      padding: 10px 16px;
+      font-size: 13px;
+      border-bottom: 1px solid #f9fafb;
+      vertical-align: middle;
+    }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover td { background: #fafafa; }
+
+    /* ── Rank badge ── */
+    .rank {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #f3f4f6;
+      font-size: 12px;
+      font-weight: 700;
+      color: #6b7280;
+    }
+    .rank.r1 { background: #fef3c7; color: #92400e; }
+    .rank.r2 { background: #e5e7eb; color: #374151; }
+    .rank.r3 { background: #ffedd5; color: #9a3412; }
+
+    /* ── Brand name edit ── */
+    .brand-cell { display: flex; align-items: center; gap: 6px; }
+    .brand-text { font-weight: 600; }
+    .edit-btn {
+      opacity: 0;
+      background: none;
+      border: 1px solid #e5e7eb;
+      border-radius: 4px;
+      padding: 2px 7px;
+      font-size: 11px;
+      color: #6b7280;
+      cursor: pointer;
+      transition: opacity .15s;
+      white-space: nowrap;
+    }
+    tbody tr:hover .edit-btn { opacity: 1; }
+    .edit-btn:hover { border-color: #4f46e5; color: #4f46e5; }
+
+    .brand-edit-input {
+      border: 1px solid #4f46e5;
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 13px;
+      font-weight: 600;
+      width: 200px;
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(79,70,229,.15);
+    }
+    .edit-hint {
+      font-size: 11px;
+      color: #9ca3af;
+      white-space: nowrap;
+    }
+
+    /* ── Sales bar ── */
+    .sales-cell { display: flex; align-items: center; gap: 10px; }
+    .bar-track { width: 100px; height: 6px; background: #f3f4f6; border-radius: 3px; flex-shrink: 0; }
+    .bar-fill { height: 6px; border-radius: 3px; background: #4f46e5; }
+    .sales-num { font-weight: 700; font-size: 14px; }
+    .sales-pct { font-size: 11px; color: #9ca3af; }
+
+    /* ── Product brand select ── */
+    .brand-select {
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-size: 12px;
+      background: white;
+      color: #374151;
+      cursor: pointer;
+      max-width: 180px;
+      width: 100%;
+    }
+    .brand-select:focus { outline: none; border-color: #4f46e5; }
+
+    /* ── Negative sales ── */
+    .alert-banner {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+    .alert-banner-icon { font-size: 18px; flex-shrink: 0; }
+    .alert-banner p { font-size: 13px; color: #991b1b; line-height: 1.6; }
+    .neg-amount { color: #ef4444; font-weight: 700; }
+
+    /* ── Toolbar ── */
+    .toolbar { display: flex; align-items: center; gap: 8px; }
+    .btn {
+      padding: 7px 14px;
+      border-radius: 7px;
+      font-size: 13px;
+      cursor: pointer;
+      border: none;
+      font-weight: 500;
+      transition: background .15s;
+    }
+    .btn-ghost {
+      background: transparent;
+      color: #6b7280;
+      border: 1px solid #e5e7eb;
+    }
+    .btn-ghost:hover { background: #f9fafb; color: #374151; }
+    .btn-primary {
+      background: #4f46e5;
+      color: white;
+    }
+    .btn-primary:hover { background: #4338ca; }
+
+    .search-input {
+      border: 1px solid #e5e7eb;
+      border-radius: 7px;
+      padding: 7px 12px;
+      font-size: 13px;
+      width: 220px;
+    }
+    .search-input:focus { outline: none; border-color: #4f46e5; }
+
+    /* ── Name column ── */
+    .product-name {
+      max-width: 380px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* ── Empty state ── */
+    .empty-state {
+      padding: 48px;
+      text-align: center;
+      color: #9ca3af;
+      font-size: 14px;
+    }
+
+    /* ── Pct count badge ── */
+    .count-badge {
+      background: #f3f4f6;
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-size: 11px;
+      color: #6b7280;
+    }
+
+    @media (max-width: 860px) {
+      .cards { grid-template-columns: repeat(2, 1fr); }
+      .bar-track { display: none; }
+      .container { padding: 16px 12px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══ Header ══ -->
+<div class="header">
+  <a class="header-back" href="index.html">← 返回儀表板</a>
+  <span class="header-divider">/</span>
+  <h1>📊 品牌銷售分析</h1>
+  <div class="header-actions">
+    <span id="period-badge" class="period-badge" style="display:none"></span>
+    <button id="copy-btn" class="btn btn-ghost" style="display:none" onclick="copyRanking()">複製排行</button>
+    <button id="reset-btn" class="btn btn-ghost" style="display:none" onclick="resetAll()">重新上傳</button>
+  </div>
+</div>
+
+<!-- ══ Upload ══ -->
+<div id="upload-section">
+  <div class="upload-card">
+    <div class="upload-zone" id="upload-zone">
+      <div class="upload-icon">📈</div>
+      <div class="upload-title">上傳商品銷售報表</div>
+      <div class="upload-sub">支援蝦皮後台「商品績效」匯出的 CSV 檔案</div>
+      <input type="file" id="file-input" accept=".csv" onchange="handleFile(event)">
+      <button class="btn-upload" onclick="document.getElementById('file-input').click()">選擇 CSV 檔案</button>
+    </div>
+    <div class="upload-hint">
+      ✅ 自動移除銷量為 0 的商品<br>
+      ✅ 自動偵測品牌並加總銷售額<br>
+      ✅ 支援手動調整品牌分類<br>
+      ⚠️ 負數銷售額將單獨列出，不計入加總
+    </div>
+  </div>
+</div>
+
+<!-- ══ Dashboard ══ -->
+<div id="dashboard-section">
+  <div class="container">
+
+    <!-- Summary Cards -->
+    <div class="cards" id="cards"></div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <div class="tab active" data-tab="brand-tab" onclick="switchTab(this)">品牌排行</div>
+      <div class="tab" data-tab="product-tab" onclick="switchTab(this)">商品明細</div>
+      <div class="tab" id="neg-tab" data-tab="negative-tab" onclick="switchTab(this)" style="display:none">⚠️ 負數銷售</div>
+    </div>
+
+    <!-- Brand Tab -->
+    <div id="brand-tab" class="tab-content active">
+      <div class="table-wrap">
+        <div class="table-header">
+          <h3>品牌銷售排行（由高到低）</h3>
+          <span class="table-hint">點擊「編輯」可重新命名 / 合併品牌，支援輸入現有品牌名稱以合併</span>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th style="width:54px">排名</th>
+              <th>品牌</th>
+              <th style="width:90px">商品數</th>
+              <th style="width:260px">銷售額</th>
+              <th style="width:90px">成交筆</th>
+            </tr>
+          </thead>
+          <tbody id="brand-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Product Tab -->
+    <div id="product-tab" class="tab-content">
+      <div class="table-wrap">
+        <div class="table-header">
+          <h3>商品明細</h3>
+          <div class="toolbar">
+            <input class="search-input" id="search" placeholder="搜尋商品名稱或品牌…" oninput="renderProductTable()">
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th style="width:50px">No.</th>
+              <th>商品名稱</th>
+              <th style="width:200px">品牌（可修改）</th>
+              <th style="width:80px">成交筆</th>
+              <th style="width:120px">銷售額</th>
+            </tr>
+          </thead>
+          <tbody id="product-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Negative Tab -->
+    <div id="negative-tab" class="tab-content">
+      <div class="alert-banner">
+        <div class="alert-banner-icon">⚠️</div>
+        <p>以下商品銷售額為<strong>負數</strong>（可能為退款或資料異常），<strong>不計入品牌銷售總額</strong>，請逐筆確認。</p>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:50px">No.</th>
+              <th>商品名稱</th>
+              <th style="width:180px">品牌</th>
+              <th style="width:80px">成交筆</th>
+              <th style="width:120px">銷售額</th>
+            </tr>
+          </thead>
+          <tbody id="negative-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+// State
+// ══════════════════════════════════════════
+const state = {
+  products: [],    // { no, name, type, orders, sales, autoBrand }
+  negative: [],    // same shape, sales < 0
+  brandMap: {},    // { no: overrideBrand }
+  period: '',
+  editingBrand: null,
+};
+
+// ══════════════════════════════════════════
+// Known brand list (longest-first for match priority)
+// ══════════════════════════════════════════
+const KNOWN_BRANDS = [
+  'PURITO SEOUL', 'NINE LESS', 'W.DRESSROOM', 'Dr.SEED', 'Dr. SEED',
+  'MARY&MAY', 'MEDI-PEEL', 'Be The Skin', 'One-days you',
+  'DR. BOTANICALS', 'Too Cool For School', 'Just For You',
+  'Beauty of Joseon', 'Mise-En-Scène', 'SOMEBYMI', 'SOME BY MI',
+  'Etude house', 'Etude House', 'John\'s Blend', 'Real Barrier',
+  'Skin 1004', 'AXIS-Y', 'rom&nd', 'Rom&nd', 'ILLIYOON',
+  'G.Life', 'COSRX', 'Torriden', 'Athens', 'TOCOBO', 'TOCOBP',
+  'Qure', 'BARULAB', 'Medicube', 'KUNDAL', 'KUNSAL', 'innisfree',
+  'LINDSAY', 'OOTD', 'BY_OUR', 'Peripera', 'MISSHA', 'SOTHING',
+  'AHC', 'mixsoon', 'NEOGEN', 'BENTON', 'FRUDIA', 'Jumiso',
+  'CNP', 'Elizavecca', 'Heimish', 'TIAM', 'FRANKLY', '龍根本',
+  'RYO', 'Nongshim', 'NONGSHIM', 'TSUBAKI', 'OTTOGI', 'efilow',
+  'EFILOW', 'LEMONA', 'CHOBS', 'Sofuz', 'saeip', '9wishes',
+  'FRANK', 'VT Cosmetics', 'CLIO', 'Apieu', 'BOUQUET GARNI',
+  'AXIS Y', 'V4U鳶鳥禮', 'delphyr', 'TONI&GUY', 'BIFIDA',
+  'Etude', 'KUNSAL', 'MixSoon',
+];
+
+// Normalize variants to canonical name
+const NORMALIZE = {
+  'Dr. SEED':   'Dr.SEED',
+  'Rom&nd':     'rom&nd',
+  'SOME BY MI': 'SOMEBYMI',
+  'Etude House':'Etude house',
+  'TOCOBP':     'TOCOBO',
+  'AXIS Y':     'AXIS-Y',
+};
+
+// ══════════════════════════════════════════
+// Brand extraction
+// ══════════════════════════════════════════
+function extractBrand(name) {
+  let s = name.trim();
+
+  // Strip 【...】〔...〕[...] from the front
+  s = s.replace(/^(【[^】]*】\s*|〔[^〕]*〕\s*|\[[^\]]*\]\s*)+/, '').trim();
+
+  // Strip leading emoji / symbols (anything that's not letter/CJK/digit)
+  s = s.replace(/^[^\w\u4e00-\u9fff\u3040-\u30ff]+/, '').trim();
+
+  // Strip Chinese promotional prefixes
+  s = s.replace(/^(精選|加購品?)\s*/, '').trim();
+
+  // Match known brands (longest first)
+  const sorted = [...KNOWN_BRANDS].sort((a, b) => b.length - a.length);
+  for (const brand of sorted) {
+    if (s.startsWith(brand)) return NORMALIZE[brand] || brand;
+    // English brands: case-insensitive
+    if (/^[A-Za-z]/.test(brand) && s.toLowerCase().startsWith(brand.toLowerCase()))
+      return NORMALIZE[brand] || brand;
+  }
+
+  // Fallback: leading English token
+  const eng = s.match(/^([A-Za-z][A-Za-z0-9&._\-]*)/);
+  if (eng && eng[1].length >= 2) return NORMALIZE[eng[1]] || eng[1];
+
+  // Fallback: leading CJK chars
+  const cjk = s.match(/^([\u4e00-\u9fff]{2,5})/);
+  if (cjk) return cjk[1];
+
+  return s.split(/[\s,，+&]/)[0] || '未分類';
+}
+
+// ══════════════════════════════════════════
+// File upload
+// ══════════════════════════════════════════
+document.getElementById('upload-zone').addEventListener('dragover', e => {
+  e.preventDefault();
+  e.currentTarget.classList.add('drag-over');
+});
+document.getElementById('upload-zone').addEventListener('dragleave', e => {
+  e.currentTarget.classList.remove('drag-over');
+});
+document.getElementById('upload-zone').addEventListener('drop', e => {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  const f = e.dataTransfer.files[0];
+  if (f) parseFile(f);
+});
+
+function handleFile(evt) {
+  const f = evt.target.files[0];
+  if (f) parseFile(f);
+}
+
+function parseFile(file) {
+  Papa.parse(file, {
+    encoding: 'UTF-8',
+    skipEmptyLines: true,
+    complete: r => processData(r.data),
+    error:    e => alert('CSV 解析失敗：' + e.message),
+  });
+}
+
+// ══════════════════════════════════════════
+// Data processing
+// ══════════════════════════════════════════
+function processData(rows) {
+  let period = '';
+  let hi = 0; // header row index
+
+  // Detect date-range row (first row, not "No.")
+  if (rows[0] && rows[0][0] !== 'No.' && rows[0][0] !== 'no.') {
+    const raw = rows[0].filter(Boolean).join(' ');
+    period = raw.replace('分析日期範圍', '').replace(/,/g, '').trim();
+    hi = 1;
+  }
+
+  // Find actual header row
+  while (hi < rows.length && rows[hi][0] !== 'No.' && rows[hi][0] !== 'no.') hi++;
+
+  // Detect column indices from header
+  const hdr = rows[hi] || [];
+  const col = { no: 0, name: 1, type: 2, orders: 5, sales: 6 };
+  hdr.forEach((h, i) => {
+    const v = h.trim();
+    if (v === 'No.' || v === 'no.')           col.no     = i;
+    if (v.includes('商品名'))                 col.name   = i;
+    if (v.includes('成交訂單') || v === '成交量') col.orders = i;
+    if (v.includes('成交淨額') || v.includes('成交金額')) col.sales  = i;
+  });
+
+  const products = [], negative = [];
+
+  for (let i = hi + 1; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row || row.length < 6) continue;
+
+    const no     = (row[col.no]   || '').trim();
+    const name   = (row[col.name] || '').trim();
+    const type   = (row[col.type] || '').trim();
+    const orders = parseInt(row[col.orders])  || 0;
+    const sales  = parseFloat(row[col.sales]) || 0;
+
+    // Skip totals row
+    if (no === '0' || name === '全部商品') continue;
+    // Skip zero-sales items
+    if (orders === 0 && sales === 0) continue;
+
+    const autoBrand = extractBrand(name);
+    const item = { no, name, type, orders, sales, autoBrand };
+
+    if (sales < 0) negative.push(item);
+    else           products.push(item);
+  }
+
+  state.products     = products;
+  state.negative     = negative;
+  state.brandMap     = {};
+  state.period       = period || '本月報表';
+  state.editingBrand = null;
+
+  showDashboard();
+}
+
+// ══════════════════════════════════════════
+// Helpers
+// ══════════════════════════════════════════
+function getBrand(p) {
+  return state.brandMap[p.no] || p.autoBrand;
+}
+
+function computeGroups() {
+  const m = {};
+  for (const p of state.products) {
+    const b = getBrand(p);
+    if (!m[b]) m[b] = { brand: b, sales: 0, orders: 0, count: 0 };
+    m[b].sales  += p.sales;
+    m[b].orders += p.orders;
+    m[b].count  += 1;
+  }
+  return Object.values(m).sort((a, b) => b.sales - a.sales);
+}
+
+function allBrandNames() {
+  return [...new Set(state.products.map(getBrand))].sort();
+}
+
+function esc(s) {
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+    .replace(/'/g,'&#039;');
+}
+
+// ══════════════════════════════════════════
+// Render: Dashboard show
+// ══════════════════════════════════════════
+function showDashboard() {
+  document.getElementById('upload-section').style.display   = 'none';
+  document.getElementById('dashboard-section').style.display = 'block';
+  document.getElementById('reset-btn').style.display  = '';
+  document.getElementById('copy-btn').style.display   = '';
+
+  const pb = document.getElementById('period-badge');
+  pb.textContent = state.period;
+  pb.style.display = '';
+
+  if (state.negative.length > 0) {
+    document.getElementById('neg-tab').style.display = '';
+  }
+
+  renderAll();
+}
+
+function renderAll() {
+  renderCards();
+  renderBrandTable();
+  renderProductTable();
+  renderNegativeTable();
+}
+
+// ══════════════════════════════════════════
+// Render: Summary cards
+// ══════════════════════════════════════════
+function renderCards() {
+  const groups = computeGroups();
+  const total  = groups.reduce((s, g) => s + g.sales, 0);
+  const orders = state.products.reduce((s, p) => s + p.orders, 0);
+  const negStr = state.negative.length
+    ? `<span class="card-warn"> + ⚠️ ${state.negative.length} 件負數</span>` : '';
+
+  document.getElementById('cards').innerHTML = `
+    <div class="card">
+      <div class="card-label">當月總銷售額</div>
+      <div class="card-value">NT$ ${total.toLocaleString()}</div>
+      <div class="card-sub">不含負數銷售</div>
+    </div>
+    <div class="card">
+      <div class="card-label">成交筆數</div>
+      <div class="card-value">${orders}</div>
+      <div class="card-sub">筆</div>
+    </div>
+    <div class="card">
+      <div class="card-label">有銷售商品數</div>
+      <div class="card-value">${state.products.length}</div>
+      <div class="card-sub">件正數商品${negStr}</div>
+    </div>
+    <div class="card">
+      <div class="card-label">品牌數</div>
+      <div class="card-value">${groups.length}</div>
+      <div class="card-sub">個品牌</div>
+    </div>
+  `;
+}
+
+// ══════════════════════════════════════════
+// Render: Brand table
+// ══════════════════════════════════════════
+function renderBrandTable() {
+  const groups = computeGroups();
+  const total  = groups.reduce((s, g) => s + g.sales, 0) || 1;
+  const maxS   = groups[0]?.sales || 1;
+  const brands = allBrandNames();
+  const opts   = brands.map(b => `<option value="${esc(b)}">`).join('');
+
+  document.getElementById('brand-tbody').innerHTML = groups.map((g, i) => {
+    const rk = i + 1;
+    const rc = rk === 1 ? 'r1' : rk === 2 ? 'r2' : rk === 3 ? 'r3' : '';
+    const bw = Math.max((g.sales / maxS) * 90, 3);
+    const pc = ((g.sales / total) * 100).toFixed(1);
+
+    const isEditing = state.editingBrand === g.brand;
+
+    const nameCell = isEditing
+      ? `<input id="brand-edit-input" class="brand-edit-input"
+           list="brand-datalist"
+           value="${esc(g.brand)}"
+           onkeydown="onBrandKeydown(event, '${esc(g.brand)}')"
+           onblur="saveBrandEdit('${esc(g.brand)}')"
+         ><datalist id="brand-datalist">${opts}</datalist>
+         <span class="edit-hint">Enter 儲存 · Esc 取消</span>`
+      : `<span class="brand-text">${esc(g.brand)}</span>
+         <button class="edit-btn" onclick="startBrandEdit('${esc(g.brand)}')">編輯</button>`;
+
+    return `
+      <tr>
+        <td><span class="rank ${rc}">${rk}</span></td>
+        <td><div class="brand-cell">${nameCell}</div></td>
+        <td><span class="count-badge">${g.count} 件</span></td>
+        <td>
+          <div class="sales-cell">
+            <div class="bar-track"><div class="bar-fill" style="width:${bw}px"></div></div>
+            <span class="sales-num">NT$ ${g.sales.toLocaleString()}</span>
+            <span class="sales-pct">${pc}%</span>
+          </div>
+        </td>
+        <td style="color:#9ca3af">${g.orders}</td>
+      </tr>
+    `;
+  }).join('');
+
+  // Auto-focus the edit input after render
+  if (state.editingBrand !== null) {
+    const inp = document.getElementById('brand-edit-input');
+    if (inp) { inp.focus(); inp.select(); }
+  }
+}
+
+function startBrandEdit(brandName) {
+  state.editingBrand = brandName;
+  renderBrandTable();
+}
+
+function onBrandKeydown(evt, oldBrand) {
+  if (evt.key === 'Enter')  { evt.preventDefault(); saveBrandEdit(oldBrand); }
+  if (evt.key === 'Escape') { state.editingBrand = null; renderBrandTable(); }
+}
+
+function saveBrandEdit(oldBrand) {
+  const inp = document.getElementById('brand-edit-input');
+  const newBrand = inp ? inp.value.trim() : '';
+  state.editingBrand = null;
+
+  if (newBrand && newBrand !== oldBrand) {
+    // Reassign all products that currently display oldBrand → newBrand
+    for (const p of state.products) {
+      if (getBrand(p) === oldBrand) state.brandMap[p.no] = newBrand;
+    }
+  }
+  renderAll();
+}
+
+// ══════════════════════════════════════════
+// Render: Product table
+// ══════════════════════════════════════════
+function renderProductTable() {
+  const q      = (document.getElementById('search')?.value || '').toLowerCase();
+  const brands = allBrandNames();
+  const opts   = brands.map(b => `<option value="${esc(b)}">${esc(b)}</option>`).join('');
+
+  const list = state.products.filter(p =>
+    !q || p.name.toLowerCase().includes(q) || getBrand(p).toLowerCase().includes(q)
+  );
+
+  document.getElementById('product-tbody').innerHTML = list.length === 0
+    ? `<tr><td colspan="5" class="empty-state">沒有符合的商品</td></tr>`
+    : list.map(p => {
+        const brand = getBrand(p);
+        const sel   = brands.map(b =>
+          `<option value="${esc(b)}"${b === brand ? ' selected' : ''}>${esc(b)}</option>`
+        ).join('');
+        return `
+          <tr>
+            <td style="color:#9ca3af">${p.no}</td>
+            <td><div class="product-name" title="${esc(p.name)}">${esc(p.name)}</div></td>
+            <td>
+              <select class="brand-select" onchange="updateProductBrand('${esc(p.no)}', this.value)">
+                ${sel}
+                <option value="__new__">＋ 新品牌...</option>
+              </select>
+            </td>
+            <td style="color:#9ca3af">${p.orders}</td>
+            <td style="font-weight:600">NT$ ${p.sales.toLocaleString()}</td>
+          </tr>`;
+      }).join('');
+}
+
+function updateProductBrand(no, val) {
+  if (val === '__new__') {
+    const name = prompt('請輸入新品牌名稱：');
+    if (name && name.trim()) state.brandMap[no] = name.trim();
+    else return;
+  } else {
+    state.brandMap[no] = val;
+  }
+  renderAll();
+}
+
+// ══════════════════════════════════════════
+// Render: Negative table
+// ══════════════════════════════════════════
+function renderNegativeTable() {
+  const tbody = document.getElementById('negative-tbody');
+  tbody.innerHTML = state.negative.length === 0
+    ? `<tr><td colspan="5" class="empty-state">本月無負數銷售商品 ✅</td></tr>`
+    : state.negative.map(p => `
+        <tr>
+          <td style="color:#9ca3af">${p.no}</td>
+          <td><div class="product-name" title="${esc(p.name)}">${esc(p.name)}</div></td>
+          <td>${esc(p.autoBrand)}</td>
+          <td style="color:#9ca3af">${p.orders}</td>
+          <td class="neg-amount">NT$ ${p.sales.toLocaleString()}</td>
+        </tr>`
+      ).join('');
+}
+
+// ══════════════════════════════════════════
+// Tab switching
+// ══════════════════════════════════════════
+function switchTab(el) {
+  const tabId = el.getAttribute('data-tab');
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById(tabId).classList.add('active');
+}
+
+// ══════════════════════════════════════════
+// Copy ranking to clipboard (markdown)
+// ══════════════════════════════════════════
+function copyRanking() {
+  const groups = computeGroups();
+  const total  = groups.reduce((s, g) => s + g.sales, 0);
+  const lines  = [
+    `📊 品牌銷售排行 ${state.period}`,
+    '',
+    '| 排名 | 品牌 | 銷售額 | 佔比 |',
+    '|------|------|-------:|-----:|',
+    ...groups.map((g, i) =>
+      `| ${i+1} | ${g.brand} | NT$ ${g.sales.toLocaleString()} | ${((g.sales/total)*100).toFixed(1)}% |`
+    ),
+    '',
+    `總計：NT$ ${total.toLocaleString()}（不含負數）`,
+  ];
+  navigator.clipboard.writeText(lines.join('\n'))
+    .then(() => alert('已複製品牌排行表格 ✅'))
+    .catch(() => alert('複製失敗，請手動選取'));
+}
+
+// ══════════════════════════════════════════
+// Reset
+// ══════════════════════════════════════════
+function resetAll() {
+  state.products     = [];
+  state.negative     = [];
+  state.brandMap     = {};
+  state.period       = '';
+  state.editingBrand = null;
+
+  document.getElementById('upload-section').style.display    = '';
+  document.getElementById('dashboard-section').style.display = 'none';
+  document.getElementById('reset-btn').style.display  = 'none';
+  document.getElementById('copy-btn').style.display   = 'none';
+  document.getElementById('period-badge').style.display = 'none';
+  document.getElementById('file-input').value = '';
+
+  // Reset tabs
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    t.classList.toggle('active', i === 0);
+  });
+  document.querySelectorAll('.tab-content').forEach((t, i) => {
+    t.classList.toggle('active', i === 0);
+  });
+  document.getElementById('neg-tab').style.display = 'none';
+}
+</script>
+</body>
+</html>
