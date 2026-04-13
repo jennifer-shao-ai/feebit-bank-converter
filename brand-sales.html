@@ -456,36 +456,123 @@ const state = {
 };
 
 // ══════════════════════════════════════════
-// Known brand list (longest-first for match priority)
+// Brand table — canonical name → aliases
+// 所有別名都 normalize 回 canonical name
 // ══════════════════════════════════════════
-const KNOWN_BRANDS = [
-  'PURITO SEOUL', 'NINE LESS', 'W.DRESSROOM', 'Dr.SEED', 'Dr. SEED',
-  'MARY&MAY', 'MEDI-PEEL', 'Be The Skin', 'One-days you',
-  'DR. BOTANICALS', 'Too Cool For School', 'Just For You',
-  'Beauty of Joseon', 'Mise-En-Scène', 'SOMEBYMI', 'SOME BY MI',
-  'Etude house', 'Etude House', 'John\'s Blend', 'Real Barrier',
-  'Skin 1004', 'AXIS-Y', 'rom&nd', 'Rom&nd', 'ILLIYOON',
-  'G.Life', 'COSRX', 'Torriden', 'Athens', 'TOCOBO', 'TOCOBP',
-  'Qure', 'BARULAB', 'Medicube', 'KUNDAL', 'KUNSAL', 'innisfree',
-  'LINDSAY', 'OOTD', 'BY_OUR', 'Peripera', 'MISSHA', 'SOTHING',
-  'AHC', 'mixsoon', 'NEOGEN', 'BENTON', 'FRUDIA', 'Jumiso',
-  'CNP', 'Elizavecca', 'Heimish', 'TIAM', 'FRANKLY', '龍根本',
-  'RYO', 'Nongshim', 'NONGSHIM', 'TSUBAKI', 'OTTOGI', 'efilow',
-  'EFILOW', 'LEMONA', 'CHOBS', 'Sofuz', 'saeip', '9wishes',
-  'FRANK', 'VT Cosmetics', 'CLIO', 'Apieu', 'BOUQUET GARNI',
-  'AXIS Y', 'V4U鳶鳥禮', 'delphyr', 'TONI&GUY', 'BIFIDA',
-  'Etude', 'KUNSAL', 'MixSoon',
-];
-
-// Normalize variants to canonical name
-const NORMALIZE = {
-  'Dr. SEED':   'Dr.SEED',
-  'Rom&nd':     'rom&nd',
-  'SOME BY MI': 'SOMEBYMI',
-  'Etude House':'Etude house',
-  'TOCOBP':     'TOCOBO',
-  'AXIS Y':     'AXIS-Y',
+const BRAND_TABLE = {
+  '3CE':               ['3CE'],
+  '9wishes':           ['9wishes'],
+  'Athens':            ['Athens'],
+  'AHC':               ['AHC'],
+  'Abib':              ['Abib'],
+  'APLB':              ['APLB'],
+  'AXIS-Y':            ['AXIS-Y', 'AXIS Y', 'AXIS_Y'],
+  'APIEU':             ['APIEU', 'Apieu', 'A\'PIEU'],
+  'BARULAB':           ['BARULAB'],
+  'BOUQUET GARNI':     ['BOUQUET GARNI'],
+  'Be The Skin':       ['Be The Skin', 'BE THE SKIN'],
+  'BENTON':            ['BENTON'],
+  'Banila Co':         ['Banila Co', 'banila co'],
+  'BY_OUR':            ['BY_OUR', 'BY OUR'],
+  'CeraVe':            ['CeraVe', 'CERAVE'],
+  'CLIO':              ['CLIO'],
+  'CNP':               ['CNP'],
+  'COSRX':             ['COSRX'],
+  'COW':               ['COW'],
+  'Curel':             ['Curel'],
+  'Dr. SEED':          ['Dr. SEED', 'Dr.SEED', 'DR. SEED', 'DR.SEED'],
+  'Dr.Jart+':          ['Dr.Jart+', 'Dr. Jart+', 'DR.JART+'],
+  'ELASTINE':          ['ELASTINE'],
+  'efilow':            ['efilow', 'EFILOW'],
+  'Elizavecca':        ['Elizavecca', 'ELIZAVECCA'],
+  'Essencias':         ['Essencias', 'Essências'],
+  'Etude House':       ['Etude house', 'Etude House', 'ETUDE HOUSE', 'Etude'],
+  'Farm stay':         ['Farm stay', 'Farmstay', 'FARMSTAY'],
+  'FRUDIA':            ['FRUDIA'],
+  'HADALABO':          ['HADALABO', 'Hada Labo'],
+  'HOT SORRY':         ['HOT SORRY'],
+  'Heimish':           ['Heimish', 'HEIMISH'],
+  'ILLIYOON':          ['ILLIYOON'],
+  'innisfree':         ['innisfree', 'Innisfree', 'INNISFREE'],
+  'Jumiso':            ['Jumiso', 'JUMISO'],
+  "JOHN'S BLEND":      ["JOHN'S BLEND", "John's Blend", "JOHNS BLEND"],
+  'KUNDAL':            ['KUNDAL'],
+  'KUMANO':            ['KUMANO'],
+  'LACTO-FIT':         ['LACTO-FIT', 'LACTOFIT', '龍根本'],
+  'LINDSAY':           ['LINDSAY'],
+  'LA ROCHE-POSAY':    ['LA ROCHE-POSAY', 'La Roche-Posay'],
+  'MARY&MAY':          ['MARY&MAY', 'Mary&May'],
+  'mixsoon':           ['mixsoon', 'MixSoon', 'MIXSOON'],
+  'Mise-En-Scene':     ['Mise-En-Scene', 'Mise-En-Scène', 'MISE EN SCENE'],
+  'Medicube':          ['Medicube', 'MEDICUBE'],
+  'MEDI-PEEL':         ['MEDI-PEEL', 'MediPeel', 'Medi-Peel'],
+  'MISSHA':            ['MISSHA', 'Missha'],
+  'NINE LESS':         ['NINE LESS'],
+  'NEOGEN':            ['NEOGEN'],
+  'One-days you':      ['One-days you', 'ONE-DAYS YOU'],
+  'Peripera':          ['Peripera', 'PERIPERA'],
+  'Petitfee':          ['Petitfee', 'PETITFEE'],
+  'PURITO SEOUL':      ['PURITO SEOUL', 'PURITO'],
+  'RYO':               ['RYO'],
+  'Real Barrier':      ['Real Barrier', 'REAL BARRIER'],
+  'rom&nd':            ['rom&nd', 'Rom&nd', 'ROM&ND'],
+  'ROHTO':             ['ROHTO'],
+  'Skin1004':          ['Skin1004', 'Skin 1004', 'SKIN1004'],
+  'SOMEBYMI':          ['SOMEBYMI', 'SOME BY MI', 'Some By Mi'],
+  'SANA':              ['SANA'],
+  'the SAEM':          ['the SAEM', 'The Saem', 'THE SAEM'],
+  'TOCOBO':            ['TOCOBO', 'TOCOBP'],
+  'Too Cool For School':['Too Cool For School', 'TOO COOL FOR SCHOOL'],
+  'Torriden':          ['Torriden', 'TORRIDEN'],
+  'TSUBAKI':           ['TSUBAKI'],
+  'tutti frutti':      ['tutti frutti', 'TUTTI FRUTTI'],
+  'VT Cosmetics':      ['VT Cosmetics', 'VT COSMETICS'],
+  'W.DRESSROOM':       ['W.DRESSROOM', 'W. DRESSROOM'],
+  'YANAGIYA':          ['YANAGIYA'],
+  '海太':              ['海太', 'Haitai', 'HAITAI'],
+  'BIG TOP':           ['BIG TOP'],
+  'SAKI':              ['SAKI'],
+  '瑪努拉':            ['瑪努拉'],
+  'Koh-Kae':           ['Koh-Kae', 'KOH-KAE'],
+  'Ennak':             ['Ennak', 'ENNAK'],
+  'UHA':               ['UHA'],
+  '農心':              ['農心', 'Nongshim', 'NONGSHIM'],
+  'OTTOGI':            ['OTTOGI', '不倒翁'],
+  'SOTHING':           ['SOTHING', 'Sothing'],
+  'DR.HSIEH':          ['DR.HSIEH', 'DR. HSIEH'],
+  'G.Life':            ['G.Life', 'G. Life', 'G.LIFE'],
+  '資生堂':            ['資生堂'],
+  'SENKA':             ['SENKA'],
+  'KOSE':              ['KOSE'],
+  'P&G':               ['P&G'],
+  '中衛':              ['中衛'],
+  '全久榮':            ['全久榮'],
+  '克司博':            ['克司博', 'CHOBS'],
+  '唐鑫':              ['唐鑫'],
+  'V4U鳶鳥禮':         ['V4U鳶鳥禮', 'V4U'],
+  // 其他在 CSV 出現但品牌表未列的
+  'Athens':            ['Athens'],
+  'Qure':              ['Qure'],
+  'OOTD':              ['OOTD'],
+  'TIAM':              ['TIAM'],
+  'delphyr':           ['delphyr'],
+  'saeip':             ['saeip'],
+  'Sofuz':             ['Sofuz'],
+  'FRANKLY':           ['FRANKLY'],
+  'LEMONA':            ['LEMONA'],
 };
+
+// Build flat alias → canonical map, sorted by alias length desc for matching
+const ALIAS_MAP = [];   // [ { alias, canonical }, ... ]
+for (const [canonical, aliases] of Object.entries(BRAND_TABLE)) {
+  for (const alias of aliases) {
+    ALIAS_MAP.push({ alias, canonical });
+  }
+}
+ALIAS_MAP.sort((a, b) => b.alias.length - a.alias.length);
+
+// Country/region prefixes to strip from product names
+const COUNTRY_PREFIX = /^(韓國|日本|葡萄牙|馬來西亞|泰國|台灣|美國|法國|英國|德國|澳洲|義大利|西班牙|中國)\s*/;
 
 // ══════════════════════════════════════════
 // Brand extraction
@@ -493,33 +580,32 @@ const NORMALIZE = {
 function extractBrand(name) {
   let s = name.trim();
 
-  // Strip 【...】〔...〕[...] from the front
+  // 1. Strip 【...】〔...〕[...] brackets from front
   s = s.replace(/^(【[^】]*】\s*|〔[^〕]*〕\s*|\[[^\]]*\]\s*)+/, '').trim();
 
-  // Strip leading emoji / symbols (anything that's not letter/CJK/digit)
+  // 2. Strip leading emoji / symbols
   s = s.replace(/^[^\w\u4e00-\u9fff\u3040-\u30ff]+/, '').trim();
 
-  // Strip Chinese promotional prefixes
-  s = s.replace(/^(精選|加購品?)\s*/, '').trim();
+  // 3. Strip promotional prefixes
+  s = s.replace(/^(精選|加購品?|【[^】]*】)\s*/, '').trim();
 
-  // Match known brands (longest first)
-  const sorted = [...KNOWN_BRANDS].sort((a, b) => b.length - a.length);
-  for (const brand of sorted) {
-    if (s.startsWith(brand)) return NORMALIZE[brand] || brand;
-    // English brands: case-insensitive
-    if (/^[A-Za-z]/.test(brand) && s.toLowerCase().startsWith(brand.toLowerCase()))
-      return NORMALIZE[brand] || brand;
+  // 4. Strip country prefix (e.g. 韓國、日本)
+  s = s.replace(COUNTRY_PREFIX, '').trim();
+
+  // 5. Match against alias map (longest alias first, case-insensitive)
+  for (const { alias, canonical } of ALIAS_MAP) {
+    if (s.toLowerCase().startsWith(alias.toLowerCase())) return canonical;
   }
 
-  // Fallback: leading English token
-  const eng = s.match(/^([A-Za-z][A-Za-z0-9&._\-]*)/);
-  if (eng && eng[1].length >= 2) return NORMALIZE[eng[1]] || eng[1];
+  // 6. Fallback: leading English token
+  const eng = s.match(/^([A-Za-z][A-Za-z0-9&._'\-]*)/);
+  if (eng && eng[1].length >= 2) return eng[1];
 
-  // Fallback: leading CJK chars
-  const cjk = s.match(/^([\u4e00-\u9fff]{2,5})/);
+  // 7. Fallback: leading CJK
+  const cjk = s.match(/^([\u4e00-\u9fff]{2,6})/);
   if (cjk) return cjk[1];
 
-  return s.split(/[\s,，+&]/)[0] || '未分類';
+  return '未分類';
 }
 
 // ══════════════════════════════════════════
