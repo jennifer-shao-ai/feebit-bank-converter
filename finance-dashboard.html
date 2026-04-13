@@ -444,10 +444,10 @@ async function handleFile(file){
     const rows=parseCSV(await file.text());
     if(!rows.length){alert('CSV格式有問題');return;}
     const records=rows.map(r=>({
-      txn_date:fmtDate(r['交易日期']||Object.values(r)[0]),
-      type:r['收入/支出']||r['收支']||'',
-      currency:r['幣別']||'TWD',
-      amount:parseFloat(r['前幣金額']||r['金額']||0),
+      txn_date:fmtDate(r['交易日期']),
+      type:r['收入/支出']||r['收支']||(r['交易類別']?.includes('收入')?'收入':r['交易類別']?.includes('支出')?'支出':''),
+      currency:r['幣別']||r['帳戶幣別']||'TWD',
+      amount:parseFloat(r['前幣金額']||r['主幣別金額']||r['金額']||0),
       main_cat:r['主項目']||'',
       sub_cat:r['子項目']||'',
       gs_cat:mapCat(r['主項目']||'',r['子項目']||''),
@@ -465,8 +465,14 @@ async function handleFile(file){
 }
 function fmtDate(d){
   if(!d)return null;
-  const s=String(d).replace(/\D/g,'');
-  return s.length===8?`${s.slice(0,4)}-${s.slice(4,6)}-${s.slice(6,8)}`:String(d);
+  const s=String(d).trim();
+  // 20260102 → 2026-01-02
+  const digits=s.replace(/\D/g,'');
+  if(digits.length===8) return `${digits.slice(0,4)}-${digits.slice(4,6)}-${digits.slice(6,8)}`;
+  // 2026/3/31 or 2026-3-31 → 2026-03-31
+  const m=s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+  if(m) return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
+  return null;
 }
 function parseCSV(text){
   const lines=text.trim().split('\n').filter(l=>l.trim());
