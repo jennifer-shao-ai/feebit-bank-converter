@@ -79,8 +79,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Microsoft
   .page { padding: 16px; }
   .topbar { padding: 0 16px; }
   .home-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
-  .stock-stats { grid-template-columns: repeat(3, 1fr); }
-  .nav-item.soon { display: none; }
+.nav-item.soon { display: none; }
 }
 </style>
 </head>
@@ -106,7 +105,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Microsoft
       <span class="icon">🏦</span> 帳務轉換
     </div>
     <div class="nav-item" onclick="location.href='accounting-ops.html'" id="nav-accounting">
-      <span class="icon">📅</span> 例行帳務
+      <span class="icon">📅</span> 例行帳務作業
     </div>
     <div class="nav-item" onclick="location.href='finance-dashboard.html'" id="nav-finance">
       <span class="icon">📊</span> 帳務分析
@@ -121,13 +120,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Microsoft
       <span class="icon">💰</span> 定價試算
       <span class="soon-tag">即將推出</span>
     </div>
-  </div>
-
-  <div class="sidebar-section">
-    <div class="sidebar-label">銷售</div>
-    <a class="nav-item" href="brand-sales.html">
-      <span class="icon">📊</span> 品牌銷售分析
-    </a>
   </div>
 
   <div class="sidebar-section">
@@ -196,7 +188,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Microsoft
       <span class="topbar-title" id="topbar-title">首頁</span>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
-      <button id="share-btn" class="btn btn-outline" style="display:none;padding:4px 12px;font-size:12px" onclick="shareLink()">🔗 分享連結</button>
+      <button id="share-btn" style="display:none;padding:4px 12px;font-size:12px;cursor:pointer;border:1px solid var(--gray-200);border-radius:var(--radius);background:white" onclick="shareLink()">🔗 分享連結</button>
       <span class="topbar-badge" id="topbar-badge">飛比特營運工具箱</span>
     </div>
   </div>
@@ -235,12 +227,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Microsoft
           <div class="hc-icon">🔍</div>
           <div class="hc-name">酷澎商城對帳</div>
           <div class="hc-desc">上傳訂單與結款檔，跨月累積比對、品牌銷售排行、日期區間篩選</div>
-          <div class="hc-tag">可使用</div>
-        </div>
-        <div class="home-card" onclick="location.href='brand-sales.html'">
-          <div class="hc-icon">📊</div>
-          <div class="hc-name">品牌銷售分析</div>
-          <div class="hc-desc">上傳商品績效 CSV，自動加總品牌銷售額並排序，支援手動調整品牌分類</div>
           <div class="hc-tag">可使用</div>
         </div>
         <div class="home-card soon">
