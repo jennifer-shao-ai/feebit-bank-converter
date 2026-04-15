@@ -94,7 +94,7 @@
     </a>
   </div>
 
-  <div class="sidebar-footer">v2.3 · Feebit © 2026</div>
+  <div class="sidebar-footer">v2.4 · Feebit © 2026</div>
 </div>
 
 <!-- ── SIDEBAR OVERLAY ── -->
@@ -107,7 +107,7 @@
       <button class="btn-hamburger" onclick="openSidebar()">☰</button>
       <span class="topbar-title">帳務轉換</span>
       <span class="topbar-badge">財務工具</span>
-      <span style="font-size:11px;color:var(--gray-400);margin-left:4px">v2.3</span>
+      <span style="font-size:11px;color:var(--gray-400);margin-left:4px">v2.4</span>
     </div>
     <button class="btn-share" onclick="copyShare(this)" title="複製分享連結">🔗 分享</button>
   </div>
@@ -157,7 +157,7 @@
           <div class="table-wrapper">
             <table>
               <thead><tr>
-                <th>交易日期</th><th>收入/支出</th><th>帳戶</th><th>幣別</th>
+                <th>交易日期</th><th>交易類別</th><th>自帳戶</th><th>主幣別</th><th>帳戶幣別</th>
                 <th>原幣金額</th><th>主分類</th><th>子分類</th><th>收款人</th><th>描述</th><th>狀態</th><th></th>
               </tr></thead>
               <tbody id="preview-body"></tbody>
@@ -422,7 +422,7 @@ function renderPreview() {
     const cls = tx.type==='收入' ? 'type-in' : 'type-out';
     const statusTag = tx.needsCat ? '<span class="tag-unknown">待分類</span>' : tx.edited ? '<span class="tag-auto" style="background:#dbeafe;color:#1d4ed8">已編輯</span>' : '<span class="tag-auto">自動</span>';
     tr.innerHTML = `<td>${tx.date}</td><td class="${cls}">${tx.type}</td><td>${tx.accountName}</td>
-      <td>${tx.currency}</td><td style="text-align:right">${tx.amount.toLocaleString()}</td>
+      <td>${tx.currency}</td><td>${tx.currency}</td><td style="text-align:right">${tx.amount.toLocaleString()}</td>
       <td>${tx.main||'<span style="color:#9ca3af">未分類</span>'}</td><td>${tx.sub}</td>
       <td>${tx.payee}</td>
       <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis" title="${tx.description}">${tx.description}</td>
@@ -624,8 +624,8 @@ function nextOrClose() {
 
 // ── DOWNLOAD ──────────────────────────────────────────────────
 function downloadCSV() {
-  const headers = ['交易日期','收入/支出','帳戶','幣別','原幣金額','主分類','子分類','收款人','描述'];
-  const rows = transactions.map(tx => [tx.date,tx.type,tx.accountName,tx.currency,tx.amount,tx.main,tx.sub,tx.payee,tx.description]);
+  const headers = ['交易日期','交易類別','自帳戶','主幣別','帳戶幣別','原幣金額','主分類','子分類','收款人','描述'];
+  const rows = transactions.map(tx => [tx.date,tx.type,tx.accountName,tx.currency,tx.currency,tx.amount,tx.main,tx.sub,tx.payee,tx.description]);
   const esc = v => { const s=String(v??''); return (s.includes(',')||s.includes('"')||s.includes('\n'))?`"${s.replace(/"/g,'""')}"`:s; };
   const csv = [headers,...rows].map(r=>r.map(esc).join(',')).join('\n');
   const blob = new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
