@@ -604,21 +604,31 @@ function startCollabListener(roomId) {
     const data = snap.val();
     if (!data) return;
     _isSyncing = true;
-    const idx = S.trips.findIndex(t => t.id === data.id);
-    if (idx >= 0) S.trips[idx] = data;
-    else { S.trips.unshift(data); }
-    S.currentId = data.id;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(S));
-    renderAll();
-    _isSyncing = false;
+    try {
+      const idx = S.trips.findIndex(t => t.id === data.id);
+      if (idx >= 0) S.trips[idx] = data;
+      else { S.trips.unshift(data); }
+      S.currentId = data.id;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(S));
+      renderAll();
+      removeCollabLoading();
+    } finally {
+      _isSyncing = false;
+    }
     setCollabBadge('live');
-  }, err => { setCollabBadge('offline'); });
+  }, err => { setCollabBadge('offline'); removeCollabLoading(); });
 }
 
 function pushToCollab() {
   if (!_collabRef || _isSyncing) return;
   const t = trip(); if (!t) return;
-  _collabRef.set(t).catch(e => { setCollabBadge('offline'); console.warn('Firebase write failed:', e); });
+  _collabRef.set(t).catch(e => {
+    setCollabBadge('offline');
+    console.warn('Firebase write failed:', e);
+    if (e.message && (e.message.includes('Permission denied') || e.message.includes('PERMISSION_DENIED'))) {
+      showBanner('⚠️ 協作同步失敗：Firebase 寫入權限不足。請聯絡行程擁有者更新 Firebase 規則。', '#dc2626');
+    }
+  });
 }
 
 // ── STATE ──────────────────────────────────────
@@ -885,6 +895,7 @@ function init() {
     if (!S.currentId && S.trips.length > 0) S.currentId = S.trips[0].id;
     renderAll();
     if (_db) {
+      showCollabLoading();
       startCollabListener(roomId);
     } else {
       showBanner('⚠️ Firebase 未設定，目前為離線模式。', '#d97706');
@@ -918,6 +929,19 @@ function init() {
   }
   _seedNagoyaOsaka();
   renderAll();
+}
+
+function showCollabLoading() {
+  if (document.getElementById('collab-loading')) return;
+  const el = document.createElement('div');
+  el.id = 'collab-loading';
+  el.style.cssText = 'position:fixed;inset:0;z-index:9998;background:rgba(255,255,255,0.88);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;';
+  el.innerHTML = '<div style="font-size:32px">✈️</div><div style="font-size:14px;color:#374151;font-weight:500">正在連線協作空間，請稍候…</div>';
+  document.body.appendChild(el);
+  setTimeout(() => removeCollabLoading(), 12000); // fallback 12s
+}
+function removeCollabLoading() {
+  document.getElementById('collab-loading')?.remove();
 }
 
 function showBanner(msg, color='#16a34a') {
@@ -1775,7 +1799,7 @@ function renderDocuments() {
 }
 
 let _docIdx = null;
-function showAddDocModal() { _docIdx=null; openDocModal({}); }
+function showAddDocModal() { if (!trip()) return; _docIdx=null; openDocModal({}); }
 function showEditDocModal(i) { _docIdx=i; openDocModal(trip().documents[i]); }
 function openDocModal(doc) {
   const isPdf = doc.photo && doc.photo.startsWith('data:application/pdf');
@@ -1903,7 +1927,7 @@ function viewCouponImg(src) {
 
 let _ci = null;
 let _couponImgs = [];
-function showAddCouponModal() { _ci=null; _couponImgs=[]; openCouponModal({}); }
+function showAddCouponModal() { if (!trip()) return; _ci=null; _couponImgs=[]; openCouponModal({}); }
 function showEditCouponModal(i) { _ci=i; _couponImgs=[...(trip().coupons[i].images||[])]; openCouponModal(trip().coupons[i]); }
 
 function openCouponModal(c) {
@@ -2057,7 +2081,7 @@ function jumpToDay(date) {
 }
 
 let _gi = null;
-function showAddGuideModal() { _gi=null; openGuideModal({}); }
+function showAddGuideModal() { if (!trip()) return; _gi=null; openGuideModal({}); }
 function showEditGuideModal(i) { _gi=i; openGuideModal(trip().guides[i]); }
 
 function openGuideModal(g) {
@@ -2339,7 +2363,7 @@ function saveSpotModal() {
 
 // Shop item modal
 let _si = null;
-function showAddShopItem() { _si=null; openShopModal({}); }
+function showAddShopItem() { if (!trip()) return; _si=null; openShopModal({}); }
 function showEditShopItem(i) { _si=i; openShopModal(trip().shoppingList[i]); }
 function openShopModal(item) {
   const cats = ['', ...CAT_LABELS];
@@ -2437,7 +2461,7 @@ function saveShopModal() {
 
 // Expense modal
 let _ei = null;
-function showAddExpense() { _ei=null; openExpenseModal({}); }
+function showAddExpense() { if (!trip()) return; _ei=null; openExpenseModal({}); }
 function showEditExpense(i) { _ei=i; openExpenseModal(trip().expenses[i]); }
 function openExpenseModal(e) {
   const members = getMembers();
