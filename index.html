@@ -20,6 +20,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Microsoft
 #sidebar {
   width: var(--sidebar-w); min-height: 100vh; background: var(--sidebar-bg);
   display: flex; flex-direction: column; flex-shrink: 0; position: fixed; top: 0; left: 0; bottom: 0; z-index: 100;
+  overflow-y: auto; overflow-x: hidden;
 }
 .sidebar-logo {
   padding: 20px 16px 16px; border-bottom: 1px solid rgba(255,255,255,0.08);
@@ -115,6 +116,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Microsoft
     </div>
     <div class="nav-item" onclick="location.href='coupang-reconcile.html'" id="nav-reconcile">
       <span class="icon">🔍</span> 酷澎商城對帳
+    </div>
+    <div class="nav-item" onclick="location.href='shopee-converter.html'" id="nav-shopee">
+      <span class="icon">🛒</span> 蝦皮撥款轉換
     </div>
     <div class="nav-item soon" id="nav-price">
       <span class="icon">💰</span> 定價試算
@@ -237,6 +241,12 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Microsoft
           <div class="hc-icon">🔍</div>
           <div class="hc-name">酷澎商城對帳</div>
           <div class="hc-desc">上傳訂單與結款檔，跨月累積比對、品牌銷售排行、日期區間篩選</div>
+          <div class="hc-tag">可使用</div>
+        </div>
+        <div class="home-card" onclick="location.href='shopee-converter.html'">
+          <div class="hc-icon">🛒</div>
+          <div class="hc-name">蝦皮撥款轉換</div>
+          <div class="hc-desc">上傳蝦皮撥款明細，自動整理為可匯入帳務系統的格式</div>
           <div class="hc-tag">可使用</div>
         </div>
         <div class="home-card soon">
