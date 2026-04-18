@@ -147,6 +147,13 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Microsoft
   </div>
 
   <div class="sidebar-section">
+    <div class="sidebar-label">人事</div>
+    <div class="nav-item" onclick="location.href='attendance.html'" id="nav-attendance">
+      <span class="icon">🗓️</span> 考勤查驗
+    </div>
+  </div>
+
+  <div class="sidebar-section">
     <div class="sidebar-label">庫存</div>
     <div class="nav-item" onclick="location.href='stock-analysis.html'" id="nav-stock">
       <span class="icon">📦</span> 庫存訂貨分析
@@ -177,7 +184,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Microsoft
     </a>
   </div>
 
-  <div class="sidebar-footer">v1.6 · Feebit © 2026</div>
+  <div class="sidebar-footer">v1.7 · Feebit © 2026</div>
 </div>
 
 <!-- ── SIDEBAR OVERLAY ── -->
@@ -260,6 +267,12 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Microsoft
           <div class="hc-icon">🏪</div>
           <div class="hc-name">商品篩選工具</div>
           <div class="hc-desc">上傳 Excel 以貨號或 EAN13 隱藏停產品項，匯出時自動標記持續上架欄 Y/N</div>
+          <div class="hc-tag">可使用</div>
+        </div>
+        <div class="home-card" onclick="location.href='attendance.html'">
+          <div class="hc-icon">🗓️</div>
+          <div class="hc-name">考勤查驗</div>
+          <div class="hc-desc">正職／工讀打卡稽核、遲到早退異常標記、請假加班紀錄、年度考勤評分</div>
           <div class="hc-tag">可使用</div>
         </div>
         <div class="home-card soon">
