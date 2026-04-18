@@ -334,6 +334,12 @@
   .transit-block { padding-left:12px; }
   .guide-card { padding:14px; }
   .guide-section-head { padding:10px 0; }
+  /* Prevent iOS Safari auto-zoom: keep travel-specific inputs at 16px */
+  .trip-selector, .quick-input, .rate-input,
+  .check-add-row input, .custom-split-row input { font-size:16px !important; }
+  /* Constrain tp-bar-center items so they don't overflow */
+  .tp-bar-center { flex-wrap:wrap; }
+  .trip-menu-wrap { flex-shrink:0; }
 }
 
 /* ── GUIDE CARDS ── */

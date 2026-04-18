@@ -141,6 +141,10 @@ select:focus, input[type="text"]:focus { border-color: var(--primary); }
   .home-card .hc-icon { font-size:26px; margin-bottom:8px; }
   /* Tools 1 col */
   .tools-grid { grid-template-columns:1fr; }
+  /* Prevent iOS Safari auto-zoom on input/select focus (requires font-size >= 16px) */
+  input, select, textarea { font-size: 16px !important; }
+  /* Prevent horizontal overflow */
+  body { overflow-x: hidden; }
 }
 
 /* ── TOOLS PAGE ── */
