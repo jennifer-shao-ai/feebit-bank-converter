@@ -3,17 +3,60 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>倉庫商品篩選工具 — Feebit</title>
+  <title>商品篩選工具 — Feebit</title>
   <link rel="icon" href="favicon.svg">
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
+    :root {
+      --primary: #2563eb; --primary-light: #dbeafe; --primary-dark: #1d4ed8;
+      --success: #16a34a; --warning: #d97706; --danger: #dc2626;
+      --gray-50: #f9fafb; --gray-100: #f3f4f6; --gray-200: #e5e7eb;
+      --gray-400: #9ca3af; --gray-600: #4b5563; --gray-800: #1f2937;
+      --sidebar-bg: #0f172a; --sidebar-w: 220px; --radius: 8px;
+    }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang TC', sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Microsoft JhengHei', sans-serif;
       background: #f0f2f5;
       color: #2c3e50;
       min-height: 100vh;
+      display: flex;
     }
+
+    /* ── SIDEBAR ── */
+    #sidebar {
+      width: var(--sidebar-w); min-height: 100vh; background: var(--sidebar-bg);
+      display: flex; flex-direction: column; flex-shrink: 0; position: fixed; top: 0; left: 0; bottom: 0; z-index: 100;
+    }
+    .sidebar-logo {
+      padding: 20px 16px 16px; border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .sidebar-logo .brand { color: white; font-size: 16px; font-weight: 700; letter-spacing: 0.5px; }
+    .sidebar-logo .sub { color: rgba(255,255,255,0.4); font-size: 11px; margin-top: 2px; }
+    .sidebar-section { padding: 16px 8px 4px; }
+    .sidebar-label { color: rgba(255,255,255,0.3); font-size: 10px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; padding: 0 8px; margin-bottom: 4px; }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 6px;
+      cursor: pointer; color: rgba(255,255,255,0.55); font-size: 13px; font-weight: 500;
+      transition: all 0.15s; margin-bottom: 2px; text-decoration: none;
+    }
+    .nav-item:hover { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.9); }
+    .nav-item.active { background: var(--primary); color: white; }
+    .nav-item.soon { opacity: 0.4; cursor: default; pointer-events: none; }
+    .nav-item .icon { font-size: 15px; width: 20px; text-align: center; flex-shrink: 0; }
+    .nav-item .soon-tag { margin-left: auto; font-size: 9px; background: rgba(255,255,255,0.15); padding: 1px 5px; border-radius: 3px; letter-spacing: 0.5px; }
+    .sidebar-footer { margin-top: auto; padding: 16px; border-top: 1px solid rgba(255,255,255,0.08); color: rgba(255,255,255,0.25); font-size: 11px; }
+
+    /* ── SIDEBAR OVERLAY ── */
+    #sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 99; }
+    #sidebar-overlay.active { display: block; }
+
+    /* ── MAIN ── */
+    #main { margin-left: var(--sidebar-w); flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
+
+    /* ── HAMBURGER ── */
+    .hamburger { display: none; background: none; border: none; cursor: pointer; padding: 6px; border-radius: 6px; color: white; font-size: 20px; line-height: 1; }
+    .hamburger:hover { background: rgba(255,255,255,0.15); }
 
     /* ── Header ── */
     .header {
@@ -26,7 +69,7 @@
       box-shadow: 0 2px 10px rgba(0,0,0,0.25);
       position: sticky;
       top: 0;
-      z-index: 100;
+      z-index: 50;
     }
     .header h1 { font-size: 18px; font-weight: 700; }
     .header .subtitle { font-size: 12px; opacity: 0.75; margin-top: 2px; }
@@ -35,15 +78,24 @@
       padding: 2px 10px; border-radius: 12px;
       font-size: 11px; font-weight: 700;
     }
-    .header-right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
-    .back-link {
-      display: inline-flex; align-items: center; gap: 6px;
-      font-size: 12px; color: rgba(255,255,255,0.7);
-      text-decoration: none; padding: 5px 10px;
-      border: 1px solid rgba(255,255,255,0.2);
-      border-radius: 6px; transition: all 0.15s;
+    .header-right { margin-left: auto; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+    /* ── Share Dropdown ── */
+    .share-dropdown { position: relative; }
+    .share-menu {
+      display: none; position: absolute; right: 0; top: calc(100% + 6px);
+      background: white; border: 1px solid var(--gray-200); border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.12); min-width: 160px; z-index: 200;
+      overflow: hidden;
     }
-    .back-link:hover { background: rgba(255,255,255,0.1); color: white; }
+    .share-menu.open { display: block; }
+    .share-menu button {
+      display: block; width: 100%; padding: 10px 14px; text-align: left;
+      border: none; background: none; font-size: 13px; color: #333;
+      cursor: pointer; transition: background 0.1s;
+    }
+    .share-menu button:hover { background: var(--gray-100); }
+    .share-menu hr { border: none; border-top: 1px solid var(--gray-200); margin: 0; }
 
     /* ── Buttons ── */
     .btn {
@@ -240,12 +292,131 @@
     #toast.ok   { background: #27ae60; }
     #toast.err  { background: #e74c3c; }
     #toast.warn { background: #f39c12; }
+
+    /* ── MOBILE RWD ── */
+    @media (max-width: 768px) {
+      #sidebar { transform: translateX(-100%); transition: transform 0.25s ease; z-index: 100; }
+      #sidebar.open { transform: translateX(0); }
+      #main { margin-left: 0; }
+      .hamburger { display: flex; align-items: center; justify-content: center; }
+      .header { padding: 12px 16px; }
+      .nav-item.soon { display: none; }
+    }
   </style>
 </head>
 <body>
 
+<!-- ── SIDEBAR ── -->
+<div id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand">飛比特 Feebit</div>
+    <div class="sub">營運工具箱</div>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-label">總覽</div>
+    <div class="nav-item" onclick="location.href='index.html'">
+      <span class="icon">🏠</span> 首頁
+    </div>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-label">財務</div>
+    <div class="nav-item" onclick="location.href='bank-converter.html'">
+      <span class="icon">🏦</span> 帳務轉換
+    </div>
+    <div class="nav-item" onclick="location.href='accounting-ops.html'">
+      <span class="icon">📅</span> 例行帳務作業
+    </div>
+    <div class="nav-item" onclick="location.href='finance-dashboard.html'">
+      <span class="icon">📊</span> 帳務分析
+    </div>
+    <div class="nav-item" onclick="location.href='coupang-invoice.html'">
+      <span class="icon">🧾</span> 酷澎發票轉檔
+    </div>
+    <div class="nav-item" onclick="location.href='coupang-reconcile.html'">
+      <span class="icon">🔍</span> 酷澎商城對帳
+    </div>
+    <div class="nav-item soon">
+      <span class="icon">💰</span> 定價試算
+      <span class="soon-tag">即將推出</span>
+    </div>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-label">行銷</div>
+    <div class="nav-item soon">
+      <span class="icon">📢</span> 廣告文案
+      <span class="soon-tag">即將推出</span>
+    </div>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-label">客服</div>
+    <div class="nav-item soon">
+      <span class="icon">💬</span> 客服回覆
+      <span class="soon-tag">即將推出</span>
+    </div>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-label">業務</div>
+    <div class="nav-item soon">
+      <span class="icon">🤝</span> 廠商談判
+      <span class="soon-tag">即將推出</span>
+    </div>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-label">人事</div>
+    <div class="nav-item" onclick="location.href='attendance.html'">
+      <span class="icon">🗓️</span> 考勤查驗
+    </div>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-label">庫存</div>
+    <div class="nav-item" onclick="location.href='stock-analysis.html'">
+      <span class="icon">📦</span> 庫存訂貨分析
+    </div>
+    <div class="nav-item active">
+      <span class="icon">🏪</span> 商品篩選工具
+    </div>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-label">研發</div>
+    <a class="nav-item" href="research-notes.html">
+      <span class="icon">📚</span> 研發筆記
+    </a>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-label">生活</div>
+    <a class="nav-item" href="travel-planner.html">
+      <span class="icon">✈️</span> 旅行規劃
+    </a>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-label">系統</div>
+    <a class="nav-item" href="tools.html">
+      <span class="icon">🔧</span> 使用工具
+    </a>
+  </div>
+
+  <div class="sidebar-footer">v1.7 · Feebit © 2026</div>
+</div>
+
+<!-- ── SIDEBAR OVERLAY ── -->
+<div id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<!-- ── MAIN ── -->
+<div id="main">
+
 <!-- ── Header ── -->
 <div class="header">
+  <button class="hamburger" onclick="toggleSidebar()" aria-label="選單">☰</button>
   <div>
     <div style="display:flex;align-items:center;gap:8px;">
       <h1>🏪 倉庫商品篩選工具</h1>
@@ -254,7 +425,6 @@
     <div class="subtitle">以貨號 / EAN13 管理商品顯示狀態，隱藏清單自動儲存於瀏覽器</div>
   </div>
   <div class="header-right">
-    <a href="index.html" class="back-link">← 返回首頁</a>
     <button class="btn btn-warning" id="manageBtn" onclick="openModal()" style="display:none;">
       📋 管理隱藏清單
     </button>
@@ -264,6 +434,14 @@
     <button class="btn btn-secondary btn-sm" id="reloadBtn" onclick="reloadFile()" style="display:none;">
       重新上傳
     </button>
+    <div class="share-dropdown" id="shareDropdown">
+      <button class="btn btn-secondary btn-sm" onclick="toggleShareMenu()">🔗 分享</button>
+      <div class="share-menu" id="shareMenu">
+        <button onclick="shareLink(false)">🖥 含側邊欄</button>
+        <hr>
+        <button onclick="shareLink(true)">🔗 不顯示選單</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -318,6 +496,8 @@
   </table>
 </div>
 
+</div><!-- /main -->
+
 <!-- ── Manage Modal ── -->
 <div class="overlay" id="overlay" onclick="overlayClick(event)">
   <div class="modal">
@@ -340,6 +520,49 @@
 <div id="toast"></div>
 
 <script>
+// ── Sidebar ──
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebar-overlay').classList.toggle('active');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('active');
+}
+
+// ── No-sidebar mode (share without sidebar) ──
+(function() {
+  const params = new URLSearchParams(location.search);
+  if (params.get('nosidebar') === '1') {
+    document.getElementById('sidebar').style.display = 'none';
+    document.getElementById('sidebar-overlay').style.display = 'none';
+    document.getElementById('main').style.marginLeft = '0';
+    const hb = document.querySelector('.hamburger');
+    if (hb) hb.style.display = 'none';
+  }
+})();
+
+// ── Share ──
+function toggleShareMenu() {
+  document.getElementById('shareMenu').classList.toggle('open');
+}
+document.addEventListener('click', function(e) {
+  const dd = document.getElementById('shareDropdown');
+  if (dd && !dd.contains(e.target)) {
+    document.getElementById('shareMenu').classList.remove('open');
+  }
+});
+function shareLink(noSidebar) {
+  document.getElementById('shareMenu').classList.remove('open');
+  const base = location.origin + location.pathname;
+  const url = noSidebar ? base + '?nosidebar=1' : base;
+  navigator.clipboard.writeText(url).then(() => {
+    toast(noSidebar ? '已複製（不含側邊欄）連結' : '已複製連結', 'ok');
+  }).catch(() => {
+    prompt('複製此連結：', url);
+  });
+}
+
 // ── State ──
 let wb = null;
 let hidden = new Set();
