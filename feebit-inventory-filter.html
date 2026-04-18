@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>倉庫商品篩選工具 — Feebit</title>
+  <link rel="icon" href="favicon.svg">
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang TC', sans-serif;
+      background: #f0f2f5;
+      color: #2c3e50;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    .header {
+      background: linear-gradient(135deg, #1a3a5c 0%, #2B5B84 100%);
+      color: white;
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.25);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header h1 { font-size: 18px; font-weight: 700; }
+    .header .subtitle { font-size: 12px; opacity: 0.75; margin-top: 2px; }
+    .feebit-badge {
+      background: #F39C12; color: white;
+      padding: 2px 10px; border-radius: 12px;
+      font-size: 11px; font-weight: 700;
+    }
+    .header-right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+    .back-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 12px; color: rgba(255,255,255,0.7);
+      text-decoration: none; padding: 5px 10px;
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 6px; transition: all 0.15s;
+    }
+    .back-link:hover { background: rgba(255,255,255,0.1); color: white; }
+
+    /* ── Buttons ── */
+    .btn {
+      padding: 8px 14px;
+      border: none; border-radius: 7px;
+      font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: all 0.15s;
+      white-space: nowrap; line-height: 1;
+    }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-primary   { background: #2B5B84; color: white; }
+    .btn-primary:hover:not(:disabled)   { background: #1a3a5c; }
+    .btn-secondary { background: #e8eaed; color: #444; }
+    .btn-secondary:hover:not(:disabled) { background: #d5d8dc; }
+    .btn-danger    { background: #e74c3c; color: white; }
+    .btn-danger:hover:not(:disabled)    { background: #c0392b; }
+    .btn-warning   { background: #f39c12; color: white; }
+    .btn-warning:hover:not(:disabled)   { background: #d68910; }
+    .btn-success   { background: #27ae60; color: white; }
+    .btn-success:hover:not(:disabled)   { background: #1e8449; }
+    .btn-sm { padding: 5px 10px; font-size: 12px; border-radius: 5px; }
+
+    /* ── Upload Zone ── */
+    #uploadZone {
+      margin: 32px auto;
+      max-width: 560px;
+      border: 2px dashed #bdc3c7;
+      border-radius: 14px;
+      padding: 52px 32px;
+      text-align: center;
+      background: white;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    #uploadZone:hover, #uploadZone.drag-over {
+      border-color: #2B5B84;
+      background: #ebf3fc;
+    }
+    #uploadZone .icon { font-size: 52px; margin-bottom: 14px; }
+    #uploadZone h3 { font-size: 17px; margin-bottom: 8px; }
+    #uploadZone p  { color: #999; font-size: 13px; }
+    #uploadZone input { display: none; }
+
+    /* ── Config Bar ── */
+    .config-bar {
+      margin: 16px 20px 0;
+      background: white;
+      border-radius: 10px;
+      padding: 14px 18px;
+      display: none;
+      gap: 12px 20px;
+      flex-wrap: wrap;
+      align-items: center;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+    .config-bar.visible { display: flex; }
+    .config-bar strong { font-size: 13px; color: #2B5B84; }
+    .config-item { display: flex; align-items: center; gap: 7px; }
+    .config-item label { font-size: 12px; font-weight: 600; color: #666; white-space: nowrap; }
+    .config-item select {
+      border: 1px solid #ddd; border-radius: 6px;
+      padding: 5px 9px; font-size: 12px;
+      background: #fafafa; cursor: pointer; min-width: 130px;
+    }
+    .config-item select:focus { outline: none; border-color: #2B5B84; }
+
+    /* ── Toolbar ── */
+    .toolbar {
+      margin: 10px 20px 0;
+      display: none; gap: 8px; align-items: center; flex-wrap: wrap;
+    }
+    .toolbar.visible { display: flex; }
+    .search-wrap {
+      position: relative; flex: 1; min-width: 180px; max-width: 340px;
+    }
+    .search-wrap .search-icon {
+      position: absolute; left: 10px; top: 50%;
+      transform: translateY(-50%); font-size: 14px; color: #aaa; pointer-events: none;
+    }
+    .search-wrap input {
+      width: 100%; padding: 8px 12px 8px 34px;
+      border: 1px solid #ddd; border-radius: 7px; font-size: 13px; background: white;
+    }
+    .search-wrap input:focus { outline: none; border-color: #2B5B84; box-shadow: 0 0 0 3px rgba(43,91,132,0.1); }
+
+    /* ── Stats Bar ── */
+    .stats-bar {
+      margin: 10px 20px 0;
+      display: none; align-items: center; gap: 10px; flex-wrap: wrap;
+    }
+    .stats-bar.visible { display: flex; }
+    .chip {
+      padding: 3px 11px; border-radius: 12px;
+      font-weight: 700; font-size: 12px; white-space: nowrap;
+    }
+    .chip-blue   { background: #dbeafe; color: #1d4ed8; }
+    .chip-green  { background: #dcfce7; color: #166534; }
+    .chip-red    { background: #fee2e2; color: #991b1b; }
+    .stats-bar .file-info { margin-left: auto; font-size: 11px; color: #bbb; }
+
+    /* ── Table Container ── */
+    .table-wrap {
+      margin: 10px 20px 24px;
+      background: white; border-radius: 10px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      overflow: auto; display: none;
+      max-height: calc(100vh - 270px);
+    }
+    .table-wrap.visible { display: block; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+
+    thead tr {
+      background: #1a3a5c; color: white;
+      position: sticky; top: 0; z-index: 20;
+    }
+    th {
+      padding: 10px 12px; text-align: left;
+      font-weight: 600; white-space: nowrap; user-select: none;
+    }
+
+    td {
+      padding: 7px 12px;
+      border-bottom: 1px solid #f2f3f5;
+      max-width: 220px; overflow: hidden;
+      text-overflow: ellipsis; white-space: nowrap;
+    }
+
+    tbody tr:not(.row-hidden):hover { background: #f8f9fa; }
+    tr.row-hidden { background: #fafafa; }
+    tr.row-hidden td { color: #bbb; text-decoration: line-through; }
+    tr.row-hidden .action-cell { text-decoration: none; }
+
+    .action-cell { width: 56px; text-align: center; padding: 6px 8px; }
+
+    .btn-row {
+      padding: 4px 8px; border: none; border-radius: 5px;
+      font-size: 11px; font-weight: 700; cursor: pointer; transition: all 0.12s;
+    }
+    .btn-row-hide { background: #fee2e2; color: #dc2626; }
+    .btn-row-hide:hover { background: #dc2626; color: white; }
+    .btn-row-show { background: #dcfce7; color: #166534; }
+    .btn-row-show:hover { background: #16a34a; color: white; }
+
+    .empty-state { padding: 60px 20px; text-align: center; color: #ccc; }
+    .empty-state .icon { font-size: 44px; margin-bottom: 10px; }
+
+    /* ── Modal ── */
+    .overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.45); z-index: 500;
+      align-items: center; justify-content: center; padding: 16px;
+    }
+    .overlay.open { display: flex; }
+    .modal {
+      background: white; border-radius: 14px;
+      padding: 24px; width: 100%; max-width: 480px;
+      max-height: 90vh; display: flex; flex-direction: column; gap: 14px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+    }
+    .modal h2 { font-size: 17px; }
+    .modal-list {
+      flex: 1; overflow-y: auto;
+      border: 1px solid #eee; border-radius: 8px;
+      min-height: 80px; max-height: 260px;
+    }
+    .modal-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 7px 12px; border-bottom: 1px solid #f5f5f5; font-size: 13px;
+    }
+    .modal-item:last-child { border-bottom: none; }
+    .modal-item:hover { background: #f9f9f9; }
+    .modal-item code { font-family: monospace; color: #333; }
+    .modal-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .modal-textarea {
+      width: 100%; height: 88px;
+      border: 1px solid #ddd; border-radius: 7px;
+      padding: 9px; font-size: 13px; resize: vertical; font-family: monospace;
+    }
+    .modal-textarea:focus { outline: none; border-color: #2B5B84; }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed; bottom: 24px; right: 24px;
+      background: #2c3e50; color: white;
+      padding: 11px 18px; border-radius: 9px;
+      font-size: 13px; font-weight: 500;
+      z-index: 9999; pointer-events: none;
+      transform: translateY(70px); opacity: 0;
+      transition: transform 0.28s, opacity 0.28s;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.2); max-width: 300px;
+    }
+    #toast.show { transform: translateY(0); opacity: 1; }
+    #toast.ok   { background: #27ae60; }
+    #toast.err  { background: #e74c3c; }
+    #toast.warn { background: #f39c12; }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<div class="header">
+  <div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <h1>🏪 倉庫商品篩選工具</h1>
+      <span class="feebit-badge">Feebit</span>
+    </div>
+    <div class="subtitle">以貨號 / EAN13 管理商品顯示狀態，隱藏清單自動儲存於瀏覽器</div>
+  </div>
+  <div class="header-right">
+    <a href="index.html" class="back-link">← 返回首頁</a>
+    <button class="btn btn-warning" id="manageBtn" onclick="openModal()" style="display:none;">
+      📋 管理隱藏清單
+    </button>
+    <button class="btn btn-success" id="exportBtn" onclick="exportExcel()" style="display:none;">
+      📥 匯出 Excel
+    </button>
+    <button class="btn btn-secondary btn-sm" id="reloadBtn" onclick="reloadFile()" style="display:none;">
+      重新上傳
+    </button>
+  </div>
+</div>
+
+<!-- ── Upload Zone ── -->
+<div id="uploadZone" onclick="fileInput.click()">
+  <div class="icon">📊</div>
+  <h3>拖曳 Excel 檔案至此，或點擊上傳</h3>
+  <p>支援 .xlsx / .xls 格式 · 隱藏清單自動記憶（儲存於瀏覽器）</p>
+  <input type="file" id="fileInput" accept=".xlsx,.xls" onchange="handleFileSelect(event)">
+</div>
+
+<!-- ── Column Config ── -->
+<div class="config-bar" id="configBar">
+  <strong>欄位設定</strong>
+  <div class="config-item">
+    <label>貨號欄：</label>
+    <select id="skuSel" onchange="applyColConfig()"><option value="-1">（未設定）</option></select>
+  </div>
+  <div class="config-item">
+    <label>EAN13 欄：</label>
+    <select id="eanSel" onchange="applyColConfig()"><option value="-1">（未設定）</option></select>
+  </div>
+  <div class="config-item">
+    <label>持續上架欄：</label>
+    <select id="statusSel" onchange="applyColConfig()"><option value="-1">（無此欄位）</option></select>
+  </div>
+</div>
+
+<!-- ── Toolbar ── -->
+<div class="toolbar" id="toolbar">
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input type="text" id="searchInput" placeholder="搜尋貨號或 EAN13..." oninput="onSearch(this.value)">
+  </div>
+  <button class="btn btn-secondary" id="toggleBtn" onclick="toggleShowHidden()">🙈 隱藏已隱藏商品</button>
+  <button class="btn btn-danger btn-sm" id="bulkHideBtn" onclick="bulkHide()" style="display:none;">批次隱藏搜尋結果</button>
+</div>
+
+<!-- ── Stats Bar ── -->
+<div class="stats-bar" id="statsBar">
+  <span class="chip chip-blue"  id="statTotal">共 0 件</span>
+  <span class="chip chip-green" id="statVis">顯示 0 件</span>
+  <span class="chip chip-red"   id="statHid">已隱藏 0 件</span>
+  <span class="file-info" id="fileInfo"></span>
+</div>
+
+<!-- ── Table ── -->
+<div class="table-wrap" id="tableWrap">
+  <table>
+    <thead id="thead"></thead>
+    <tbody id="tbody"></tbody>
+  </table>
+</div>
+
+<!-- ── Manage Modal ── -->
+<div class="overlay" id="overlay" onclick="overlayClick(event)">
+  <div class="modal">
+    <h2>📋 隱藏商品清單 <span style="font-size:13px;font-weight:400;color:#999;">（<span id="modalCount">0</span> 件）</span></h2>
+    <div class="modal-list" id="modalList"></div>
+    <div>
+      <p style="font-size:12px;color:#999;margin-bottom:6px;">貼上貨號清單（每行一個）批次加入：</p>
+      <textarea class="modal-textarea" id="importTa" placeholder="SKU001&#10;SKU002&#10;1234567890123"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary btn-sm" onclick="importList()">批次加入</button>
+      <button class="btn btn-secondary btn-sm" onclick="exportList()">匯出清單</button>
+      <button class="btn btn-danger btn-sm" onclick="clearAll()">清除全部</button>
+      <button class="btn btn-secondary btn-sm" onclick="closeModal()" style="margin-left:auto;">關閉</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Toast ── -->
+<div id="toast"></div>
+
+<script>
+// ── State ──
+let wb = null;
+let hidden = new Set();
+let showHiddenRows = true;
+let query = '';
+let col = { sku: -1, ean: -1, status: -1 };
+const LS_KEY = 'feebit_hidden_v2';
+
+// ── Persistence ──
+function loadLS() {
+  try { hidden = new Set(JSON.parse(localStorage.getItem(LS_KEY) || '[]')); }
+  catch(e) { hidden = new Set(); }
+}
+function saveLS() { localStorage.setItem(LS_KEY, JSON.stringify([...hidden])); }
+
+// ── Row identity ──
+function rowIds(row) {
+  const ids = [];
+  if (col.sku >= 0) { const v = str(row[col.sku]); if (v) ids.push(v); }
+  if (col.ean >= 0) { const v = str(row[col.ean]);  if (v) ids.push(v); }
+  return ids;
+}
+function isHidden(row) { return rowIds(row).some(id => hidden.has(id)); }
+
+function toggleHide(rowIdx) {
+  const row = wb.rows[rowIdx];
+  const ids = rowIds(row);
+  if (!ids.length) { toast('此列無貨號或 EAN13，無法識別', 'warn'); return; }
+  if (isHidden(row)) { ids.forEach(id => hidden.delete(id)); toast('已顯示：' + ids[0], 'ok'); }
+  else { hidden.add(ids[0]); toast('已隱藏：' + ids[0]); }
+  saveLS(); render(); syncModal();
+}
+
+// ── File loading ──
+function handleFileSelect(e) { const f = e.target.files[0]; if (f) loadFile(f); }
+
+const uploadZone = document.getElementById('uploadZone');
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault(); uploadZone.classList.remove('drag-over');
+  const f = e.dataTransfer.files[0];
+  if (f && /\.(xlsx|xls)$/i.test(f.name)) loadFile(f);
+  else toast('請上傳 .xlsx 或 .xls 檔案', 'err');
+});
+
+function loadFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const book = XLSX.read(e.target.result, { type: 'array' });
+      const sheet = book.Sheets[book.SheetNames[0]];
+      const raw = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+      if (!raw.length) { toast('檔案是空的', 'err'); return; }
+      const headers = (raw[0] || []).map(h => str(h));
+      const rows = raw.slice(1).filter(r => r.some(c => c !== ''));
+      col = autoDetect(headers, rows);
+      const origStatus = rows.map(r => col.status >= 0 ? str(r[col.status]).toUpperCase() : '');
+      wb = { headers, rows, origStatus };
+      fillSelects(headers);
+      showUI();
+      render();
+      document.getElementById('fileInfo').textContent = '檔案：' + file.name;
+      toast('成功載入 ' + rows.length + ' 件商品', 'ok');
+    } catch(err) { toast('讀取失敗：' + err.message, 'err'); console.error(err); }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function autoDetect(headers, rows) {
+  const SKU_KW    = ['貨號','料號','品號','sku','商品編號','品項編號','商品代碼','品項代號'];
+  const EAN_KW    = ['ean','barcode','條碼','gtin','upc','國際條碼','ean13','ean-13'];
+  const STATUS_KW = ['持續上架','是否上架','上架狀態','上架中','上架'];
+  let sku=-1, ean=-1, status=-1;
+  headers.forEach((h, i) => {
+    const hl = h.toLowerCase();
+    if (sku === -1 && SKU_KW.some(k => hl.includes(k.toLowerCase()))) sku = i;
+    if (ean === -1 && EAN_KW.some(k => hl.includes(k.toLowerCase()))) ean = i;
+    if (status === -1 && STATUS_KW.some(k => h.includes(k))) status = i;
+  });
+  if (ean === -1) {
+    for (let i = 0; i < headers.length; i++) {
+      if (i === sku) continue;
+      const samples = rows.slice(0, 30).map(r => str(r[i]));
+      const hits = samples.filter(v => /^\d{13}$/.test(v)).length;
+      const nonEmpty = samples.filter(v => v).length;
+      if (hits >= 3 && hits >= nonEmpty * 0.5) { ean = i; break; }
+    }
+  }
+  return { sku, ean, status };
+}
+
+function fillSelects(headers) {
+  const opts = headers.map((h, i) => '<option value="' + i + '">[' + (i+1) + '] ' + esc(h) + '</option>').join('');
+  document.getElementById('skuSel').innerHTML    = '<option value="-1">（未設定）</option>' + opts;
+  document.getElementById('eanSel').innerHTML    = '<option value="-1">（未設定）</option>' + opts;
+  document.getElementById('statusSel').innerHTML = '<option value="-1">（無此欄位）</option>' + opts;
+  document.getElementById('skuSel').value    = col.sku;
+  document.getElementById('eanSel').value    = col.ean;
+  document.getElementById('statusSel').value = col.status;
+}
+
+function applyColConfig() {
+  col.sku    = parseInt(document.getElementById('skuSel').value);
+  col.ean    = parseInt(document.getElementById('eanSel').value);
+  col.status = parseInt(document.getElementById('statusSel').value);
+  render();
+}
+
+function showUI() {
+  uploadZone.style.display = 'none';
+  ['configBar','toolbar','statsBar','tableWrap'].forEach(id => document.getElementById(id).classList.add('visible'));
+  document.getElementById('manageBtn').style.display = '';
+  document.getElementById('exportBtn').style.display = '';
+  document.getElementById('reloadBtn').style.display = '';
+}
+function reloadFile() { document.getElementById('fileInput').value = ''; document.getElementById('fileInput').click(); }
+
+// ── Search ──
+function onSearch(val) {
+  query = val.trim();
+  document.getElementById('bulkHideBtn').style.display = query ? '' : 'none';
+  render();
+}
+function toggleShowHidden() {
+  showHiddenRows = !showHiddenRows;
+  document.getElementById('toggleBtn').textContent = showHiddenRows ? '🙈 隱藏已隱藏商品' : '👁 顯示已隱藏商品';
+  render();
+}
+function bulkHide() {
+  if (!query || !wb) return;
+  const q = query.toLowerCase();
+  let count = 0;
+  wb.rows.forEach(row => {
+    const skuMatch = col.sku >= 0 && str(row[col.sku]).toLowerCase().includes(q);
+    const eanMatch = col.ean >= 0 && str(row[col.ean]).toLowerCase().includes(q);
+    if (skuMatch || eanMatch) {
+      const ids = rowIds(row);
+      if (ids.length && !isHidden(row)) { hidden.add(ids[0]); count++; }
+    }
+  });
+  saveLS(); render(); syncModal();
+  toast('已批次隱藏 ' + count + ' 件商品', 'ok');
+}
+
+// ── Render ──
+function render() {
+  if (!wb) return;
+  const { headers, rows } = wb;
+  document.getElementById('thead').innerHTML =
+    '<tr><th style="width:56px;">操作</th>' +
+    headers.map(h => '<th title="' + esc(h) + '">' + esc(h) + '</th>').join('') + '</tr>';
+
+  const filtered = rows.map((row, i) => ({ row, i })).filter(({ row }) => {
+    if (query) {
+      const q = query.toLowerCase();
+      const sv = col.sku >= 0 ? str(row[col.sku]).toLowerCase() : '';
+      const ev = col.ean >= 0 ? str(row[col.ean]).toLowerCase()  : '';
+      if (!sv.includes(q) && !ev.includes(q)) return false;
+    }
+    if (!showHiddenRows && isHidden(row)) return false;
+    return true;
+  });
+
+  const nHid = rows.filter(r => isHidden(r)).length;
+  document.getElementById('statTotal').textContent = '共 ' + rows.length + ' 件';
+  document.getElementById('statVis').textContent   = '顯示 ' + (rows.length - nHid) + ' 件';
+  document.getElementById('statHid').textContent   = '已隱藏 ' + nHid + ' 件';
+
+  if (!filtered.length) {
+    document.getElementById('tbody').innerHTML =
+      '<tr><td colspan="' + (headers.length + 1) + '">' +
+      '<div class="empty-state"><div class="icon">' + (query ? '🔍' : '📦') + '</div>' +
+      '<div>' + (query ? '沒有符合的商品' : '目前沒有可顯示的商品') + '</div></div></td></tr>';
+    return;
+  }
+  document.getElementById('tbody').innerHTML = filtered.map(({ row, i }) => {
+    const hid = isHidden(row);
+    return '<tr class="' + (hid ? 'row-hidden' : '') + '">' +
+      '<td class="action-cell"><button class="btn-row ' + (hid ? 'btn-row-show' : 'btn-row-hide') +
+      '" onclick="toggleHide(' + i + ')">' + (hid ? '顯示' : '隱藏') + '</button></td>' +
+      row.map(c => '<td title="' + esc(str(c)) + '">' + esc(str(c)) + '</td>').join('') + '</tr>';
+  }).join('');
+}
+
+// ── Export ──
+function exportExcel() {
+  if (!wb) return;
+  const { headers, rows, origStatus } = wb;
+  let html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">' +
+    '<head><meta charset="UTF-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets>' +
+    '<x:ExcelWorksheet><x:Name>商品清單</x:Name></x:ExcelWorksheet>' +
+    '</x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head><body>' +
+    '<table border="1" cellspacing="0" cellpadding="4" style="border-collapse:collapse;font-size:11pt;">';
+  html += '<tr>' + headers.map(h =>
+    '<th style="background:#1A3A5C;color:white;font-weight:bold;padding:6px 10px;white-space:nowrap;">' + esc(h) + '</th>'
+  ).join('') + '</tr>';
+  rows.forEach((row, ri) => {
+    const hid = isHidden(row);
+    html += '<tr>';
+    row.forEach((cell, ci) => {
+      let val = str(cell), style = 'padding:5px 8px;';
+      if (col.status >= 0 && ci === col.status) {
+        const orig = origStatus[ri], next = hid ? 'N' : 'Y';
+        val = next;
+        if (orig !== next) style += 'background:yellow;font-weight:bold;';
+      }
+      if (hid) style += 'color:#999;';
+      html += '<td style="' + style + '">' + esc(val) + '</td>';
+    });
+    html += '</tr>';
+  });
+  html += '</table></body></html>';
+  const blob = new Blob(['\uFEFF' + html], { type: 'application/vnd.ms-excel;charset=UTF-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = '商品清單_' + datestamp() + '.xls'; a.click();
+  URL.revokeObjectURL(url);
+  toast('匯出完成', 'ok');
+}
+
+// ── Modal ──
+function openModal() { syncModal(); document.getElementById('overlay').classList.add('open'); }
+function closeModal() { document.getElementById('overlay').classList.remove('open'); }
+function overlayClick(e) { if (e.target === document.getElementById('overlay')) closeModal(); }
+
+function syncModal() {
+  const list = [...hidden];
+  document.getElementById('modalCount').textContent = list.length;
+  const ml = document.getElementById('modalList');
+  if (!list.length) { ml.innerHTML = '<div style="color:#ccc;text-align:center;padding:24px;">目前沒有隱藏的商品</div>'; return; }
+  ml.innerHTML = list.map(id =>
+    '<div class="modal-item"><code>' + esc(id) + '</code>' +
+    '<button class="btn btn-danger btn-sm" data-id="' + esc(id) + '" onclick="removeOne(this.dataset.id)">移除</button></div>'
+  ).join('');
+}
+function removeOne(id) { hidden.delete(id); saveLS(); syncModal(); render(); toast('已移除：' + id, 'ok'); }
+function clearAll() {
+  if (!hidden.size || !confirm('確定要清除全部 ' + hidden.size + ' 件隱藏商品嗎？')) return;
+  hidden.clear(); saveLS(); syncModal(); render(); toast('已清除全部隱藏清單');
+}
+function importList() {
+  const lines = document.getElementById('importTa').value.split('\n').map(s => s.trim()).filter(Boolean);
+  let count = 0;
+  lines.forEach(id => { if (!hidden.has(id)) { hidden.add(id); count++; } });
+  saveLS(); syncModal(); render();
+  document.getElementById('importTa').value = '';
+  toast('已新增 ' + count + ' 件到隱藏清單', 'ok');
+}
+function exportList() {
+  const blob = new Blob([[...hidden].join('\n')], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url;
+  a.download = '隱藏商品清單_' + datestamp() + '.txt'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── Utils ──
+function str(v) { return String(v ?? '').trim(); }
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function datestamp() { return new Date().toISOString().slice(0,10).replace(/-/g,''); }
+
+let _t;
+function toast(msg, type) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className = 'show' + (type ? ' ' + type : '');
+  clearTimeout(_t); _t = setTimeout(() => el.className = '', 2600);
+}
+
+loadLS();
+</script>
+</body>
+</html>
