@@ -125,7 +125,7 @@ select.inline-sel:focus{border-color:var(--primary);}
     <div class="sidebar-label">系統</div>
     <a class="nav-item" href="tools.html"><span class="icon">🔧</span> 使用工具</a>
   </div>
-  <div class="sidebar-footer">v1.0 · Feebit © 2026</div>
+  <div class="sidebar-footer">v1.1 · Feebit © 2026</div>
 </div>
 
 <div id="main">
@@ -134,7 +134,7 @@ select.inline-sel:focus{border-color:var(--primary);}
       <button class="btn-hamburger" style="display:none;" onclick="openSidebar()">☰</button>
       <span class="topbar-title">考勤查驗</span>
       <span class="topbar-badge">人事工具</span>
-      <span style="font-size:11px;color:var(--gray-400);margin-left:4px;">v1.0</span>
+      <span style="font-size:11px;color:var(--gray-400);margin-left:4px;">v1.1</span>
     </div>
   </div>
 
@@ -147,10 +147,33 @@ select.inline-sel:focus{border-color:var(--primary);}
 
   <!-- ══ TAB: EMPLOYEES ══ -->
   <div id="tab-employees" class="tab-content active">
+    <!-- Ragic Sync Card -->
+    <div class="card" style="margin-bottom:12px;">
+      <div class="card-header" style="margin-bottom:12px;">
+        <span class="card-title">🔗 Ragic 員工資料同步</span>
+        <button class="btn btn-primary btn-sm" onclick="syncFromRagic()" id="ragic-sync-btn">🔄 立即同步</button>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+        <div class="form-group" style="flex:3;min-width:260px;">
+          <label>Ragic Sheet URL</label>
+          <input type="text" id="ragic-url" placeholder="https://ap13.ragic.com/...">
+        </div>
+        <div class="form-group" style="flex:3;min-width:260px;">
+          <label>API Key（Basic xxxxx）</label>
+          <input type="password" id="ragic-key" placeholder="Basic blRaQ...">
+        </div>
+        <div class="form-group">
+          <label>&nbsp;</label>
+          <button class="btn btn-outline btn-sm" onclick="saveRagicConfig()">儲存設定</button>
+        </div>
+      </div>
+      <div id="ragic-msg" style="margin-top:8px;font-size:13px;"></div>
+    </div>
+    <!-- Employee Table Card -->
     <div class="card">
       <div class="card-header">
         <span class="card-title">員工名單</span>
-        <button class="btn btn-primary btn-sm" onclick="openEmpModal()">＋ 新增員工</button>
+        <button class="btn btn-primary btn-sm" onclick="openEmpModal()">＋ 手動新增</button>
       </div>
       <div class="tbl-wrap" id="emp-table"></div>
     </div>
@@ -314,8 +337,18 @@ select.inline-sel:focus{border-color:var(--primary);}
       <div class="form-group"><label>標準下班時間</label><input type="time" id="emp-end" value="18:00"></div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label>遲到寬限（分鐘）</label><input type="number" id="emp-late" value="5" min="0" max="60"></div>
-      <div class="form-group"><label>早退寬限（分鐘）</label><input type="number" id="emp-early" value="5" min="0" max="60"></div>
+      <div class="form-group"><label>遲到寬限（分鐘）</label><input type="number" id="emp-late" value="0" min="0" max="60"></div>
+      <div class="form-group"><label>早退寬限（分鐘）</label><input type="number" id="emp-early" value="0" min="0" max="60"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>午休開始（自動扣工時）</label><input type="time" id="emp-lunch-start" value="12:00"></div>
+      <div class="form-group"><label>午休結束</label><input type="time" id="emp-lunch-end" value="13:00"></div>
+    </div>
+    <div class="form-group" style="margin-bottom:12px;">
+      <label style="display:flex;align-items:center;gap:8px;font-weight:normal;cursor:pointer;">
+        <input type="checkbox" id="emp-lunch-deduct" checked>
+        <span style="font-size:13px;">計算工時時自動扣除午休（跨越午休時段的打卡自動扣 1 小時）</span>
+      </label>
     </div>
     <div class="form-group" id="emp-days-group">
       <label>工作日（正職）</label>
@@ -370,6 +403,19 @@ function switchSub(btn, tabId, name){
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
 function toMins(t){ if(!t||!t.trim()) return null; const[h,m]=(t||'').split(':').map(Number); return h*60+m; }
 function diffH(a,b){ const da=toMins(a),db=toMins(b); if(da===null||db===null) return 0; return Math.max(0,(db-da)/60); }
+function calcWorkHours(clockIn, clockOut, emp){
+  if(!clockIn||!clockOut) return 0;
+  let hours=diffH(clockIn,clockOut);
+  if(emp?.lunchDeduct&&emp?.lunchStart&&emp?.lunchEnd){
+    const inM=toMins(clockIn),outM=toMins(clockOut);
+    const lsM=toMins(emp.lunchStart),leM=toMins(emp.lunchEnd);
+    if(inM<leM&&outM>lsM){
+      const overlap=(Math.min(outM,leM)-Math.max(inM,lsM))/60;
+      hours=Math.max(0,hours-overlap);
+    }
+  }
+  return hours;
+}
 function fmt(n,d=1){ return parseFloat(n.toFixed(d)); }
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function monthDays(ym){ const[y,m]=ym.split('-').map(Number),days=[],d=new Date(y,m-1,1); while(d.getMonth()===m-1){days.push(d.toISOString().slice(0,10));d.setDate(d.getDate()+1);} return days; }
@@ -436,17 +482,23 @@ function openEmpModal(id){
     document.getElementById('emp-type').value=e.type;
     document.getElementById('emp-start').value=e.startTime||'09:00';
     document.getElementById('emp-end').value=e.endTime||'18:00';
-    document.getElementById('emp-late').value=e.lateGrace||5;
-    document.getElementById('emp-early').value=e.earlyGrace||5;
+    document.getElementById('emp-late').value=e.lateGrace||0;
+    document.getElementById('emp-early').value=e.earlyGrace||0;
+    document.getElementById('emp-lunch-start').value=e.lunchStart||'12:00';
+    document.getElementById('emp-lunch-end').value=e.lunchEnd||'13:00';
+    document.getElementById('emp-lunch-deduct').checked=e.lunchDeduct!==false;
     const wds=e.weekdays||[1,2,3,4,5];
     document.querySelectorAll('#emp-weekdays input').forEach(cb=>cb.checked=wds.includes(+cb.value));
   } else {
     document.getElementById('emp-name').value='';
     document.getElementById('emp-type').value='full-time';
     document.getElementById('emp-start').value='09:00';
-    document.getElementById('emp-end').value='18:00';
-    document.getElementById('emp-late').value=5;
-    document.getElementById('emp-early').value=5;
+    document.getElementById('emp-end').value='17:30';
+    document.getElementById('emp-late').value=0;
+    document.getElementById('emp-early').value=0;
+    document.getElementById('emp-lunch-start').value='12:00';
+    document.getElementById('emp-lunch-end').value='13:00';
+    document.getElementById('emp-lunch-deduct').checked=true;
     document.querySelectorAll('#emp-weekdays input').forEach(cb=>cb.checked=[1,2,3,4,5].includes(+cb.value));
   }
   document.getElementById('modal-emp').classList.add('open');
@@ -457,13 +509,19 @@ function saveEmployee(){
   const name=document.getElementById('emp-name').value.trim();
   if(!name){ alert('請輸入員工姓名'); return; }
   const wds=Array.from(document.querySelectorAll('#emp-weekdays input')).filter(c=>c.checked).map(c=>+c.value);
+  const existing=editId?db.employees.find(e=>e.id===editId):{};
   const data={
-    id:editId||uid(), name,
+    id:editId||uid(),
+    ragicId:existing?.ragicId||'',
+    name,
     type:document.getElementById('emp-type').value,
     startTime:document.getElementById('emp-start').value,
     endTime:document.getElementById('emp-end').value,
-    lateGrace:+document.getElementById('emp-late').value||5,
-    earlyGrace:+document.getElementById('emp-early').value||5,
+    lateGrace:+document.getElementById('emp-late').value||0,
+    earlyGrace:+document.getElementById('emp-early').value||0,
+    lunchStart:document.getElementById('emp-lunch-start').value||'12:00',
+    lunchEnd:document.getElementById('emp-lunch-end').value||'13:00',
+    lunchDeduct:document.getElementById('emp-lunch-deduct').checked,
     weekdays:wds
   };
   if(editId){ const i=db.employees.findIndex(e=>e.id===editId); if(i>=0) db.employees[i]=data; }
@@ -770,7 +828,7 @@ function analyzeEmployee(empId, month){
         if(sInM!==null&&inM>sInM+(emp.lateGrace||5)){ lateMin=inM-sInM; status.push('遲到 '+lateMin+' 分'); rowClass='row-late'; lateCount++; }
         if(sOutM!==null&&outM<sOutM-(emp.earlyGrace||5)){ earlyMin=sOutM-outM; status.push('早退 '+earlyMin+' 分'); if(!rowClass||rowClass==='row-ok') rowClass='row-early'; earlyCount++; }
         if(!status.length){ status=['正常']; rowClass='row-ok'; }
-        hours=diffH(rec.clockIn,rec.clockOut);
+        hours=calcWorkHours(rec.clockIn,rec.clockOut,emp);
         totalHours+=hours;
       }
     } else { return; } // not expected, no record → skip
@@ -996,10 +1054,111 @@ function renderAnnual(){
   `;
 }
 
+// ══ RAGIC SYNC ══
+const RAGIC_CFG_KEY='feebit_ragic_cfg';
+
+function loadRagicConfig(){
+  try{ return JSON.parse(localStorage.getItem(RAGIC_CFG_KEY))||{}; }catch(e){ return {}; }
+}
+function saveRagicConfig(){
+  const url=document.getElementById('ragic-url').value.trim();
+  const key=document.getElementById('ragic-key').value.trim();
+  if(!url||!key){ alert('請填寫 URL 與 API Key'); return; }
+  localStorage.setItem(RAGIC_CFG_KEY,JSON.stringify({url,key}));
+  document.getElementById('ragic-msg').innerHTML='<span style="color:var(--success);">✅ 設定已儲存</span>';
+  setTimeout(()=>{ document.getElementById('ragic-msg').innerHTML=''; },2000);
+}
+
+function initRagicFields(){
+  const cfg=loadRagicConfig();
+  if(cfg.url) document.getElementById('ragic-url').value=cfg.url;
+  if(cfg.key) document.getElementById('ragic-key').value=cfg.key;
+}
+
+// 聘雇類別 → tool type
+function mapEmpType(ragicType){
+  return ragicType==='工讀'?'part-time':'full-time';
+}
+
+async function syncFromRagic(){
+  const cfg=loadRagicConfig();
+  const url=cfg.url||document.getElementById('ragic-url').value.trim();
+  const key=cfg.key||document.getElementById('ragic-key').value.trim();
+  if(!url||!key){ alert('請先填寫並儲存 Ragic URL 與 API Key'); return; }
+
+  const btn=document.getElementById('ragic-sync-btn');
+  const msg=document.getElementById('ragic-msg');
+  btn.disabled=true; btn.textContent='同步中...';
+  msg.innerHTML='<span style="color:var(--gray-400);">⏳ 從 Ragic 拉取員工資料...</span>';
+
+  // build API URL: append &api to existing params
+  const apiUrl=url+(url.includes('?')?'&':'?')+'api&limit=1000';
+
+  try{
+    const res=await fetch(apiUrl,{
+      headers:{'Authorization':'Basic '+key.replace(/^Basic\s*/i,'')}
+    });
+    if(!res.ok){ throw new Error('HTTP '+res.status+' - '+await res.text()); }
+    const data=await res.json();
+    const records=Object.values(data).filter(r=>typeof r==='object'&&r._ragicId);
+
+    // filter 在職狀態 === '在職'
+    const active=records.filter(r=>r['在職狀態']==='在職');
+    if(!active.length){ msg.innerHTML='<span style="color:var(--warning);">⚠️ 沒有找到在職員工（在職狀態 = 在職）</span>'; btn.disabled=false; btn.textContent='🔄 立即同步'; return; }
+
+    let added=0, updated=0;
+    active.forEach(r=>{
+      const ragicId=String(r['工號']||r['_ragicId']);
+      const name=String(r['姓名']||'').trim();
+      if(!name) return;
+      const type=mapEmpType(r['聘雇類別']||'');
+
+      // find existing by ragicId or name
+      let existing=db.employees.find(e=>e.ragicId&&e.ragicId===ragicId)||db.employees.find(e=>e.name===name);
+
+      if(existing){
+        // update name & type; keep manual settings (hours, grace, weekdays)
+        existing.name=name;
+        existing.type=type;
+        existing.ragicId=ragicId;
+        // set defaults if missing
+        if(!existing.startTime) existing.startTime='09:00';
+        if(!existing.endTime) existing.endTime='17:30';
+        if(existing.lateGrace===undefined) existing.lateGrace=0;
+        if(existing.earlyGrace===undefined) existing.earlyGrace=0;
+        if(!existing.lunchStart) existing.lunchStart='12:00';
+        if(!existing.lunchEnd) existing.lunchEnd='13:00';
+        if(existing.lunchDeduct===undefined) existing.lunchDeduct=true;
+        if(!existing.weekdays) existing.weekdays=[1,2,3,4,5];
+        updated++;
+      } else {
+        db.employees.push({
+          id:uid(), ragicId, name, type,
+          startTime:'09:00', endTime:'17:30',
+          lateGrace:0, earlyGrace:0,
+          lunchStart:'12:00', lunchEnd:'13:00',
+          lunchDeduct:true,
+          weekdays:[1,2,3,4,5]
+        });
+        added++;
+      }
+    });
+
+    saveDB();
+    renderEmployees();
+    msg.innerHTML=`<span style="color:var(--success);">✅ 同步完成：新增 ${added} 人，更新 ${updated} 人（共 ${active.length} 位在職員工）</span>`;
+  } catch(e){
+    msg.innerHTML=`<span style="color:var(--danger);">❌ 同步失敗：${esc(e.message)}</span>`;
+    console.error(e);
+  }
+  btn.disabled=false; btn.textContent='🔄 立即同步';
+}
+
 // ══ INIT ══
 loadDB();
 renderEmployees();
 genMonthOpts('import-month');
+initRagicFields();
 </script>
 </body>
 </html>
