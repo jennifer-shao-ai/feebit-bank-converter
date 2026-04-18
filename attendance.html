@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>考勤查驗 · 飛比特工具箱</title>
+<link rel="icon" href="favicon.svg">
+<link rel="stylesheet" href="style.css">
+<style>
+.tab-nav{display:flex;gap:0;background:white;border-bottom:1px solid var(--gray-200);overflow-x:auto;}
+.tab-btn{padding:12px 18px;font-size:13px;font-weight:500;color:var(--gray-600);border:none;background:none;cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;transition:all .15s;}
+.tab-btn:hover{color:var(--gray-800);}
+.tab-btn.active{color:var(--primary);border-bottom-color:var(--primary);}
+.tab-content{display:none;padding:24px;}
+.tab-content.active{display:block;}
+.card{background:white;border-radius:var(--radius);padding:20px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.08);}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;}
+.card-title{font-size:15px;font-weight:600;}
+.stats-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px;margin-bottom:16px;}
+.stat-box{background:white;border-radius:var(--radius);padding:12px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.08);}
+.stat-box .num{font-size:22px;font-weight:700;}
+.stat-box .lbl{font-size:11px;color:var(--gray-600);margin-top:3px;}
+.stat-box.warn .num{color:var(--warning);}
+.stat-box.danger .num{color:var(--danger);}
+.stat-box.good .num{color:var(--success);}
+.tbl-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{background:var(--gray-50);padding:10px 12px;text-align:left;font-weight:600;border-bottom:2px solid var(--gray-200);white-space:nowrap;}
+td{padding:8px 12px;border-bottom:1px solid var(--gray-200);white-space:nowrap;}
+tr:hover td{background:var(--gray-50);}
+.row-late td{background:#fff7ed!important;}
+.row-early td{background:#fef9c3!important;}
+.row-missing td{background:#fef2f2!important;}
+.row-absent td{background:#fce7f3!important;}
+.row-ok td{background:#f0fdf4!important;}
+.badge{display:inline-block;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:600;}
+.badge-ok{background:#dcfce7;color:#166534;}
+.badge-late{background:#fed7aa;color:#9a3412;}
+.badge-early{background:#fef08a;color:#713f12;}
+.badge-missing{background:#fecaca;color:#991b1b;}
+.badge-absent{background:#fce7f3;color:#9d174d;}
+.badge-leave{background:#dbeafe;color:#1e40af;}
+.badge-ot{background:#ede9fe;color:#5b21b6;}
+.badge-ft{background:#d1fae5;color:#065f46;}
+.badge-pt{background:#e0f2fe;color:#0c4a6e;}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:8px 14px;border-radius:var(--radius);border:none;cursor:pointer;font-size:13px;font-weight:500;transition:opacity .15s;}
+.btn:hover{opacity:.85;}
+.btn-primary{background:var(--primary);color:white;}
+.btn-danger{background:var(--danger);color:white;}
+.btn-outline{background:white;color:var(--gray-800);border:1px solid var(--gray-200);}
+.btn-sm{padding:4px 10px;font-size:12px;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+.form-group label{display:block;font-size:12px;font-weight:600;color:var(--gray-600);margin-bottom:4px;}
+.form-group input,.form-group select,.form-group textarea{width:100%;padding:7px 10px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:13px;outline:none;font-family:inherit;}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--primary);}
+.form-group textarea{height:110px;resize:vertical;font-size:12px;font-family:'Courier New',monospace;}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:white;border-radius:12px;padding:24px;width:500px;max-width:92vw;max-height:90vh;overflow-y:auto;}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
+.modal-title{font-size:16px;font-weight:700;}
+.modal-close{background:none;border:none;font-size:20px;cursor:pointer;color:var(--gray-400);}
+.modal-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:20px;}
+.sub-nav{display:flex;gap:0;border-bottom:1px solid var(--gray-200);margin-bottom:16px;overflow-x:auto;}
+.sub-btn{padding:8px 14px;font-size:12px;font-weight:500;color:var(--gray-500);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;}
+.sub-btn.active{color:var(--primary);border-bottom-color:var(--primary);}
+.sub-content{display:none;}
+.sub-content.active{display:block;}
+.tip{font-size:11px;color:var(--gray-400);margin-bottom:8px;}
+.code-hint{background:#f8faff;border:1px solid #dbeafe;border-radius:6px;padding:10px 12px;font-size:11px;font-family:monospace;color:var(--gray-600);margin-bottom:10px;line-height:1.7;}
+.empty-state{text-align:center;padding:40px 20px;color:var(--gray-400);}
+.empty-state .ei{font-size:32px;margin-bottom:8px;}
+.divider{border:none;border-top:1px solid var(--gray-200);margin:16px 0;}
+.score-wrap{background:var(--gray-100);border-radius:6px;height:12px;overflow:hidden;flex:1;}
+.score-bar{height:100%;border-radius:6px;transition:width .4s;}
+.bar-hi{background:var(--success);}
+.bar-md{background:var(--warning);}
+.bar-lo{background:var(--danger);}
+.inline-form{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px;}
+.inline-form .form-group{min-width:120px;}
+.section-label{font-size:12px;font-weight:600;color:var(--gray-500);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;}
+select.inline-sel{padding:6px 10px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:13px;outline:none;}
+select.inline-sel:focus{border-color:var(--primary);}
+@media(max-width:768px){.form-row{grid-template-columns:1fr;}.btn-hamburger{display:block!important;}}
+</style>
+</head>
+<body>
+
+<div id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<div id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand">飛比特 Feebit</div>
+    <div class="sub">營運工具箱</div>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">總覽</div>
+    <a class="nav-item" href="index.html"><span class="icon">🏠</span> 首頁</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">財務</div>
+    <a class="nav-item" href="bank-converter.html"><span class="icon">🏦</span> 帳務轉換</a>
+    <a class="nav-item" href="accounting-ops.html"><span class="icon">📅</span> 例行帳務作業</a>
+    <a class="nav-item" href="finance-dashboard.html"><span class="icon">📊</span> 帳務分析</a>
+    <a class="nav-item" href="coupang-invoice.html"><span class="icon">🧾</span> 酷澎發票轉檔</a>
+    <a class="nav-item" href="coupang-reconcile.html"><span class="icon">🔍</span> 酷澎商城對帳</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">人事</div>
+    <a class="nav-item active" href="attendance.html"><span class="icon">🗓️</span> 考勤查驗</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">庫存</div>
+    <a class="nav-item" href="stock-analysis.html"><span class="icon">📦</span> 庫存訂貨分析</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">研發</div>
+    <a class="nav-item" href="research-notes.html"><span class="icon">📚</span> 研發筆記</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">生活</div>
+    <a class="nav-item" href="travel-planner.html"><span class="icon">✈️</span> 旅行規劃</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">系統</div>
+    <a class="nav-item" href="tools.html"><span class="icon">🔧</span> 使用工具</a>
+  </div>
+  <div class="sidebar-footer">v1.0 · Feebit © 2026</div>
+</div>
+
+<div id="main">
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <button class="btn-hamburger" style="display:none;" onclick="openSidebar()">☰</button>
+      <span class="topbar-title">考勤查驗</span>
+      <span class="topbar-badge">人事工具</span>
+      <span style="font-size:11px;color:var(--gray-400);margin-left:4px;">v1.0</span>
+    </div>
+  </div>
+
+  <div class="tab-nav">
+    <button class="tab-btn active" onclick="switchTab(this,'employees')">👥 員工設定</button>
+    <button class="tab-btn" onclick="switchTab(this,'import')">📋 當月匯入</button>
+    <button class="tab-btn" onclick="switchTab(this,'verify')">🔍 考勤查驗</button>
+    <button class="tab-btn" onclick="switchTab(this,'annual')">📊 年度報告</button>
+  </div>
+
+  <!-- ══ TAB: EMPLOYEES ══ -->
+  <div id="tab-employees" class="tab-content active">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">員工名單</span>
+        <button class="btn btn-primary btn-sm" onclick="openEmpModal()">＋ 新增員工</button>
+      </div>
+      <div class="tbl-wrap" id="emp-table"></div>
+    </div>
+  </div>
+
+  <!-- ══ TAB: IMPORT ══ -->
+  <div id="tab-import" class="tab-content">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">當月考勤資料</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <label style="font-size:13px;color:var(--gray-600);">月份：</label>
+          <select id="import-month" class="inline-sel" onchange="onImportMonthChange()"></select>
+        </div>
+      </div>
+      <div class="sub-nav">
+        <button class="sub-btn active" onclick="switchSub(this,'import','punch')">打卡紀錄</button>
+        <button class="sub-btn" onclick="switchSub(this,'import','ptsch')">工讀排班表</button>
+        <button class="sub-btn" onclick="switchSub(this,'import','leaves')">請假紀錄</button>
+        <button class="sub-btn" onclick="switchSub(this,'import','ot')">加班 / 調班</button>
+      </div>
+
+      <!-- Punch -->
+      <div id="import-punch" class="sub-content active">
+        <p class="tip">格式：日期,姓名,上班打卡,下班打卡（含或不含標題列均可；未打卡留空）</p>
+        <div class="code-hint">日期,姓名,上班打卡,下班打卡<br>2026-04-01,王小明,09:00,18:05<br>2026-04-01,李小華,09:15,<br>2026-04-02,王小明,,18:00</div>
+        <div class="form-group"><textarea id="punch-csv" placeholder="在此貼上 CSV 資料..."></textarea></div>
+        <div style="display:flex;gap:8px;margin-bottom:12px;">
+          <button class="btn btn-primary" onclick="importPunch()">匯入打卡紀錄</button>
+          <button class="btn btn-outline" onclick="clearPunch()">清除本月</button>
+        </div>
+        <div id="punch-msg"></div>
+        <hr class="divider">
+        <div class="section-label">已匯入紀錄</div>
+        <div class="tbl-wrap" id="punch-table"></div>
+      </div>
+
+      <!-- PT Schedule -->
+      <div id="import-ptsch" class="sub-content">
+        <p class="tip">僅工讀生需填。格式：日期,姓名,排班開始,排班結束</p>
+        <div class="code-hint">日期,姓名,排班開始,排班結束<br>2026-04-01,陳工讀,10:00,14:00<br>2026-04-03,陳工讀,14:00,18:00</div>
+        <div class="form-group"><textarea id="sch-csv" placeholder="在此貼上排班表 CSV..."></textarea></div>
+        <div style="display:flex;gap:8px;margin-bottom:12px;">
+          <button class="btn btn-primary" onclick="importSch()">匯入排班表</button>
+          <button class="btn btn-outline" onclick="clearSch()">清除本月排班</button>
+        </div>
+        <div id="sch-msg"></div>
+        <hr class="divider">
+        <div class="section-label">已匯入排班</div>
+        <div class="tbl-wrap" id="sch-table"></div>
+      </div>
+
+      <!-- Leaves -->
+      <div id="import-leaves" class="sub-content">
+        <div class="inline-form">
+          <div class="form-group"><label>員工</label><select id="lv-emp" class="inline-sel" style="min-width:100px;"></select></div>
+          <div class="form-group"><label>日期</label><input type="date" id="lv-date"></div>
+          <div class="form-group"><label>假別</label>
+            <select id="lv-type" class="inline-sel">
+              <option>特休</option><option>病假</option><option>事假</option>
+              <option>婚假</option><option>喪假</option><option>公假</option>
+              <option>補休</option><option>產假</option><option>陪產假</option>
+              <option>育嬰留停</option><option>其他</option>
+            </select>
+          </div>
+          <div class="form-group"><label>時數</label><input type="number" id="lv-hours" value="8" min="0.5" max="24" step="0.5" style="width:70px;"></div>
+          <div class="form-group"><label>備註</label><input type="text" id="lv-note" placeholder="選填" style="min-width:120px;"></div>
+          <div class="form-group"><label>&nbsp;</label><button class="btn btn-primary" onclick="addLeave()">新增</button></div>
+        </div>
+        <div class="tbl-wrap" id="lv-table"></div>
+      </div>
+
+      <!-- OT / Shift -->
+      <div id="import-ot" class="sub-content">
+        <div class="section-label">加班申請</div>
+        <div class="inline-form">
+          <div class="form-group"><label>員工</label><select id="ot-emp" class="inline-sel" style="min-width:100px;"></select></div>
+          <div class="form-group"><label>日期</label><input type="date" id="ot-date"></div>
+          <div class="form-group"><label>時數</label><input type="number" id="ot-hours" value="1" min="0.5" max="12" step="0.5" style="width:70px;"></div>
+          <div class="form-group"><label>備註</label><input type="text" id="ot-note" placeholder="選填" style="min-width:120px;"></div>
+          <div class="form-group"><label>&nbsp;</label><button class="btn btn-primary" onclick="addOT()">新增</button></div>
+        </div>
+        <div class="tbl-wrap" id="ot-table"></div>
+        <hr class="divider">
+        <div class="section-label">調班申請</div>
+        <div class="inline-form">
+          <div class="form-group"><label>員工</label><select id="sh-emp" class="inline-sel" style="min-width:100px;"></select></div>
+          <div class="form-group"><label>原班日期</label><input type="date" id="sh-from"></div>
+          <div class="form-group"><label>調換日期</label><input type="date" id="sh-to"></div>
+          <div class="form-group"><label>備註</label><input type="text" id="sh-note" placeholder="選填" style="min-width:120px;"></div>
+          <div class="form-group"><label>&nbsp;</label><button class="btn btn-primary" onclick="addShift()">新增</button></div>
+        </div>
+        <div class="tbl-wrap" id="sh-table"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ TAB: VERIFY ══ -->
+  <div id="tab-verify" class="tab-content">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px;">
+      <div style="display:flex;align-items:center;gap:6px;">
+        <label style="font-size:13px;color:var(--gray-600);">月份：</label>
+        <select id="vfy-month" class="inline-sel" onchange="renderVerify()"></select>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <label style="font-size:13px;color:var(--gray-600);">員工：</label>
+        <select id="vfy-emp" class="inline-sel" onchange="renderVerify()"><option value="">全部</option></select>
+      </div>
+      <button class="btn btn-outline btn-sm" onclick="renderVerify()">重新計算</button>
+    </div>
+    <div class="stats-row" id="vfy-stats"></div>
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">考勤明細</span>
+        <span style="font-size:11px;color:var(--gray-400);">
+          <span style="background:#fff7ed;padding:1px 6px;border-radius:3px;">遲到</span>&nbsp;
+          <span style="background:#fef9c3;padding:1px 6px;border-radius:3px;">早退</span>&nbsp;
+          <span style="background:#fef2f2;padding:1px 6px;border-radius:3px;">未打卡</span>&nbsp;
+          <span style="background:#fce7f3;padding:1px 6px;border-radius:3px;">缺勤</span>
+        </span>
+      </div>
+      <div class="tbl-wrap" id="vfy-table"></div>
+    </div>
+    <div id="vfy-summary"></div>
+  </div>
+
+  <!-- ══ TAB: ANNUAL ══ -->
+  <div id="tab-annual" class="tab-content">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px;">
+      <div style="display:flex;align-items:center;gap:6px;">
+        <label style="font-size:13px;color:var(--gray-600);">年度：</label>
+        <select id="ann-year" class="inline-sel" onchange="renderAnnual()"></select>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <label style="font-size:13px;color:var(--gray-600);">員工：</label>
+        <select id="ann-emp" class="inline-sel" onchange="renderAnnual()"><option value="">全部</option></select>
+      </div>
+    </div>
+    <div id="ann-content"><div class="empty-state"><div class="ei">📊</div><div>請先匯入考勤資料</div></div></div>
+  </div>
+</div><!-- /#main -->
+
+<!-- ══ MODAL: EMPLOYEE ══ -->
+<div id="modal-emp" class="modal-overlay" onclick="if(event.target===this)closeEmpModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-emp-title">新增員工</span>
+      <button class="modal-close" onclick="closeEmpModal()">✕</button>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>姓名 *</label><input type="text" id="emp-name" placeholder="王小明"></div>
+      <div class="form-group"><label>類型 *</label>
+        <select id="emp-type">
+          <option value="full-time">正職</option>
+          <option value="part-time">工讀</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>標準上班時間</label><input type="time" id="emp-start" value="09:00"></div>
+      <div class="form-group"><label>標準下班時間</label><input type="time" id="emp-end" value="18:00"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>遲到寬限（分鐘）</label><input type="number" id="emp-late" value="5" min="0" max="60"></div>
+      <div class="form-group"><label>早退寬限（分鐘）</label><input type="number" id="emp-early" value="5" min="0" max="60"></div>
+    </div>
+    <div class="form-group" id="emp-days-group">
+      <label>工作日（正職）</label>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;" id="emp-weekdays">
+        <label style="display:flex;align-items:center;gap:4px;font-size:13px;"><input type="checkbox" value="1" checked>一</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:13px;"><input type="checkbox" value="2" checked>二</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:13px;"><input type="checkbox" value="3" checked>三</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:13px;"><input type="checkbox" value="4" checked>四</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:13px;"><input type="checkbox" value="5" checked>五</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:13px;"><input type="checkbox" value="6">六</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:13px;"><input type="checkbox" value="0">日</label>
+      </div>
+      <p class="tip" style="margin-top:4px;">工讀生依排班表出勤，此欄不生效</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeEmpModal()">取消</button>
+      <button class="btn btn-primary" onclick="saveEmployee()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══ STORAGE ══
+const SK = 'feebit_att_v1';
+let db = { employees:[], monthlyData:{} };
+function loadDB(){ try{ const s=localStorage.getItem(SK); if(s) db=JSON.parse(s); }catch(e){} }
+function saveDB(){ localStorage.setItem(SK,JSON.stringify(db)); }
+
+// ══ SIDEBAR ══
+function openSidebar(){ document.getElementById('sidebar').classList.add('open'); document.getElementById('sidebar-overlay').classList.add('open'); }
+function closeSidebar(){ document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebar-overlay').classList.remove('open'); }
+
+// ══ TABS ══
+function switchTab(btn, name){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.tab-content').forEach(el=>el.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  if(name==='import') initImport();
+  if(name==='verify') initVerify();
+  if(name==='annual') initAnnual();
+}
+function switchSub(btn, tabId, name){
+  const tab = document.getElementById('tab-'+tabId);
+  tab.querySelectorAll('.sub-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  tab.querySelectorAll('.sub-content').forEach(el=>el.classList.remove('active'));
+  document.getElementById(tabId+'-'+name).classList.add('active');
+}
+
+// ══ UTILS ══
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function toMins(t){ if(!t||!t.trim()) return null; const[h,m]=(t||'').split(':').map(Number); return h*60+m; }
+function diffH(a,b){ const da=toMins(a),db=toMins(b); if(da===null||db===null) return 0; return Math.max(0,(db-da)/60); }
+function fmt(n,d=1){ return parseFloat(n.toFixed(d)); }
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function monthDays(ym){ const[y,m]=ym.split('-').map(Number),days=[],d=new Date(y,m-1,1); while(d.getMonth()===m-1){days.push(d.toISOString().slice(0,10));d.setDate(d.getDate()+1);} return days; }
+function dow(ds){ return new Date(ds+'T00:00:00').getDay(); }
+const WD_LABEL=['日','一','二','三','四','五','六'];
+
+function genMonthOpts(selId, val){
+  const sel=document.getElementById(selId); if(!sel) return;
+  const today=new Date(), cur=val||(today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0'));
+  const opts=[];
+  for(let i=24;i>=-2;i--){
+    const d=new Date(today.getFullYear(),today.getMonth()-i,1);
+    opts.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'));
+  }
+  sel.innerHTML=opts.map(o=>`<option value="${o}"${o===cur?' selected':''}>${o}</option>`).join('');
+}
+
+function getEmpById(id){ return db.employees.find(e=>e.id===id); }
+
+function ensureMonth(m){
+  if(!db.monthlyData[m]) db.monthlyData[m]={records:[],leaves:[],overtimes:[],shiftChanges:[],ptSchedule:[]};
+  const md=db.monthlyData[m];
+  if(!md.leaves) md.leaves=[];
+  if(!md.overtimes) md.overtimes=[];
+  if(!md.shiftChanges) md.shiftChanges=[];
+  if(!md.ptSchedule) md.ptSchedule=[];
+  return md;
+}
+
+function parseCSV(text){
+  const lines=text.trim().split('\n').map(l=>l.trim()).filter(Boolean);
+  if(!lines.length) return [];
+  const first=lines[0].split(',')[0];
+  const hasHeader=isNaN(first)&&!first.match(/^\d{4}-/);
+  return (hasHeader?lines.slice(1):lines).map(l=>l.split(',').map(c=>c.trim()));
+}
+
+// ══ EMPLOYEES ══
+let editId=null;
+
+function renderEmployees(){
+  const w=document.getElementById('emp-table');
+  if(!db.employees.length){ w.innerHTML='<div class="empty-state"><div class="ei">👥</div><div>尚未新增員工</div></div>'; return; }
+  w.innerHTML=`<table><thead><tr><th>姓名</th><th>類型</th><th>上班</th><th>下班</th><th>遲到寬限</th><th>早退寬限</th><th>工作日</th><th></th></tr></thead><tbody>
+  ${db.employees.map(e=>`<tr>
+    <td><strong>${esc(e.name)}</strong></td>
+    <td><span class="badge ${e.type==='full-time'?'badge-ft':'badge-pt'}">${e.type==='full-time'?'正職':'工讀'}</span></td>
+    <td>${e.startTime||'-'}</td><td>${e.endTime||'-'}</td>
+    <td>${e.lateGrace||0} 分</td><td>${e.earlyGrace||0} 分</td>
+    <td style="font-size:11px;">${e.type==='part-time'?'依排班表':(e.weekdays||[1,2,3,4,5]).map(w=>WD_LABEL[w]).join('/')}</td>
+    <td>
+      <button class="btn btn-outline btn-sm" onclick="openEmpModal('${e.id}')">編輯</button>
+      <button class="btn btn-danger btn-sm" style="margin-left:4px" onclick="delEmp('${e.id}')">刪除</button>
+    </td>
+  </tr>`).join('')}</tbody></table>`;
+}
+
+function openEmpModal(id){
+  editId=id||null;
+  document.getElementById('modal-emp-title').textContent=id?'編輯員工':'新增員工';
+  if(id){
+    const e=db.employees.find(x=>x.id===id); if(!e) return;
+    document.getElementById('emp-name').value=e.name;
+    document.getElementById('emp-type').value=e.type;
+    document.getElementById('emp-start').value=e.startTime||'09:00';
+    document.getElementById('emp-end').value=e.endTime||'18:00';
+    document.getElementById('emp-late').value=e.lateGrace||5;
+    document.getElementById('emp-early').value=e.earlyGrace||5;
+    const wds=e.weekdays||[1,2,3,4,5];
+    document.querySelectorAll('#emp-weekdays input').forEach(cb=>cb.checked=wds.includes(+cb.value));
+  } else {
+    document.getElementById('emp-name').value='';
+    document.getElementById('emp-type').value='full-time';
+    document.getElementById('emp-start').value='09:00';
+    document.getElementById('emp-end').value='18:00';
+    document.getElementById('emp-late').value=5;
+    document.getElementById('emp-early').value=5;
+    document.querySelectorAll('#emp-weekdays input').forEach(cb=>cb.checked=[1,2,3,4,5].includes(+cb.value));
+  }
+  document.getElementById('modal-emp').classList.add('open');
+}
+function closeEmpModal(){ document.getElementById('modal-emp').classList.remove('open'); }
+
+function saveEmployee(){
+  const name=document.getElementById('emp-name').value.trim();
+  if(!name){ alert('請輸入員工姓名'); return; }
+  const wds=Array.from(document.querySelectorAll('#emp-weekdays input')).filter(c=>c.checked).map(c=>+c.value);
+  const data={
+    id:editId||uid(), name,
+    type:document.getElementById('emp-type').value,
+    startTime:document.getElementById('emp-start').value,
+    endTime:document.getElementById('emp-end').value,
+    lateGrace:+document.getElementById('emp-late').value||5,
+    earlyGrace:+document.getElementById('emp-early').value||5,
+    weekdays:wds
+  };
+  if(editId){ const i=db.employees.findIndex(e=>e.id===editId); if(i>=0) db.employees[i]=data; }
+  else db.employees.push(data);
+  saveDB(); renderEmployees(); closeEmpModal();
+}
+
+function delEmp(id){
+  if(!confirm('確定刪除此員工？')) return;
+  db.employees=db.employees.filter(e=>e.id!==id);
+  saveDB(); renderEmployees();
+}
+
+// ══ IMPORT ══
+function initImport(){
+  const today=new Date();
+  const cur=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0');
+  genMonthOpts('import-month',cur);
+  refreshEmpDrops();
+  const m=document.getElementById('import-month').value;
+  renderPunchTable(m); renderSchTable(m); renderLvTable(m); renderOTTable(m); renderShTable(m);
+}
+
+function onImportMonthChange(){
+  const m=document.getElementById('import-month').value;
+  renderPunchTable(m); renderSchTable(m); renderLvTable(m); renderOTTable(m); renderShTable(m);
+}
+
+function refreshEmpDrops(){
+  const opts=db.employees.map(e=>`<option value="${e.id}">${esc(e.name)}</option>`).join('');
+  ['lv-emp','ot-emp','sh-emp'].forEach(id=>{ const s=document.getElementById(id); if(s) s.innerHTML=opts||'<option value="">（無員工）</option>'; });
+}
+
+// ─ Punch ─
+function importPunch(){
+  const m=document.getElementById('import-month').value;
+  const text=document.getElementById('punch-csv').value;
+  if(!text.trim()){ alert('請貼上 CSV'); return; }
+  const rows=parseCSV(text); let ok=0; const errs=[];
+  const md=ensureMonth(m);
+  rows.forEach((r,i)=>{
+    const[date,name,ci,co]=r;
+    if(!date||!name){ errs.push(`第${i+2}列：缺日期或姓名`); return; }
+    if(!date.match(/^\d{4}-\d{2}-\d{2}$/)){ errs.push(`第${i+2}列：日期格式錯誤(${date})`); return; }
+    const emp=db.employees.find(e=>e.name===name);
+    if(!emp){ errs.push(`第${i+2}列：找不到員工「${name}」`); return; }
+    const idx=md.records.findIndex(x=>x.date===date&&x.employeeId===emp.id);
+    if(idx>=0) md.records.splice(idx,1);
+    md.records.push({date,employeeId:emp.id,clockIn:ci||'',clockOut:co||''});
+    ok++;
+  });
+  saveDB();
+  document.getElementById('punch-csv').value='';
+  document.getElementById('punch-msg').innerHTML=`<div style="padding:8px 12px;background:#dcfce7;border-radius:6px;font-size:13px;margin-bottom:10px;">✅ 成功匯入 ${ok} 筆${errs.length?'，'+errs.length+' 筆錯誤：<br>'+errs.map(esc).join('<br>'):''}  </div>`;
+  renderPunchTable(m);
+}
+
+function clearPunch(){
+  if(!confirm('確定清除本月所有打卡紀錄？')) return;
+  const m=document.getElementById('import-month').value;
+  ensureMonth(m).records=[]; saveDB(); renderPunchTable(m);
+}
+
+function renderPunchTable(m){
+  const w=document.getElementById('punch-table');
+  const recs=db.monthlyData[m]?.records||[];
+  if(!recs.length){ w.innerHTML='<div class="empty-state"><div class="ei">📋</div><div>尚未匯入資料</div></div>'; return; }
+  const sorted=[...recs].sort((a,b)=>a.date.localeCompare(b.date)||a.employeeId.localeCompare(b.employeeId));
+  w.innerHTML=`<table><thead><tr><th>日期</th><th>員工</th><th>上班打卡</th><th>下班打卡</th><th></th></tr></thead><tbody>
+  ${sorted.map(r=>{
+    const emp=getEmpById(r.employeeId);
+    return `<tr>
+      <td>${r.date} <span style="font-size:10px;color:var(--gray-400);">${WD_LABEL[dow(r.date)]}</span></td>
+      <td>${esc(emp?.name||r.employeeId)}</td>
+      <td>${r.clockIn||'<span style="color:var(--danger)">—</span>'}</td>
+      <td>${r.clockOut||'<span style="color:var(--danger)">—</span>'}</td>
+      <td><button class="btn btn-outline btn-sm" onclick="delPunch('${m}','${r.date}','${r.employeeId}')">刪除</button></td>
+    </tr>`;
+  }).join('')}</tbody></table>`;
+}
+
+function delPunch(m,date,empId){
+  db.monthlyData[m].records=db.monthlyData[m].records.filter(r=>!(r.date===date&&r.employeeId===empId));
+  saveDB(); renderPunchTable(m);
+}
+
+// ─ Schedule ─
+function importSch(){
+  const m=document.getElementById('import-month').value;
+  const text=document.getElementById('sch-csv').value;
+  if(!text.trim()){ alert('請貼上排班表 CSV'); return; }
+  const rows=parseCSV(text); let ok=0; const errs=[];
+  const md=ensureMonth(m);
+  rows.forEach((r,i)=>{
+    const[date,name,start,end]=r;
+    if(!date||!name||!start||!end){ errs.push(`第${i+2}列：資料不完整`); return; }
+    const emp=db.employees.find(e=>e.name===name);
+    if(!emp){ errs.push(`第${i+2}列：找不到員工「${name}」`); return; }
+    const idx=md.ptSchedule.findIndex(x=>x.date===date&&x.employeeId===emp.id);
+    if(idx>=0) md.ptSchedule.splice(idx,1);
+    md.ptSchedule.push({date,employeeId:emp.id,scheduledStart:start,scheduledEnd:end});
+    ok++;
+  });
+  saveDB();
+  document.getElementById('sch-csv').value='';
+  document.getElementById('sch-msg').innerHTML=`<div style="padding:8px 12px;background:#dcfce7;border-radius:6px;font-size:13px;margin-bottom:10px;">✅ 匯入 ${ok} 筆${errs.length?'，'+errs.length+' 筆錯誤':''}</div>`;
+  renderSchTable(m);
+}
+
+function clearSch(){
+  if(!confirm('確定清除本月排班表？')) return;
+  const m=document.getElementById('import-month').value;
+  ensureMonth(m).ptSchedule=[]; saveDB(); renderSchTable(m);
+}
+
+function renderSchTable(m){
+  const w=document.getElementById('sch-table');
+  const s=db.monthlyData[m]?.ptSchedule||[];
+  if(!s.length){ w.innerHTML='<div class="empty-state"><div class="ei">🗓️</div><div>尚未匯入排班表</div></div>'; return; }
+  w.innerHTML=`<table><thead><tr><th>日期</th><th>員工</th><th>排班開始</th><th>排班結束</th><th>排班時數</th><th></th></tr></thead><tbody>
+  ${[...s].sort((a,b)=>a.date.localeCompare(b.date)).map(x=>{
+    const emp=getEmpById(x.employeeId);
+    return `<tr>
+      <td>${x.date} <span style="font-size:10px;color:var(--gray-400);">${WD_LABEL[dow(x.date)]}</span></td>
+      <td>${esc(emp?.name||x.employeeId)}</td>
+      <td>${x.scheduledStart}</td><td>${x.scheduledEnd}</td>
+      <td>${fmt(diffH(x.scheduledStart,x.scheduledEnd))} h</td>
+      <td><button class="btn btn-outline btn-sm" onclick="delSch('${m}','${x.date}','${x.employeeId}')">刪除</button></td>
+    </tr>`;
+  }).join('')}</tbody></table>`;
+}
+
+function delSch(m,date,empId){
+  db.monthlyData[m].ptSchedule=db.monthlyData[m].ptSchedule.filter(s=>!(s.date===date&&s.employeeId===empId));
+  saveDB(); renderSchTable(m);
+}
+
+// ─ Leaves ─
+function addLeave(){
+  const m=document.getElementById('import-month').value;
+  const empId=document.getElementById('lv-emp').value;
+  const date=document.getElementById('lv-date').value;
+  const type=document.getElementById('lv-type').value;
+  const hours=+document.getElementById('lv-hours').value||8;
+  const note=document.getElementById('lv-note').value;
+  if(!empId||!date){ alert('請填寫員工與日期'); return; }
+  const md=ensureMonth(m);
+  md.leaves.push({id:uid(),employeeId:empId,date,type,hours,note});
+  saveDB(); renderLvTable(m);
+  document.getElementById('lv-date').value='';
+  document.getElementById('lv-note').value='';
+}
+
+function renderLvTable(m){
+  const w=document.getElementById('lv-table');
+  const lv=db.monthlyData[m]?.leaves||[];
+  if(!lv.length){ w.innerHTML='<div class="empty-state"><div class="ei">📄</div><div>尚未新增請假紀錄</div></div>'; return; }
+  w.innerHTML=`<table><thead><tr><th>日期</th><th>員工</th><th>假別</th><th>時數</th><th>備註</th><th></th></tr></thead><tbody>
+  ${[...lv].sort((a,b)=>a.date.localeCompare(b.date)).map(l=>{
+    const emp=getEmpById(l.employeeId);
+    return `<tr>
+      <td>${l.date}</td><td>${esc(emp?.name||l.employeeId)}</td>
+      <td><span class="badge badge-leave">${esc(l.type)}</span></td>
+      <td>${l.hours} h</td><td style="color:var(--gray-600)">${esc(l.note||'-')}</td>
+      <td><button class="btn btn-outline btn-sm" onclick="delLeave('${m}','${l.id}')">刪除</button></td>
+    </tr>`;
+  }).join('')}</tbody></table>`;
+}
+
+function delLeave(m,id){
+  db.monthlyData[m].leaves=db.monthlyData[m].leaves.filter(l=>l.id!==id);
+  saveDB(); renderLvTable(m);
+}
+
+// ─ OT ─
+function addOT(){
+  const m=document.getElementById('import-month').value;
+  const empId=document.getElementById('ot-emp').value;
+  const date=document.getElementById('ot-date').value;
+  const hours=+document.getElementById('ot-hours').value||1;
+  const note=document.getElementById('ot-note').value;
+  if(!empId||!date){ alert('請填寫員工與日期'); return; }
+  const md=ensureMonth(m);
+  md.overtimes.push({id:uid(),employeeId:empId,date,hours,note});
+  saveDB(); renderOTTable(m);
+  document.getElementById('ot-date').value='';
+  document.getElementById('ot-note').value='';
+}
+
+function renderOTTable(m){
+  const w=document.getElementById('ot-table');
+  const ots=db.monthlyData[m]?.overtimes||[];
+  if(!ots.length){ w.innerHTML='<div class="empty-state"><div class="ei">⏰</div><div>尚未新增加班紀錄</div></div>'; return; }
+  w.innerHTML=`<table><thead><tr><th>日期</th><th>員工</th><th>加班時數</th><th>備註</th><th></th></tr></thead><tbody>
+  ${ots.map(o=>{
+    const emp=getEmpById(o.employeeId);
+    return `<tr>
+      <td>${o.date}</td><td>${esc(emp?.name||o.employeeId)}</td>
+      <td><span class="badge badge-ot">${o.hours} h</span></td>
+      <td style="color:var(--gray-600)">${esc(o.note||'-')}</td>
+      <td><button class="btn btn-outline btn-sm" onclick="delOT('${m}','${o.id}')">刪除</button></td>
+    </tr>`;
+  }).join('')}</tbody></table>`;
+}
+
+function delOT(m,id){
+  db.monthlyData[m].overtimes=db.monthlyData[m].overtimes.filter(o=>o.id!==id);
+  saveDB(); renderOTTable(m);
+}
+
+// ─ Shift ─
+function addShift(){
+  const m=document.getElementById('import-month').value;
+  const empId=document.getElementById('sh-emp').value;
+  const from=document.getElementById('sh-from').value;
+  const to=document.getElementById('sh-to').value;
+  const note=document.getElementById('sh-note').value;
+  if(!empId||!from||!to){ alert('請填寫員工、原班日期、調換日期'); return; }
+  const md=ensureMonth(m);
+  md.shiftChanges.push({id:uid(),employeeId:empId,from,to,note});
+  saveDB(); renderShTable(m);
+  document.getElementById('sh-from').value='';
+  document.getElementById('sh-to').value='';
+  document.getElementById('sh-note').value='';
+}
+
+function renderShTable(m){
+  const w=document.getElementById('sh-table');
+  const sh=db.monthlyData[m]?.shiftChanges||[];
+  if(!sh.length){ w.innerHTML='<div class="empty-state"><div class="ei">🔄</div><div>尚未新增調班紀錄</div></div>'; return; }
+  w.innerHTML=`<table><thead><tr><th>員工</th><th>原班日期</th><th>調換日期</th><th>備註</th><th></th></tr></thead><tbody>
+  ${sh.map(s=>{
+    const emp=getEmpById(s.employeeId);
+    return `<tr>
+      <td>${esc(emp?.name||s.employeeId)}</td>
+      <td>${s.from}</td><td>${s.to}</td>
+      <td style="color:var(--gray-600)">${esc(s.note||'-')}</td>
+      <td><button class="btn btn-outline btn-sm" onclick="delShift('${m}','${s.id}')">刪除</button></td>
+    </tr>`;
+  }).join('')}</tbody></table>`;
+}
+
+function delShift(m,id){
+  db.monthlyData[m].shiftChanges=db.monthlyData[m].shiftChanges.filter(s=>s.id!==id);
+  saveDB(); renderShTable(m);
+}
+
+// ══ ANOMALY ENGINE ══
+function analyzeEmployee(empId, month){
+  const emp=getEmpById(empId); if(!emp) return null;
+  const md=db.monthlyData[month]||{records:[],leaves:[],overtimes:[],shiftChanges:[],ptSchedule:[]};
+  const isPT=emp.type==='part-time';
+
+  // expected dates
+  let expected=isPT
+    ?(md.ptSchedule||[]).filter(s=>s.employeeId===empId).map(s=>s.date)
+    :monthDays(month).filter(d=>(emp.weekdays||[1,2,3,4,5]).includes(dow(d)));
+
+  // apply shift changes
+  (md.shiftChanges||[]).filter(s=>s.employeeId===empId).forEach(s=>{
+    expected=expected.filter(d=>d!==s.from);
+    if(!expected.includes(s.to)) expected.push(s.to);
+  });
+
+  const leaveDates=(md.leaves||[]).filter(l=>l.employeeId===empId).map(l=>l.date);
+  const recMap=Object.fromEntries((md.records||[]).filter(r=>r.employeeId===empId).map(r=>[r.date,r]));
+  const otMap=Object.fromEntries((md.overtimes||[]).filter(o=>o.employeeId===empId).map(o=>[o.date,o]));
+  const schMap=Object.fromEntries((md.ptSchedule||[]).filter(s=>s.employeeId===empId).map(s=>[s.date,s]));
+
+  const rows=[];
+  let totalDays=0, totalHours=0, lateCount=0, earlyCount=0, missingCount=0, absentCount=0;
+  const leaveBreakdown={};
+  (md.leaves||[]).filter(l=>l.employeeId===empId).forEach(l=>{ leaveBreakdown[l.type]=(leaveBreakdown[l.type]||0)+l.hours; });
+  const totalOT=(md.overtimes||[]).filter(o=>o.employeeId===empId).reduce((s,o)=>s+o.hours,0);
+
+  const allDates=[...new Set([...expected,...Object.keys(recMap)])].sort();
+
+  allDates.forEach(date=>{
+    const rec=recMap[date];
+    const isExpected=expected.includes(date);
+    const isLeave=leaveDates.includes(date);
+    const ot=otMap[date];
+    const sch=schMap[date];
+
+    const sStart=isPT?(sch?.scheduledStart||emp.startTime):emp.startTime;
+    const sEnd=isPT?(sch?.scheduledEnd||emp.endTime):emp.endTime;
+
+    let status=[], rowClass='', hours=0, lateMin=0, earlyMin=0;
+
+    if(isLeave&&!rec){
+      status=['請假'];
+      const lv=(md.leaves||[]).find(l=>l.employeeId===empId&&l.date===date);
+      hours=(lv?.hours||8)/8; // treat as day fraction for display
+    } else if(!rec&&isExpected){
+      status=['缺勤']; rowClass='row-absent'; absentCount++;
+    } else if(rec){
+      totalDays++;
+      if(!rec.clockIn&&!rec.clockOut){ status=['未打卡']; rowClass='row-missing'; missingCount++; }
+      else if(!rec.clockIn){ status=['未打上班卡']; rowClass='row-missing'; missingCount++; }
+      else if(!rec.clockOut){ status=['未打下班卡']; rowClass='row-missing'; missingCount++; }
+      else {
+        const inM=toMins(rec.clockIn), outM=toMins(rec.clockOut);
+        const sInM=toMins(sStart), sOutM=toMins(sEnd);
+        if(sInM!==null&&inM>sInM+(emp.lateGrace||5)){ lateMin=inM-sInM; status.push('遲到 '+lateMin+' 分'); rowClass='row-late'; lateCount++; }
+        if(sOutM!==null&&outM<sOutM-(emp.earlyGrace||5)){ earlyMin=sOutM-outM; status.push('早退 '+earlyMin+' 分'); if(!rowClass||rowClass==='row-ok') rowClass='row-early'; earlyCount++; }
+        if(!status.length){ status=['正常']; rowClass='row-ok'; }
+        hours=diffH(rec.clockIn,rec.clockOut);
+        totalHours+=hours;
+      }
+    } else { return; } // not expected, no record → skip
+
+    rows.push({date,emp,rec,sStart,sEnd,status,rowClass,hours,lateMin,earlyMin,isLeave,ot,isExpected});
+  });
+
+  const expectedWork=expected.filter(d=>!leaveDates.includes(d)).length;
+  return {emp,rows,totalDays,totalHours:fmt(totalHours),lateCount,earlyCount,missingCount,absentCount,
+    totalOT,leaveBreakdown,expectedWork,
+    leaveTotal:fmt(Object.values(leaveBreakdown).reduce((a,b)=>a+b,0)/8,1)};
+}
+
+function calcScore(empId, month){
+  const r=analyzeEmployee(empId,month); if(!r) return 100;
+  let s=100;
+  s-=r.lateCount*3;
+  s-=r.earlyCount*3;
+  s-=r.missingCount*5;
+  s-=r.absentCount*10;
+  return Math.max(0,Math.min(100,s));
+}
+
+// ══ VERIFY ══
+function initVerify(){
+  const today=new Date();
+  const cur=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0');
+  genMonthOpts('vfy-month',cur);
+  const sel=document.getElementById('vfy-emp');
+  sel.innerHTML='<option value="">全部</option>'+db.employees.map(e=>`<option value="${e.id}">${esc(e.name)}</option>`).join('');
+  renderVerify();
+}
+
+function renderVerify(){
+  const month=document.getElementById('vfy-month').value;
+  const filterEmp=document.getElementById('vfy-emp').value;
+  const emps=filterEmp?db.employees.filter(e=>e.id===filterEmp):db.employees;
+
+  if(!emps.length){
+    document.getElementById('vfy-stats').innerHTML='';
+    document.getElementById('vfy-table').innerHTML='<div class="empty-state"><div class="ei">👥</div><div>請先新增員工</div></div>';
+    document.getElementById('vfy-summary').innerHTML='';
+    return;
+  }
+
+  const analyses=emps.map(e=>analyzeEmployee(e.id,month)).filter(Boolean);
+
+  // stats summary
+  const totDays=analyses.reduce((s,a)=>s+a.totalDays,0);
+  const totLate=analyses.reduce((s,a)=>s+a.lateCount,0);
+  const totEarly=analyses.reduce((s,a)=>s+a.earlyCount,0);
+  const totMissing=analyses.reduce((s,a)=>s+a.missingCount,0);
+  const totAbsent=analyses.reduce((s,a)=>s+a.absentCount,0);
+  const totOT=analyses.reduce((s,a)=>s+a.totalOT,0);
+
+  document.getElementById('vfy-stats').innerHTML=`
+    <div class="stat-box good"><div class="num">${totDays}</div><div class="lbl">出勤人日</div></div>
+    <div class="stat-box ${totLate?'warn':''}"><div class="num">${totLate}</div><div class="lbl">遲到次數</div></div>
+    <div class="stat-box ${totEarly?'warn':''}"><div class="num">${totEarly}</div><div class="lbl">早退次數</div></div>
+    <div class="stat-box ${totMissing?'danger':''}"><div class="num">${totMissing}</div><div class="lbl">未打卡</div></div>
+    <div class="stat-box ${totAbsent?'danger':''}"><div class="num">${totAbsent}</div><div class="lbl">缺勤天數</div></div>
+    <div class="stat-box"><div class="num">${totOT}</div><div class="lbl">加班時數</div></div>
+  `;
+
+  // merge all rows for table
+  const allRows=analyses.flatMap(a=>a.rows).sort((a,b)=>a.date.localeCompare(b.date)||a.emp.name.localeCompare(b.emp.name));
+
+  if(!allRows.length){
+    document.getElementById('vfy-table').innerHTML='<div class="empty-state"><div class="ei">🔍</div><div>無考勤資料，請先匯入打卡紀錄</div></div>';
+  } else {
+    document.getElementById('vfy-table').innerHTML=`<table>
+      <thead><tr><th>日期</th><th>員工</th><th>類型</th><th>排班</th><th>上班打卡</th><th>下班打卡</th><th>時數</th><th>狀態</th></tr></thead>
+      <tbody>
+      ${allRows.map(r=>`<tr class="${r.rowClass}">
+        <td>${r.date} <span style="font-size:10px;color:var(--gray-400);">${WD_LABEL[dow(r.date)]}</span></td>
+        <td>${esc(r.emp.name)}</td>
+        <td><span class="badge ${r.emp.type==='full-time'?'badge-ft':'badge-pt'}" style="font-size:10px;">${r.emp.type==='full-time'?'正':'讀'}</span></td>
+        <td style="font-size:11px;color:var(--gray-500);">${r.sStart||'-'}～${r.sEnd||'-'}</td>
+        <td>${r.rec?.clockIn||'<span style="color:var(--gray-400)">—</span>'}</td>
+        <td>${r.rec?.clockOut||'<span style="color:var(--gray-400)">—</span>'}</td>
+        <td>${r.hours?fmt(r.hours)+' h':r.isLeave?'<span style="color:var(--primary)">請假</span>':'-'}</td>
+        <td>${r.status.map(s=>{
+          const c=s.includes('正常')?'badge-ok':s.includes('遲到')?'badge-late':s.includes('早退')?'badge-early':s.includes('未打')?'badge-missing':s.includes('缺勤')?'badge-absent':'badge-leave';
+          return `<span class="badge ${c}">${esc(s)}</span>`;
+        }).join(' ')}${r.ot?` <span class="badge badge-ot">+${r.ot.hours}h加班</span>`:''}</td>
+      </tr>`).join('')}
+      </tbody></table>`;
+  }
+
+  // per-employee summary cards
+  document.getElementById('vfy-summary').innerHTML=analyses.map(a=>{
+    const score=calcScore(a.emp.id,month);
+    const barClass=score>=90?'bar-hi':score>=75?'bar-md':'bar-lo';
+    const leaveParts=Object.entries(a.leaveBreakdown).map(([t,h])=>`${t} ${fmt(h/8,1)}天`).join('、')||'無';
+    return `<div class="card">
+      <div class="card-header" style="margin-bottom:10px;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <strong>${esc(a.emp.name)}</strong>
+          <span class="badge ${a.emp.type==='full-time'?'badge-ft':'badge-pt'}">${a.emp.type==='full-time'?'正職':'工讀'}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:12px;color:var(--gray-600);">考勤評分</span>
+          <div class="score-wrap" style="width:80px;"><div class="score-bar ${barClass}" style="width:${score}%;"></div></div>
+          <strong>${score}</strong>
+        </div>
+      </div>
+      <div class="stats-row" style="grid-template-columns:repeat(auto-fill,minmax(90px,1fr));">
+        <div class="stat-box"><div class="num" style="font-size:18px;">${a.totalDays}</div><div class="lbl">出勤天數</div></div>
+        <div class="stat-box"><div class="num" style="font-size:18px;">${a.totalHours}</div><div class="lbl">出勤時數</div></div>
+        <div class="stat-box ${a.lateCount?'warn':''}"><div class="num" style="font-size:18px;">${a.lateCount}</div><div class="lbl">遲到</div></div>
+        <div class="stat-box ${a.earlyCount?'warn':''}"><div class="num" style="font-size:18px;">${a.earlyCount}</div><div class="lbl">早退</div></div>
+        <div class="stat-box ${a.missingCount?'danger':''}"><div class="num" style="font-size:18px;">${a.missingCount}</div><div class="lbl">未打卡</div></div>
+        <div class="stat-box ${a.absentCount?'danger':''}"><div class="num" style="font-size:18px;">${a.absentCount}</div><div class="lbl">缺勤</div></div>
+        <div class="stat-box ${a.totalOT?'good':''}"><div class="num" style="font-size:18px;">${a.totalOT}</div><div class="lbl">加班時數</div></div>
+        <div class="stat-box"><div class="num" style="font-size:18px;">${a.leaveTotal}</div><div class="lbl">請假天數</div></div>
+      </div>
+      <div style="font-size:12px;color:var(--gray-500);margin-top:4px;">假別：${leaveParts}</div>
+    </div>`;
+  }).join('');
+}
+
+// ══ ANNUAL ══
+function initAnnual(){
+  const today=new Date(), y=today.getFullYear();
+  const sel=document.getElementById('ann-year');
+  sel.innerHTML=[y-1,y,y+1].map(x=>`<option value="${x}"${x===y?' selected':''}>${x}</option>`).join('');
+  const empSel=document.getElementById('ann-emp');
+  empSel.innerHTML='<option value="">全部</option>'+db.employees.map(e=>`<option value="${e.id}">${esc(e.name)}</option>`).join('');
+  renderAnnual();
+}
+
+function renderAnnual(){
+  const year=document.getElementById('ann-year').value;
+  const filterEmp=document.getElementById('ann-emp').value;
+  const emps=filterEmp?db.employees.filter(e=>e.id===filterEmp):db.employees;
+  const months=Object.keys(db.monthlyData).filter(m=>m.startsWith(year+'-')).sort();
+  const content=document.getElementById('ann-content');
+
+  if(!emps.length){ content.innerHTML='<div class="empty-state"><div class="ei">👥</div><div>請先新增員工</div></div>'; return; }
+  if(!months.length){ content.innerHTML=`<div class="card"><div class="empty-state"><div class="ei">📊</div><div>${year} 年尚無考勤資料</div></div></div>`; return; }
+
+  const empStats=emps.map(emp=>{
+    let totalDays=0,totalHours=0,lateCount=0,earlyCount=0,missingCount=0,absentCount=0,totalOT=0,expectedDays=0;
+    const leaveBreakdown={};
+    const monthScores=[];
+
+    months.forEach(month=>{
+      const a=analyzeEmployee(emp.id,month); if(!a) return;
+      totalDays+=a.totalDays; totalHours+=a.totalHours; lateCount+=a.lateCount;
+      earlyCount+=a.earlyCount; missingCount+=a.missingCount; absentCount+=a.absentCount;
+      totalOT+=a.totalOT; expectedDays+=a.expectedWork;
+      Object.entries(a.leaveBreakdown).forEach(([t,h])=>{ leaveBreakdown[t]=(leaveBreakdown[t]||0)+h; });
+      monthScores.push({month,score:calcScore(emp.id,month)});
+    });
+
+    const rate=expectedDays?Math.round(totalDays/expectedDays*100):0;
+    const avgScore=monthScores.length?Math.round(monthScores.reduce((s,m)=>s+m.score,0)/monthScores.length):100;
+    const leaveTotal=fmt(Object.values(leaveBreakdown).reduce((a,b)=>a+b,0)/8,1);
+
+    return {emp,totalDays,totalHours:fmt(totalHours),lateCount,earlyCount,missingCount,absentCount,
+      totalOT,leaveBreakdown,expectedDays,rate,avgScore,leaveTotal,monthScores};
+  });
+
+  content.innerHTML=`
+    <div class="card">
+      <div class="card-header"><span class="card-title">${year} 年度考勤總覽</span></div>
+      <div class="tbl-wrap"><table>
+        <thead><tr>
+          <th>員工</th><th>類型</th><th>應出勤</th><th>實出勤</th><th>出勤率</th>
+          <th>遲到</th><th>早退</th><th>未打卡</th><th>缺勤</th>
+          <th>總時數</th><th>加班</th><th>請假</th><th>平均評分</th>
+        </tr></thead><tbody>
+        ${empStats.map(s=>{
+          const rateBadge=s.rate>=95?'badge-ok':s.rate>=85?'badge-late':'badge-missing';
+          const barClass=s.avgScore>=90?'bar-hi':s.avgScore>=75?'bar-md':'bar-lo';
+          return `<tr>
+            <td><strong>${esc(s.emp.name)}</strong></td>
+            <td><span class="badge ${s.emp.type==='full-time'?'badge-ft':'badge-pt'}">${s.emp.type==='full-time'?'正職':'工讀'}</span></td>
+            <td>${s.expectedDays} 天</td>
+            <td>${s.totalDays} 天</td>
+            <td><span class="badge ${rateBadge}">${s.rate}%</span></td>
+            <td>${s.lateCount?`<span style="color:var(--warning);font-weight:600;">${s.lateCount}</span>`:0}</td>
+            <td>${s.earlyCount?`<span style="color:var(--warning);font-weight:600;">${s.earlyCount}</span>`:0}</td>
+            <td>${s.missingCount?`<span style="color:var(--danger);font-weight:600;">${s.missingCount}</span>`:0}</td>
+            <td>${s.absentCount?`<span style="color:var(--danger);font-weight:600;">${s.absentCount}</span>`:0}</td>
+            <td>${s.totalHours} h</td>
+            <td>${s.totalOT?`<span class="badge badge-ot">${s.totalOT}h</span>`:'-'}</td>
+            <td>${s.leaveTotal>0?s.leaveTotal+' 天':'-'}</td>
+            <td>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <div class="score-wrap" style="width:50px;"><div class="score-bar ${barClass}" style="width:${s.avgScore}%;"></div></div>
+                <strong>${s.avgScore}</strong>
+              </div>
+            </td>
+          </tr>`;
+        }).join('')}
+        </tbody></table></div>
+    </div>
+    ${empStats.map(s=>`
+      <div class="card">
+        <div class="card-header" style="margin-bottom:12px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <strong>${esc(s.emp.name)}</strong>
+            <span class="badge ${s.emp.type==='full-time'?'badge-ft':'badge-pt'}">${s.emp.type==='full-time'?'正職':'工讀'}</span>
+            <span style="font-size:12px;color:var(--gray-500);">假別：${Object.entries(s.leaveBreakdown).map(([t,h])=>`${t} ${fmt(h/8,1)}天`).join('、')||'無'}</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+          ${s.monthScores.map(ms=>{
+            const sc=ms.score;
+            const bc=sc>=90?'bar-hi':sc>=75?'bar-md':'bar-lo';
+            return `<div style="text-align:center;min-width:44px;">
+              <div style="font-size:10px;color:var(--gray-400);margin-bottom:4px;">${ms.month.slice(5)}月</div>
+              <div style="background:var(--gray-100);border-radius:4px;height:56px;display:flex;align-items:flex-end;overflow:hidden;width:44px;">
+                <div class="score-bar ${bc}" style="width:100%;height:${sc}%;"></div>
+              </div>
+              <div style="font-size:11px;font-weight:600;margin-top:3px;">${sc}</div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+    `).join('')}
+  `;
+}
+
+// ══ INIT ══
+loadDB();
+renderEmployees();
+genMonthOpts('import-month');
+</script>
+</body>
+</html>
