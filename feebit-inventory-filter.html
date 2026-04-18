@@ -80,22 +80,6 @@
     }
     .header-right { margin-left: auto; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 
-    /* ── Share Dropdown ── */
-    .share-dropdown { position: relative; }
-    .share-menu {
-      display: none; position: absolute; right: 0; top: calc(100% + 6px);
-      background: white; border: 1px solid var(--gray-200); border-radius: 8px;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.12); min-width: 160px; z-index: 200;
-      overflow: hidden;
-    }
-    .share-menu.open { display: block; }
-    .share-menu button {
-      display: block; width: 100%; padding: 10px 14px; text-align: left;
-      border: none; background: none; font-size: 13px; color: #333;
-      cursor: pointer; transition: background 0.1s;
-    }
-    .share-menu button:hover { background: var(--gray-100); }
-    .share-menu hr { border: none; border-top: 1px solid var(--gray-200); margin: 0; }
 
     /* ── Buttons ── */
     .btn {
@@ -434,14 +418,7 @@
     <button class="btn btn-secondary btn-sm" id="reloadBtn" onclick="reloadFile()" style="display:none;">
       重新上傳
     </button>
-    <div class="share-dropdown" id="shareDropdown">
-      <button class="btn btn-secondary btn-sm" onclick="toggleShareMenu()">🔗 分享</button>
-      <div class="share-menu" id="shareMenu">
-        <button onclick="shareLink(false)">🖥 含側邊欄</button>
-        <hr>
-        <button onclick="shareLink(true)">🔗 不顯示選單</button>
-      </div>
-    </div>
+    <button class="btn btn-secondary btn-sm" onclick="shareLink()">🔗 分享連結</button>
   </div>
 </div>
 
@@ -543,21 +520,10 @@ function closeSidebar() {
 })();
 
 // ── Share ──
-function toggleShareMenu() {
-  document.getElementById('shareMenu').classList.toggle('open');
-}
-document.addEventListener('click', function(e) {
-  const dd = document.getElementById('shareDropdown');
-  if (dd && !dd.contains(e.target)) {
-    document.getElementById('shareMenu').classList.remove('open');
-  }
-});
-function shareLink(noSidebar) {
-  document.getElementById('shareMenu').classList.remove('open');
-  const base = location.origin + location.pathname;
-  const url = noSidebar ? base + '?nosidebar=1' : base;
+function shareLink() {
+  const url = location.origin + location.pathname + '?nosidebar=1';
   navigator.clipboard.writeText(url).then(() => {
-    toast(noSidebar ? '已複製（不含側邊欄）連結' : '已複製連結', 'ok');
+    toast('已複製分享連結', 'ok');
   }).catch(() => {
     prompt('複製此連結：', url);
   });
