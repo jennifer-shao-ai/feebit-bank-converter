@@ -2473,20 +2473,39 @@ function openShopModal(item) {
   const shopArea = document.getElementById('shopPhotoArea');
   if (shopArea) shopArea._photo = item.photo || null;
 }
+function compressImage(file, maxPx, quality) {
+  return new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const img = new Image();
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        if (w > maxPx || h > maxPx) {
+          if (w >= h) { h = Math.round(h * maxPx / w); w = maxPx; }
+          else { w = Math.round(w * maxPx / h); h = maxPx; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
 function previewPhoto(input, areaId) {
   const file = input.files[0]; if (!file) return;
-  const reader = new FileReader();
-  reader.onload = ev => {
+  compressImage(file, 800, 0.65).then(dataUrl => {
     const area = document.getElementById(areaId);
-    area._photo = ev.target.result;
+    area._photo = dataUrl;
     let img = area.querySelector('img');
     if (!img) { img = document.createElement('img'); area.insertBefore(img, area.firstChild); }
-    img.src = ev.target.result;
+    img.src = dataUrl;
     const lbl = area.querySelector('.ph-label');
     if (lbl) lbl.remove();
     input.value = '';
-  };
-  reader.readAsDataURL(file);
+  });
 }
 function handleLocSelect(sel) {
   const inp = document.getElementById('m-iwhere');
