@@ -78,8 +78,13 @@ const TOOLS_DATA = [
   { icon:'💻', name:'Claude Code', category:'AI / 開發', desc:'儀表板開發與功能優化', url:'https://claude.ai/code', related:['開發'] },
   { icon:'🐙', name:'GitHub', category:'AI / 開發', desc:'儀表板原始碼版本管理', url:'https://github.com/jennifer-shao-ai/feebit', related:['開發'] },
   { icon:'🌐', name:'GitHub Pages', category:'AI / 開發', desc:'儀表板免費靜態網站部署', url:'https://jennifer-shao-ai.github.io/feebit/', related:['開發','部署'] },
-  { icon:'🔥', name:'Firebase', category:'AI / 開發', desc:'旅行規劃即時協作後端（Realtime Database）', url:'https://console.firebase.google.com', related:['開發','協作'] },
-  { icon:'⚡', name:'Supabase', category:'AI / 開發', desc:'研發筆記資料庫與 Edge Functions 後端', url:'https://supabase.com/dashboard', related:['開發','資料庫'] },
+  { icon:'🔥', name:'Firebase', category:'AI / 開發', desc:'旅行規劃、庫存訂貨分析 即時協作後端（Realtime Database），跨瀏覽器同步資料', url:'https://console.firebase.google.com', related:['開發','協作','旅行規劃','庫存'] },
+  { icon:'⚡', name:'Supabase', category:'AI / 開發', desc:'研發筆記、帳務分析、毛利試算機 資料庫與 Edge Functions 後端，資料永久儲存', url:'https://supabase.com/dashboard', related:['開發','資料庫','研發筆記','帳務'] },
+  { icon:'▶️', name:'YouTube 字幕 API', category:'AI / 開發', desc:'研發筆記字幕擷取來源，透過 Supabase Edge Function 呼叫，自動取得影片字幕轉為筆記', url:'https://www.youtube.com', related:['研發筆記','字幕','影片'] },
+  { icon:'🔍', name:'Tesseract.js', category:'AI / 開發', desc:'研發筆記 OCR 功能，瀏覽器端圖片文字辨識（支援中文、英文），圖片不上傳伺服器', url:'https://tesseract.projectnaptha.com', related:['研發筆記','OCR','圖片辨識'] },
+  { icon:'📈', name:'Chart.js', category:'AI / 開發', desc:'帳務分析頁面的前端圖表套件，圓餅圖、月收支趨勢、年度淨利視覺化', url:'https://www.chartjs.org', related:['帳務分析','圖表','視覺化'] },
+  { icon:'📄', name:'SheetJS (xlsx)', category:'AI / 開發', desc:'酷澎發票轉檔、酷澎商城對帳、商品篩選工具的 Excel 讀寫套件，支援 .xlsx/.xls 格式', url:'https://sheetjs.com', related:['Excel','酷澎','商品篩選'] },
+  { icon:'📋', name:'PapaParse', category:'AI / 開發', desc:'酷澎商城對帳 CSV 解析套件，快速處理大型 CSV 並自動偵測欄位格式', url:'https://www.papaparse.com', related:['CSV','酷澎對帳'] },
   { icon:'✨', name:'Gamma', category:'AI / 開發', desc:'AI 簡報、提案文件、活動頁面快速生成，與 Claude AI 串接', url:'https://gamma.app', related:['AI','簡報','文件'] },
 ];
 const container = document.getElementById('tools-list');
