@@ -1,0 +1,35 @@
+name: 庫存快照（每月1日、15日）
+
+on:
+  schedule:
+    # 台灣時間 17:30（UTC 09:30），等庫存更新完畢後執行
+    - cron: '30 9 1,15 * *'
+  workflow_dispatch: # 允許手動觸發
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 抓取 Ragic 庫存並存快照
+        env:
+          RAGIC_TOKEN: ${{ secrets.RAGIC_TOKEN }}
+        run: node scripts/fetch-inventory.js
+
+      - name: Commit & push 快照
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/inventory-snapshots.json
+          git diff --staged --quiet || git commit -m "📦 自動庫存快照 $(date +'%Y-%m-%d')"
+          git push

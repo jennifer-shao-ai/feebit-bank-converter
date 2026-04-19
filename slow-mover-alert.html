@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>滯銷品警示 · 飛比特工具箱</title>
+<link rel="icon" href="favicon.svg">
+<link rel="stylesheet" href="style.css">
+<style>
+.tool-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:10px; }
+.tool-title  { font-size:20px; font-weight:700; }
+.sync-info   { font-size:12px; color:var(--gray-500); margin-top:2px; }
+
+/* 統計卡 */
+.stats-row { display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:10px; margin-bottom:16px; }
+.stat-card { background:white; border-radius:var(--radius); padding:14px; text-align:center; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+.stat-card .stat-num   { font-size:26px; font-weight:700; }
+.stat-card .stat-label { font-size:11px; color:var(--gray-600); margin-top:4px; line-height:1.3; }
+.stat-card.warn   .stat-num { color:#d97706; }
+.stat-card.danger .stat-num { color:#dc2626; }
+
+/* 進度 */
+.progress-card { background:white; border-radius:var(--radius); padding:16px 20px; margin-bottom:16px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+.progress-title { font-weight:600; font-size:14px; margin-bottom:10px; }
+.week-dots { display:flex; align-items:center; gap:5px; flex-wrap:wrap; margin-bottom:8px; }
+.w-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+.w-dot.filled { background:var(--primary); }
+.w-dot.empty  { background:var(--gray-200); border:1px solid var(--gray-300); }
+.progress-bar-wrap { background:var(--gray-100); border-radius:4px; height:6px; }
+.progress-bar { height:6px; border-radius:4px; background:var(--primary); transition:width .4s; }
+.progress-hint { font-size:11px; color:var(--gray-500); margin-top:6px; }
+
+/* banner */
+.status-banner { padding:12px 16px; border-radius:var(--radius); font-size:13px; margin-bottom:16px; }
+.banner-info    { background:#eff6ff; border:1px solid #bfdbfe; color:#1e40af; }
+.banner-warn    { background:#fffbeb; border:1px solid #fde68a; color:#92400e; }
+.banner-success { background:#f0fdf4; border:1px solid #bbf7d0; color:#166534; }
+.banner-error   { background:#fef2f2; border:1px solid #fecaca; color:#991b1b; }
+
+/* tabs */
+.tabs { display:flex; gap:4px; margin-bottom:16px; border-bottom:2px solid var(--gray-200); }
+.tab-btn { padding:8px 16px; border:none; background:none; cursor:pointer; font-size:13px; font-weight:500; color:var(--gray-500); border-bottom:2px solid transparent; margin-bottom:-2px; transition:all .15s; white-space:nowrap; }
+.tab-btn.active { color:var(--primary); border-bottom-color:var(--primary); }
+.tab-badge { display:inline-block; padding:1px 6px; border-radius:10px; font-size:10px; margin-left:4px; font-weight:600; }
+.tab-badge.red  { background:#fee2e2; color:#dc2626; }
+.tab-badge.warn { background:#fef3c7; color:#d97706; }
+
+/* card & table */
+.card { background:white; border-radius:var(--radius); padding:20px; margin-bottom:16px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+.card-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:8px; }
+.card-title  { font-size:15px; font-weight:600; }
+.btn { display:inline-flex; align-items:center; gap:6px; padding:8px 16px; border-radius:var(--radius); border:none; cursor:pointer; font-size:13px; font-weight:500; transition:opacity .15s; }
+.btn:hover { opacity:.85; }
+.btn-primary { background:var(--primary); color:white; }
+.btn-outline { background:white; color:var(--gray-800); border:1px solid var(--gray-200); }
+.btn-sm { padding:5px 10px; font-size:12px; }
+.search-row { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+.search-input  { padding:7px 12px; border:1px solid var(--gray-200); border-radius:var(--radius); font-size:13px; outline:none; width:220px; }
+.search-input:focus { border-color:var(--primary); }
+.filter-select { padding:7px 10px; border:1px solid var(--gray-200); border-radius:var(--radius); font-size:13px; background:white; outline:none; }
+.table-wrapper { overflow-x:auto; }
+table { width:100%; border-collapse:collapse; font-size:13px; }
+th { background:var(--gray-50); padding:9px 12px; text-align:left; font-weight:600; border-bottom:2px solid var(--gray-200); white-space:nowrap; }
+td { padding:8px 12px; border-bottom:1px solid var(--gray-100); white-space:nowrap; vertical-align:middle; }
+tr:hover td { background:var(--gray-50); }
+td.wrap { white-space:normal; max-width:220px; font-size:12px; }
+td.muted { color:var(--gray-400); font-size:12px; }
+
+/* badges */
+.sev-badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:600; }
+.sev-mild     { background:#fef9c3; color:#854d0e; }
+.sev-moderate { background:#ffedd5; color:#9a3412; }
+.sev-severe   { background:#fee2e2; color:#991b1b; }
+.sev-chronic  { background:#f3e8ff; color:#6b21a8; }
+
+.trend-down { color:#dc2626; font-weight:600; }
+.action-link { color:var(--primary); font-size:12px; text-decoration:underline; cursor:pointer; }
+
+/* loading */
+.loading-overlay { display:none; position:fixed; inset:0; background:rgba(255,255,255,.88); z-index:1000; align-items:center; justify-content:center; flex-direction:column; gap:14px; }
+.loading-overlay.show { display:flex; }
+.spinner { width:36px; height:36px; border:3px solid var(--gray-200); border-top-color:var(--primary); border-radius:50%; animation:spin .7s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.loading-msg { font-size:14px; color:var(--gray-600); }
+
+.empty-cell { text-align:center; padding:40px; color:var(--gray-400); font-size:13px; }
+</style>
+</head>
+<body>
+
+<div id="loading-overlay" class="loading-overlay">
+  <div class="spinner"></div>
+  <div class="loading-msg" id="loading-msg">載入中...</div>
+</div>
+
+<!-- SIDEBAR OVERLAY -->
+<div id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<!-- SIDEBAR -->
+<div id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand">飛比特 Feebit</div>
+    <div class="sub">營運工具箱</div>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">總覽</div>
+    <a class="nav-item" href="index.html"><span class="icon">🏠</span> 首頁</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">財務</div>
+    <a class="nav-item" href="bank-converter.html"><span class="icon">🏦</span> 帳務轉換</a>
+    <a class="nav-item" href="accounting-ops.html"><span class="icon">📅</span> 例行帳務作業</a>
+    <a class="nav-item" href="finance-dashboard.html"><span class="icon">📊</span> 帳務分析</a>
+    <a class="nav-item" href="coupang-invoice.html"><span class="icon">🧾</span> 酷澎發票轉檔</a>
+    <a class="nav-item" href="coupang-reconcile.html"><span class="icon">🔍</span> 酷澎商城對帳</a>
+    <div class="nav-item soon"><span class="icon">💰</span> 定價試算<span class="soon-tag">即將推出</span></div>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">行銷</div>
+    <div class="nav-item soon"><span class="icon">📢</span> 廣告文案<span class="soon-tag">即將推出</span></div>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">客服</div>
+    <div class="nav-item soon"><span class="icon">💬</span> 客服回覆<span class="soon-tag">即將推出</span></div>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">業務</div>
+    <div class="nav-item soon"><span class="icon">🤝</span> 廠商談判<span class="soon-tag">即將推出</span></div>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">庫存</div>
+    <a class="nav-item" href="stock-analysis.html"><span class="icon">📦</span> 庫存訂貨分析</a>
+    <a class="nav-item active" href="slow-mover-alert.html"><span class="icon">🔴</span> 滯銷品警示</a>
+    <a class="nav-item" href="feebit-inventory-filter.html"><span class="icon">🏪</span> 商品篩選工具</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">人事</div>
+    <a class="nav-item" href="attendance.html"><span class="icon">🗓️</span> 考勤查驗</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">研發</div>
+    <a class="nav-item" href="research-notes.html"><span class="icon">📚</span> 研發筆記</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">生活</div>
+    <a class="nav-item" href="travel-planner.html"><span class="icon">✈️</span> 旅行規劃</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">系統</div>
+    <a class="nav-item" href="tools.html"><span class="icon">🔧</span> 使用工具</a>
+  </div>
+</div>
+
+<!-- TOPBAR -->
+<div id="topbar">
+  <button class="hamburger" onclick="openSidebar()">☰</button>
+  <span class="topbar-title">滯銷品警示</span>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+
+  <div class="tool-header">
+    <div>
+      <div class="tool-title">滯銷品警示</div>
+      <div class="sync-info" id="sync-info">載入中...</div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn btn-outline btn-sm" onclick="showHistory()">📋 快照記錄</button>
+      <button class="btn btn-outline btn-sm" onclick="location.reload()">🔄 重新載入</button>
+    </div>
+  </div>
+
+  <!-- 資料累積進度 -->
+  <div class="progress-card">
+    <div class="progress-title">資料累積進度</div>
+    <div class="week-dots" id="week-dots"></div>
+    <div class="progress-bar-wrap"><div class="progress-bar" id="progress-bar" style="width:0%"></div></div>
+    <div class="progress-hint" id="progress-hint">等待資料載入...</div>
+    <div class="progress-hint" style="margin-top:4px;">
+      ▸ 2 期（1個月）輕微滯銷　▸ 4 期（2個月）中度　▸ 8 期（4個月）嚴重　▸ 24 期（1年）常態
+    </div>
+  </div>
+
+  <!-- banner -->
+  <div id="status-banner" class="status-banner banner-info" style="display:none;"></div>
+
+  <!-- 統計 -->
+  <div class="stats-row" id="stats-row" style="display:none;">
+    <div class="stat-card">
+      <div class="stat-num" id="st-total">—</div>
+      <div class="stat-label">有庫存商品</div>
+    </div>
+    <div class="stat-card warn">
+      <div class="stat-num" id="st-mild">—</div>
+      <div class="stat-label">輕微滯銷<br>（≥1個月）</div>
+    </div>
+    <div class="stat-card warn">
+      <div class="stat-num" id="st-moderate">—</div>
+      <div class="stat-label">中度滯銷<br>（≥2個月）</div>
+    </div>
+    <div class="stat-card danger">
+      <div class="stat-num" id="st-severe">—</div>
+      <div class="stat-label">嚴重滯銷<br>（≥4個月）</div>
+    </div>
+    <div class="stat-card danger">
+      <div class="stat-num" id="st-chronic">—</div>
+      <div class="stat-label">常態滯銷<br>（≥1年）</div>
+    </div>
+    <div class="stat-card warn">
+      <div class="stat-num" id="st-decline">—</div>
+      <div class="stat-label">銷量下滑</div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs" id="main-tabs" style="display:none;">
+    <button class="tab-btn active" id="tab-slow"    onclick="switchTab('slow')">滯銷警示 <span class="tab-badge red"  id="badge-slow">0</span></button>
+    <button class="tab-btn"        id="tab-decline" onclick="switchTab('decline')">銷量下滑 <span class="tab-badge warn" id="badge-decline">0</span></button>
+    <button class="tab-btn"        id="tab-all"     onclick="switchTab('all')">全部商品</button>
+  </div>
+
+  <!-- 滯銷 Panel -->
+  <div id="panel-slow">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">滯銷商品清單</div>
+        <div class="search-row" style="margin:0;">
+          <select class="filter-select" id="fil-sev" onchange="renderSlow()">
+            <option value="">所有等級</option>
+            <option value="mild">輕微（≥1個月）</option>
+            <option value="moderate">中度（≥2個月）</option>
+            <option value="severe">嚴重（≥4個月）</option>
+            <option value="chronic">常態（≥1年）</option>
+          </select>
+          <input class="search-input" id="q-slow" placeholder="搜尋商品名稱 / 代號..." oninput="renderSlow()">
+        </div>
+      </div>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>商品名稱</th>
+              <th>代號</th>
+              <th style="text-align:right;">庫存</th>
+              <th style="text-align:right;">未售期數</th>
+              <th>滯銷等級</th>
+              <th style="text-align:right;">建議售價</th>
+              <th>競品比價</th>
+              <th>可能原因</th>
+              <th>建議行動</th>
+            </tr>
+          </thead>
+          <tbody id="tb-slow"><tr><td colspan="9" class="empty-cell">等待資料載入...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 下滑 Panel -->
+  <div id="panel-decline" style="display:none;">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">銷量下滑警示</div>
+        <input class="search-input" id="q-decline" placeholder="搜尋商品..." oninput="renderDecline()">
+      </div>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>商品名稱</th>
+              <th style="text-align:right;">前期週均銷量</th>
+              <th style="text-align:right;">近期週均銷量</th>
+              <th style="text-align:right;">下滑幅度</th>
+              <th style="text-align:right;">庫存</th>
+              <th>可能原因</th>
+              <th>競品比價</th>
+            </tr>
+          </thead>
+          <tbody id="tb-decline"><tr><td colspan="7" class="empty-cell">需累積 4 期以上才能偵測下滑趨勢</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 全商品 Panel -->
+  <div id="panel-all" style="display:none;">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">全商品庫存現況</div>
+        <div class="search-row" style="margin:0;">
+          <select class="filter-select" id="fil-stock" onchange="renderAll()">
+            <option value="">全部</option>
+            <option value="in">有庫存</option>
+            <option value="zero">零庫存</option>
+          </select>
+          <input class="search-input" id="q-all" placeholder="搜尋商品..." oninput="renderAll()">
+        </div>
+      </div>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>商品名稱</th>
+              <th>代號</th>
+              <th style="text-align:right;">庫存</th>
+              <th style="text-align:right;">近4期均銷</th>
+              <th style="text-align:right;">建議售價</th>
+              <th>EAN</th>
+              <th>競品比價</th>
+            </tr>
+          </thead>
+          <tbody id="tb-all"><tr><td colspan="7" class="empty-cell">等待資料載入...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<script>
+// ── 常數 ────────────────────────────────────────────────
+const MILD_P     = 2;   // 2期 ≈ 1個月
+const MODERATE_P = 4;   // 4期 ≈ 2個月
+const SEVERE_P   = 8;   // 8期 ≈ 4個月
+const CHRONIC_P  = 24;  // 24期 ≈ 1年
+const DECLINE_R  = 0.5; // 近期均銷 < 前期 50% → 下滑
+const DATA_URL   = './data/inventory-snapshots.json';
+
+let db = null;           // 原始快照資料
+let analysis = null;     // 分析結果
+
+// ── 主流程 ──────────────────────────────────────────────
+async function init() {
+  showLoading('載入庫存快照...');
+  try {
+    const res = await fetch(DATA_URL + '?t=' + Date.now());
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    db = await res.json();
+  } catch(e) {
+    hideLoading();
+    setBanner('error', `⚠️ 無法載入資料：${e.message}　請確認 GitHub Actions 已成功執行並部署`);
+    document.getElementById('sync-info').textContent = '資料載入失敗';
+    renderProgress(0);
+    return;
+  }
+  hideLoading();
+
+  const n = db.snapshots?.length || 0;
+  renderProgress(n);
+
+  if (n === 0) {
+    document.getElementById('sync-info').textContent = '尚無快照資料，等待 GitHub Actions 第一次執行';
+    setBanner('info', '⏳ 還沒有任何快照。GitHub Actions 將於每月 1 日、15 日 17:30 自動抓取。');
+    return;
+  }
+
+  document.getElementById('sync-info').textContent =
+    `最後更新：${db.lastUpdated}　共 ${n} 期快照　商品數：${db.productCount}`;
+
+  analysis = analyze(db.snapshots);
+  renderStats();
+  document.getElementById('stats-row').style.display = '';
+  document.getElementById('main-tabs').style.display = '';
+
+  // Banner
+  const tot = analysis.slowMovers.length + analysis.decliners.length;
+  if (n < MILD_P) {
+    setBanner('info', `⏳ 已累積 ${n} 期，再累積 ${MILD_P - n} 期（約 ${(MILD_P - n) * 15} 天）後可開始偵測滯銷`);
+  } else if (tot === 0) {
+    setBanner('success', `✅ 目前無明顯滯銷或下滑商品，共 ${analysis.latestInStock} 項有庫存商品`);
+  } else {
+    setBanner('warn', `⚠️ 發現 <b>${analysis.slowMovers.length}</b> 項滯銷、<b>${analysis.decliners.length}</b> 項下滑，請逐一確認`);
+  }
+
+  document.getElementById('badge-slow').textContent    = analysis.slowMovers.length;
+  document.getElementById('badge-decline').textContent = analysis.decliners.length;
+
+  renderSlow();
+  renderDecline();
+  renderAll();
+}
+
+// ── 分析核心 ────────────────────────────────────────────
+function analyze(snaps) {
+  // 建立每期銷量歷史
+  // 銷量邏輯（無進貨資料）：
+  //   qty 減少 → 銷量 = 減少量
+  //   qty 增加 → 補貨期，不計入零銷售計數（給予好處）
+  //   qty 不變 → 零銷售
+
+  const history = {};  // code → [{period, qty, sales, restocked}]
+  for (let i = 1; i < snaps.length; i++) {
+    const prev = snaps[i - 1], curr = snaps[i];
+    const codes = new Set([...Object.keys(prev.products), ...Object.keys(curr.products)]);
+    for (const code of codes) {
+      const pQty = prev.products[code]?.qty ?? 0;
+      const cQty = curr.products[code]?.qty ?? 0;
+      const diff = cQty - pQty;
+      const sales     = diff < 0 ? -diff : 0;
+      const restocked = diff > 0;
+      if (!history[code]) history[code] = [];
+      history[code].push({ period: curr.date, qty: cQty, sales, restocked });
+    }
+  }
+
+  const latest = snaps[snaps.length - 1];
+  const slowMovers = [], decliners = [];
+  let latestInStock = 0;
+
+  for (const [code, info] of Object.entries(latest.products)) {
+    const qty = info.qty;
+    if (qty > 0) latestInStock++;
+    const hist = history[code] || [];
+    if (hist.length === 0 || qty <= 0) continue;
+
+    // 連續未售期數（碰到補貨期就停止往回數）
+    let zeroPeriods = 0;
+    for (let i = hist.length - 1; i >= 0; i--) {
+      if (hist[i].restocked) break;        // 補貨 → 停止，給予好處
+      if (hist[i].sales === 0) zeroPeriods++;
+      else break;
+    }
+
+    // 滯銷判定
+    if (zeroPeriods >= MILD_P) {
+      let sev, sevLabel;
+      if      (zeroPeriods >= CHRONIC_P)   { sev = 'chronic';  sevLabel = '常態滯銷（≥1年）'; }
+      else if (zeroPeriods >= SEVERE_P)    { sev = 'severe';   sevLabel = '嚴重滯銷（≥4月）'; }
+      else if (zeroPeriods >= MODERATE_P)  { sev = 'moderate'; sevLabel = '中度滯銷（≥2月）'; }
+      else                                  { sev = 'mild';     sevLabel = '輕微滯銷（≥1月）'; }
+      slowMovers.push({ code, ...info, zeroPeriods, sev, sevLabel, hist,
+        reasons: reasons(zeroPeriods, info),
+        actions:  actions(zeroPeriods, info) });
+    }
+
+    // 下滑偵測（需 ≥4 期有銷量的資料）
+    const salePeriods = hist.filter(h => !h.restocked);
+    if (salePeriods.length >= 4) {
+      const half = Math.floor(salePeriods.length / 2);
+      const prev  = salePeriods.slice(0, half);
+      const recent = salePeriods.slice(-half);
+      const pAvg  = prev.reduce((s,h) => s + h.sales, 0) / prev.length;
+      const rAvg  = recent.reduce((s,h) => s + h.sales, 0) / recent.length;
+      if (pAvg > 0.3 && rAvg < pAvg * DECLINE_R) {
+        const rate = ((1 - rAvg / pAvg) * 100).toFixed(0);
+        decliners.push({ code, ...info, pAvg: pAvg.toFixed(1), rAvg: rAvg.toFixed(1), rate, hist,
+          dReasons: declineReasons(hist) });
+      }
+    }
+  }
+
+  slowMovers.sort((a,b) => b.zeroPeriods - a.zeroPeriods);
+  decliners.sort((a,b) => b.rate - a.rate);
+  return { slowMovers, decliners, history, latest, latestInStock };
+}
+
+function reasons(z, info) {
+  const r = [];
+  if (z >= CHRONIC_P) r.push('長期無人問津，市場需求可能消失');
+  else if (z >= SEVERE_P) r.push('長期滯銷，定價或市場定位可能有問題');
+  else r.push('競品特價、季節因素、或未上架');
+  if (info.price && info.cost) {
+    const margin = (parseFloat(info.price) - parseFloat(info.cost)) / parseFloat(info.price);
+    if (margin > 0.6) r.push('毛利空間大，可考慮降價促銷');
+  }
+  return r;
+}
+
+function actions(z, info) {
+  if (z >= CHRONIC_P)  return ['全平台下架評估', '清倉特賣或捆包銷售'];
+  if (z >= SEVERE_P)   return ['降價促銷', '確認各平台是否正常上架', '搜尋競品比價'];
+  if (z >= MODERATE_P) return ['確認蝦皮 / 酷澎上架狀態', '比對競品定價'];
+  return ['再觀察 1 期', '確認賣場商品頁是否正常'];
+}
+
+function declineReasons(hist) {
+  const recent4 = hist.slice(-4);
+  const hasZero = recent4.some(h => h.sales === 0 && !h.restocked);
+  const r = [];
+  if (hasZero) r.push('近期出現零銷售期，可能有缺貨或下架問題');
+  r.push('競品搶單 / 平台演算法調整 / 時事因素');
+  return r;
+}
+
+// ── 渲染 ────────────────────────────────────────────────
+function renderStats() {
+  const a = analysis;
+  setText('st-total',    a.latestInStock);
+  setText('st-mild',     a.slowMovers.filter(s => s.sev === 'mild').length);
+  setText('st-moderate', a.slowMovers.filter(s => s.sev === 'moderate').length);
+  setText('st-severe',   a.slowMovers.filter(s => s.sev === 'severe').length);
+  setText('st-chronic',  a.slowMovers.filter(s => s.sev === 'chronic').length);
+  setText('st-decline',  a.decliners.length);
+}
+
+function renderSlow() {
+  if (!analysis) return;
+  const sevFilter = document.getElementById('fil-sev').value;
+  const q = document.getElementById('q-slow').value.toLowerCase();
+  let items = analysis.slowMovers;
+  if (sevFilter) items = items.filter(i => i.sev === sevFilter);
+  if (q)        items = items.filter(i => i.name.toLowerCase().includes(q) || i.code.toLowerCase().includes(q));
+
+  const tbody = document.getElementById('tb-slow');
+  if (items.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="9" class="empty-cell">${analysis.slowMovers.length === 0 ? '目前無滯銷商品' : '無符合篩選條件的商品'}</td></tr>`;
+    return;
+  }
+  const sevCls = { mild:'sev-mild', moderate:'sev-moderate', severe:'sev-severe', chronic:'sev-chronic' };
+  tbody.innerHTML = items.map(it => {
+    const priceSearch = it.ean
+      ? `<a class="action-link" href="https://www.google.com.tw/search?q=${enc(it.ean)}&tbm=shop" target="_blank">🔍 Google</a>`
+      : '—';
+    return `<tr>
+      <td class="wrap">${esc(it.name)}</td>
+      <td class="muted">${esc(it.code)}</td>
+      <td style="text-align:right;font-weight:600;">${it.qty}</td>
+      <td style="text-align:right;font-weight:700;color:${it.zeroPeriods >= SEVERE_P ? '#dc2626' : '#d97706'};">${it.zeroPeriods} 期</td>
+      <td><span class="sev-badge ${sevCls[it.sev]}">${it.sevLabel}</span></td>
+      <td style="text-align:right;" class="muted">${it.price ? 'NT$ ' + it.price : '—'}</td>
+      <td>${priceSearch}</td>
+      <td class="wrap" style="color:var(--gray-500);">${it.reasons.join('、')}</td>
+      <td class="wrap">${it.actions.map(a => '・' + a).join('<br>')}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderDecline() {
+  if (!analysis) return;
+  const q = document.getElementById('q-decline').value.toLowerCase();
+  let items = analysis.decliners;
+  if (q) items = items.filter(i => i.name.toLowerCase().includes(q));
+
+  const tbody = document.getElementById('tb-decline');
+  if (items.length === 0) {
+    const msg = (db?.snapshots?.length || 0) < 4
+      ? '需累積 4 期以上資料才能偵測下滑趨勢'
+      : '目前無明顯銷量下滑商品';
+    tbody.innerHTML = `<tr><td colspan="7" class="empty-cell">${msg}</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = items.map(it => {
+    const search = it.ean
+      ? `<a class="action-link" href="https://www.google.com.tw/search?q=${enc(it.ean)}&tbm=shop" target="_blank">🔍 Google</a>`
+      : '—';
+    return `<tr>
+      <td class="wrap">${esc(it.name)}</td>
+      <td style="text-align:right;">${it.pAvg}</td>
+      <td style="text-align:right;">${it.rAvg}</td>
+      <td style="text-align:right;" class="trend-down">▼ ${it.rate}%</td>
+      <td style="text-align:right;font-weight:600;">${it.qty}</td>
+      <td class="wrap" style="color:var(--gray-500);">${it.dReasons.join('、')}</td>
+      <td>${search}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderAll() {
+  if (!analysis) return;
+  const stockFilter = document.getElementById('fil-stock').value;
+  const q = document.getElementById('q-all').value.toLowerCase();
+  const hist = analysis.history;
+
+  let items = Object.entries(analysis.latest.products).map(([code, info]) => {
+    const h = hist[code] || [];
+    const recent4 = h.slice(-4);
+    const avg = recent4.length ? (recent4.reduce((s,x) => s + x.sales, 0) / recent4.length).toFixed(1) : '—';
+    return { code, ...info, avg };
+  });
+
+  if (stockFilter === 'in')   items = items.filter(i => i.qty > 0);
+  if (stockFilter === 'zero') items = items.filter(i => i.qty <= 0);
+  if (q) items = items.filter(i => i.name.toLowerCase().includes(q) || i.code.toLowerCase().includes(q));
+  items.sort((a,b) => b.qty - a.qty);
+
+  const tbody = document.getElementById('tb-all');
+  if (items.length === 0) { tbody.innerHTML = '<tr><td colspan="7" class="empty-cell">無符合條件商品</td></tr>'; return; }
+
+  tbody.innerHTML = items.slice(0, 200).map(it => {
+    const search = it.ean
+      ? `<a class="action-link" href="https://www.google.com.tw/search?q=${enc(it.ean)}&tbm=shop" target="_blank">🔍</a>`
+      : '—';
+    return `<tr>
+      <td class="wrap">${esc(it.name)}</td>
+      <td class="muted">${esc(it.code)}</td>
+      <td style="text-align:right;font-weight:${it.qty > 0 ? 600 : 400};color:${it.qty <= 0 ? 'var(--gray-400)' : 'inherit'};">${it.qty}</td>
+      <td style="text-align:right;">${it.avg}</td>
+      <td style="text-align:right;" class="muted">${it.price ? 'NT$ ' + it.price : '—'}</td>
+      <td class="muted">${esc(it.ean || '—')}</td>
+      <td>${search}</td>
+    </tr>`;
+  }).join('');
+
+  if (items.length > 200)
+    tbody.innerHTML += '<tr><td colspan="7" style="text-align:center;color:var(--gray-400);font-size:12px;">僅顯示前 200 筆，請輸入關鍵字篩選</td></tr>';
+}
+
+// ── 進度條 ──────────────────────────────────────────────
+function renderProgress(n) {
+  const MAX = 12;
+  const filled = Math.min(n, MAX);
+  let dots = '';
+  for (let i = 0; i < MAX; i++) dots += `<div class="w-dot ${i < filled ? 'filled' : 'empty'}"></div>`;
+  if (n > MAX) dots += `<span style="font-size:11px;color:var(--primary);margin-left:4px;">+${n - MAX}</span>`;
+  document.getElementById('week-dots').innerHTML = dots;
+  document.getElementById('progress-bar').style.width = Math.min(100, n / CHRONIC_P * 100) + '%';
+
+  const hints = [
+    [0,          '尚無快照，等待 GitHub Actions 執行'],
+    [1,          `已累積 ${n} 期，再 ${MILD_P - n} 期可偵測輕微滯銷`],
+    [MILD_P,     `已累積 ${n} 期，可偵測輕微滯銷`],
+    [MODERATE_P, `已累積 ${n} 期，可偵測輕微 / 中度滯銷`],
+    [SEVERE_P,   `已累積 ${n} 期，可偵測至嚴重滯銷`],
+    [CHRONIC_P,  `已累積 ${n} 期，完整偵測（含常態滯銷）`],
+  ];
+  const hint = [...hints].reverse().find(([t]) => n >= t)?.[1] || hints[0][1];
+  document.getElementById('progress-hint').textContent = hint;
+}
+
+// ── Tab 切換 ─────────────────────────────────────────────
+function switchTab(t) {
+  ['slow','decline','all'].forEach(x => {
+    document.getElementById('panel-' + x).style.display = x === t ? '' : 'none';
+    document.getElementById('tab-'   + x).classList.toggle('active', x === t);
+  });
+}
+
+// ── 快照記錄彈窗 ────────────────────────────────────────
+function showHistory() {
+  if (!db || !db.snapshots?.length) { alert('尚無快照記錄'); return; }
+  const lines = db.snapshots.map((s,i) =>
+    `${i + 1}. ${s.date}　${Object.keys(s.products).length} 項商品`
+  );
+  alert(`快照記錄（共 ${db.snapshots.length} 期）\n\n` + lines.join('\n'));
+}
+
+// ── 工具函式 ────────────────────────────────────────────
+function setBanner(type, html) {
+  const el = document.getElementById('status-banner');
+  el.style.display = '';
+  el.className = `status-banner banner-${type}`;
+  el.innerHTML = html;
+}
+function setText(id, val) { document.getElementById(id).textContent = val; }
+function esc(s)  { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function enc(s)  { return encodeURIComponent(s); }
+function showLoading(msg) { document.getElementById('loading-msg').textContent = msg; document.getElementById('loading-overlay').classList.add('show'); }
+function hideLoading()    { document.getElementById('loading-overlay').classList.remove('show'); }
+
+// 啟動
+init();
+</script>
+<script src="sidebar.js" defer></script>
+</body>
+</html>
