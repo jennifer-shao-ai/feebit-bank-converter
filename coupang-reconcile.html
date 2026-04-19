@@ -140,7 +140,7 @@ tr.matched.hidden-row { display: none; }
   </div>
   <div class="sidebar-section">
     <div class="sidebar-label">總覽</div>
-    <div class="nav-item" onclick="location.href='index.html'"><span class="icon">🏠</span> 首頁</div>
+    <a class="nav-item" href="index.html"><span class="icon">🏠</span> 首頁</a>
   </div>
   <div class="sidebar-section">
     <div class="sidebar-label">財務</div>
@@ -194,7 +194,7 @@ tr.matched.hidden-row { display: none; }
 <div id="main">
   <div class="topbar">
     <div style="display:flex;align-items:center;gap:10px">
-      <button class="hamburger" onclick="toggleSidebar()">☰</button>
+      <button class="btn-hamburger" onclick="toggleSidebar()">☰</button>
       <span class="topbar-title">酷澎商城對帳</span>
     </div>
     <span class="topbar-badge">v1.0</span>
@@ -705,11 +705,11 @@ function toast(msg, dur = 3000) {
 }
 function toggleSidebar() {
   document.getElementById('sidebar').classList.toggle('open');
-  document.getElementById('sidebar-overlay').classList.toggle('active');
+  document.getElementById('sidebar-overlay').classList.toggle('show');
 }
 function closeSidebar() {
   document.getElementById('sidebar').classList.remove('open');
-  document.getElementById('sidebar-overlay').classList.remove('active');
+  document.getElementById('sidebar-overlay').classList.remove('show');
 }
 
 // ── 初始化 ───────────────────────────────────────────────
