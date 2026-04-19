@@ -1429,7 +1429,8 @@ function renderOwnerFilter() {
       const style = isActive
         ? (o.color ? `background:${o.color};color:white;border-color:${o.color}` : 'background:var(--gray-800);color:white;border-color:var(--gray-800)')
         : '';
-      return `<span class="loc-chip ${isActive && !o.color ? 'all' : ''}" style="${style}" onclick="setOwnerFilter(${JSON.stringify(o.key)})">${o.label}</span>`;
+      const keyStr = o.key === null ? 'null' : `'${escAttr(o.key)}'`;
+      return `<span class="loc-chip ${isActive && !o.color ? 'all' : ''}" style="${style}" onclick="setOwnerFilter(${keyStr})">${esc(o.label)}</span>`;
     }).join('')}
   </div>`;
 }
@@ -1497,7 +1498,7 @@ function renderShopping() {
 function renderShopCard(item, origIdx) {
   const photo = item.photo ? `<img src="${item.photo}">` : '🛍';
   const ownerBadge = item._owner
-    ? `<div class="shop-owner-badge" style="background:${item._ownerColor||'#f97316'};cursor:pointer" onclick="setOwnerFilter(${JSON.stringify(item._owner)})" title="篩選：${escAttr(item._owner)}">${esc(item._owner)}</div>`
+    ? `<div class="shop-owner-badge" style="background:${item._ownerColor||'#f97316'};cursor:pointer" onclick="setOwnerFilter('${escAttr(item._owner)}')" title="篩選：${escAttr(item._owner)}">${esc(item._owner)}</div>`
     : '';
   const catBadge = item.category ? `<span class="shop-cat">${esc(item.category)}</span>` : '';
   const priceRaw = item.price ? Number(item.price) : 0;
@@ -1627,7 +1628,7 @@ function calcSettlement(expenses, members) {
     });
   });
 
-  // Balance per person
+  // Balance per person (net owe/receive, kept for transaction calculations)
   const balance = {};
   allNames.forEach(m => {
     let recv = 0, owe = 0;
@@ -1635,7 +1636,26 @@ function calcSettlement(expenses, members) {
     balance[m] = Math.round(recv - owe);
   });
 
-  return { transactions, rawOwes, allNames:[...allNames], balance };
+  // Spending per person: each person's actual share of all expenses (not net balance)
+  const spending = {};
+  allNames.forEach(m => { spending[m] = 0; });
+  expenses.forEach(e => {
+    const cur = e.currency || 'JPY';
+    const total = Number(e.amount) || 0;
+    if (e.splitMode === 'custom' && e.customSplits && Object.keys(e.customSplits).length > 0) {
+      Object.entries(e.customSplits).forEach(([m, amt]) => {
+        if (allNames.has(m)) spending[m] = (spending[m]||0) + toTWD(Number(amt)||0, cur);
+      });
+    } else {
+      const splitters = e.splitWith?.length ? e.splitWith : (members.length ? members : (e.paidBy ? [e.paidBy] : []));
+      if (splitters.length === 0) return;
+      const share = toTWD(total, cur) / splitters.length;
+      splitters.forEach(m => { if (allNames.has(m)) spending[m] = (spending[m]||0) + share; });
+    }
+  });
+  allNames.forEach(m => { spending[m] = Math.round(spending[m]||0); });
+
+  return { transactions, rawOwes, allNames:[...allNames], balance, spending };
 }
 
 function isPaidOff(from, to) {
@@ -1656,7 +1676,7 @@ function renderSettle(list) {
   const t = trip(); if (!t) return;
   const members = t.members || [];
   const total = (t.expenses||[]).reduce((s,e)=>s+toTWD(Number(e.amount)||0, e.currency), 0);
-  const { transactions, rawOwes, allNames, balance } = calcSettlement(list, members);
+  const { transactions, rawOwes, allNames, balance, spending } = calcSettlement(list, members);
 
   // Build transactions HTML
   // Determine primary display currency (most frequently used in expenses)
@@ -1696,35 +1716,36 @@ function renderSettle(list) {
       </div>`;
     }).join('');
 
-  // Balance summary
+  // Spending summary (each person's actual share)
   const balHTML = allNames.map(m => {
-    const b = Math.round(balance[m]||0);
-    const cls = b>0?'bal-pos':b<0?'bal-neg':'';
-    const sign = b>0?'+':'';
-    const label = b>0?'收回':'支出';
-    return `<div class="settle-balance-row"><span>${esc(m)}</span><span class="${cls}">${sign}${fmtTWD(Math.abs(b))} ${b!==0?`<span style="font-size:10px;opacity:0.7">(${label})</span>`:''}</span></div>`;
+    const spendTWD = spending[m] || 0;
+    const spendJPY = Math.round(spendTWD / getRate('JPY'));
+    return `<div class="settle-balance-row"><span>${esc(m)}</span><span style="text-align:right"><span style="font-weight:600">¥${spendJPY.toLocaleString()}</span><span style="font-size:11px;color:var(--gray-500);margin-left:6px">≈ ${fmtTWD(spendTWD)}</span></span></div>`;
   }).join('');
 
   // Pairwise detail
   const pairs = new Set();
   let pairHTML = '';
+  // Helper: format TWD amount as both JPY and TWD
+  const fmtBoth = twd => `¥${Math.round(twd / getRate('JPY')).toLocaleString()} <span style="font-size:11px;color:var(--gray-500)">≈ ${fmtTWD(twd)}</span>`;
   allNames.forEach(a => {
     allNames.forEach(b => {
       const key = [a,b].sort().join('\0');
       if (pairs.has(key)) return; pairs.add(key);
-      const aToB = Math.round(rawOwes[a]?.[b]||0);
-      const bToA = Math.round(rawOwes[b]?.[a]||0);
-      if (aToB === 0 && bToA === 0) return;
-      const net = aToB - bToA;
+      // rawOwes[x][y] = x owes y = y paid for x = "y 為 x 代墊"
+      const aOwesB = Math.round(rawOwes[a]?.[b]||0); // b 為 a 代墊
+      const bOwesA = Math.round(rawOwes[b]?.[a]||0); // a 為 b 代墊
+      if (aOwesB === 0 && bOwesA === 0) return;
+      const net = aOwesB - bOwesA;
       const netStr = net > 0.5
-        ? `<strong>${esc(b)}</strong> 付給 <strong>${esc(a)}</strong>：${fmtTWD(net)}`
+        ? `<strong>${esc(a)}</strong> 付給 <strong>${esc(b)}</strong>：${fmtBoth(net)}`
         : net < -0.5
-        ? `<strong>${esc(a)}</strong> 付給 <strong>${esc(b)}</strong>：${fmtTWD(-net)}`
+        ? `<strong>${esc(b)}</strong> 付給 <strong>${esc(a)}</strong>：${fmtBoth(-net)}`
         : '✅ 互相抵銷';
       pairHTML += `<div class="settle-pair-block">
         <div class="settle-pair-title">${esc(a)} vs ${esc(b)}</div>
-        ${aToB>0?`<div class="settle-pair-row"><span>${esc(a)} 為 ${esc(b)} 代墊</span><span>${fmtTWD(aToB)}</span></div>`:''}
-        ${bToA>0?`<div class="settle-pair-row"><span>${esc(b)} 為 ${esc(a)} 代墊</span><span>${fmtTWD(bToA)}</span></div>`:''}
+        ${aOwesB>0?`<div class="settle-pair-row"><span>${esc(b)} 為 ${esc(a)} 代墊</span><span>${fmtBoth(aOwesB)}</span></div>`:''}
+        ${bOwesA>0?`<div class="settle-pair-row"><span>${esc(a)} 為 ${esc(b)} 代墊</span><span>${fmtBoth(bOwesA)}</span></div>`:''}
         <div class="settle-pair-row settle-pair-net"><span>互扣後</span><span>${netStr}</span></div>
       </div>`;
     });
@@ -1738,7 +1759,7 @@ function renderSettle(list) {
     <p style="font-size:12px;color:var(--gray-600);margin-bottom:14px">總花費 ${totalOrigStr}${fmtTWD(total)}</p>
     ${txHTML}
     ${allNames.length>0?`<div style="margin-top:16px;border-top:1px solid var(--gray-200);padding-top:12px">
-      <div style="font-size:11px;color:var(--gray-400);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">各人淨收支（台幣）</div>
+      <div style="font-size:11px;color:var(--gray-400);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">各人花費</div>
       ${balHTML}
     </div>`:''}
     ${pairHTML ? `
