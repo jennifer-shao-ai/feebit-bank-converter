@@ -29,6 +29,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang TC','Microsoft Jheng
 .nav-item:hover{background:rgba(255,255,255,.07);color:rgba(255,255,255,.9)}
 .nav-item.active{background:var(--primary);color:#fff}
 .nav-item .icon{font-size:15px;width:20px;text-align:center;flex-shrink:0}
+.nav-item.soon{opacity:.4;cursor:default;pointer-events:none}
+.nav-item .soon-tag{margin-left:auto;font-size:9px;background:rgba(255,255,255,.15);padding:1px 5px;border-radius:3px;letter-spacing:.5px}
 .sb-footer{margin-top:auto;padding:16px;border-top:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.25);font-size:11px}
 
 /* main */
@@ -191,6 +193,18 @@ tbody tr:hover{background:var(--gray-50)}
     <a class="nav-item active" href="profit-calculator.html"><span class="icon">💰</span>毛利試算機</a>
   </div>
   <div class="sb-sec">
+    <div class="sb-lbl">行銷</div>
+    <div class="nav-item soon"><span class="icon">📢</span>廣告文案<span class="soon-tag">即將推出</span></div>
+  </div>
+  <div class="sb-sec">
+    <div class="sb-lbl">客服</div>
+    <div class="nav-item soon"><span class="icon">💬</span>客服回覆<span class="soon-tag">即將推出</span></div>
+  </div>
+  <div class="sb-sec">
+    <div class="sb-lbl">業務</div>
+    <div class="nav-item soon"><span class="icon">🤝</span>廠商談判<span class="soon-tag">即將推出</span></div>
+  </div>
+  <div class="sb-sec">
     <div class="sb-lbl">人事</div>
     <a class="nav-item" href="attendance.html"><span class="icon">🗓️</span>考勤查驗</a>
   </div>
@@ -212,7 +226,7 @@ tbody tr:hover{background:var(--gray-50)}
     <div class="sb-lbl">系統</div>
     <a class="nav-item" href="tools.html"><span class="icon">🔧</span>使用工具</a>
   </div>
-  <div class="sb-footer">v1.8 · Feebit © 2026</div>
+  <div class="sb-footer">v1.9 · Feebit © 2026</div>
 </div>
 <div id="overlay" onclick="closeSidebar()"></div>
 
