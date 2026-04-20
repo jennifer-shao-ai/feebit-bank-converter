@@ -147,7 +147,7 @@ select.inline-sel:focus{border-color:var(--primary);}
     <div class="sidebar-label">系統</div>
     <a class="nav-item" href="tools.html"><span class="icon">🔧</span> 使用工具</a>
   </div>
-  <div class="sidebar-footer">v1.2 · Feebit © 2026</div>
+  <div class="sidebar-footer">v1.3 · Feebit © 2026</div>
 </div>
 
 <div id="main">
@@ -156,7 +156,7 @@ select.inline-sel:focus{border-color:var(--primary);}
       <button class="btn-hamburger" style="display:none;" onclick="openSidebar()">☰</button>
       <span class="topbar-title">考勤查驗</span>
       <span class="topbar-badge">人事工具</span>
-      <span style="font-size:11px;color:var(--gray-400);margin-left:4px;">v1.2</span>
+      <span style="font-size:11px;color:var(--gray-400);margin-left:4px;">v1.3</span>
     </div>
   </div>
 
@@ -617,9 +617,19 @@ function uzDrop(e,id,handler){ e.preventDefault(); uzLeave(id); const f=e.dataTr
 function uzPick(e,handler){ const f=e.target.files[0]; if(f) readCSVFile(f,handler); e.target.value=''; }
 function readCSVFile(file,handler){
   if(!file.name.toLowerCase().endsWith('.csv')&&file.type!=='text/csv'){ alert('請選擇 .csv 檔案'); return; }
-  const reader=new FileReader();
-  reader.onload=ev=>handler(ev.target.result);
-  reader.readAsText(file,'UTF-8');
+  const r1=new FileReader();
+  r1.onload=ev=>{
+    const text=ev.target.result;
+    // 若含亂碼（replacement char），改用 Big5 重讀
+    if(text.includes('\uFFFD')){
+      const r2=new FileReader();
+      r2.onload=ev2=>handler(ev2.target.result);
+      r2.readAsText(file,'big5');
+    } else {
+      handler(text);
+    }
+  };
+  r1.readAsText(file,'UTF-8');
 }
 
 // ─ Punch ─
