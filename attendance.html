@@ -173,7 +173,10 @@ select.inline-sel:focus{border-color:var(--primary);}
     <div class="card" style="margin-bottom:12px;">
       <div class="card-header" style="margin-bottom:12px;">
         <span class="card-title">🔗 Ragic 員工資料同步</span>
-        <button class="btn btn-primary btn-sm" onclick="syncFromRagic()" id="ragic-sync-btn">🔄 立即同步</button>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button class="btn btn-primary btn-sm" onclick="syncFromRagic()" id="ragic-sync-btn">🔄 同步員工</button>
+          <button class="btn btn-primary btn-sm" onclick="syncAllData()" id="ragic-all-btn" style="background:#7c3aed;">⚡ 一鍵同步全部</button>
+        </div>
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
         <div class="form-group" style="flex:3;min-width:260px;">
@@ -386,7 +389,7 @@ select.inline-sel:focus{border-color:var(--primary);}
       <div class="form-group"><label>標準下班時間</label><input type="time" id="emp-end" value="18:00"></div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label>遲到寬限（分鐘）</label><input type="number" id="emp-late" value="0" min="0" max="60"></div>
+      <div class="form-group"><label>遲到寬限（分鐘）</label><input type="number" id="emp-late" value="30" min="0" max="60"></div>
       <div class="form-group"><label>早退寬限（分鐘）</label><input type="number" id="emp-early" value="0" min="0" max="60"></div>
     </div>
     <div class="form-row">
@@ -455,13 +458,12 @@ function diffH(a,b){ const da=toMins(a),db=toMins(b); if(da===null||db===null) r
 function calcWorkHours(clockIn, clockOut, emp){
   if(!clockIn||!clockOut) return 0;
   let hours=diffH(clockIn,clockOut);
-  if(emp?.lunchDeduct&&emp?.lunchStart&&emp?.lunchEnd){
-    const inM=toMins(clockIn),outM=toMins(clockOut);
-    const lsM=toMins(emp.lunchStart),leM=toMins(emp.lunchEnd);
-    if(inM<leM&&outM>lsM){
-      const overlap=(Math.min(outM,leM)-Math.max(inM,lsM))/60;
-      hours=Math.max(0,hours-overlap);
-    }
+  // 12:00~13:00 固定午休，全員強制扣除
+  const inM=toMins(clockIn),outM=toMins(clockOut);
+  const lsM=720,leM=780;
+  if(inM<leM&&outM>lsM){
+    const overlap=(Math.min(outM,leM)-Math.max(inM,lsM))/60;
+    hours=Math.max(0,hours-overlap);
   }
   return hours;
 }
@@ -547,9 +549,9 @@ function openEmpModal(id){
   } else {
     document.getElementById('emp-name').value='';
     document.getElementById('emp-type').value='full-time';
-    document.getElementById('emp-start').value='09:00';
-    document.getElementById('emp-end').value='17:30';
-    document.getElementById('emp-late').value=0;
+    document.getElementById('emp-start').value='08:30';
+    document.getElementById('emp-end').value='18:00';
+    document.getElementById('emp-late').value=30;
     document.getElementById('emp-early').value=0;
     document.getElementById('emp-lunch-start').value='12:00';
     document.getElementById('emp-lunch-end').value='13:00';
@@ -644,6 +646,7 @@ function importPunchText(text){
     const date=normalizeDate(rawDate);
     const name=r[3]||'', ci=r[5]||'', co=r[6]||'';
     if(!date.match(/^\d{4}-\d{2}-\d{2}$/)){ errs.push(`第${i+2}列：日期格式錯誤(${rawDate})`); return; }
+    if(!date.startsWith(m)) return; // 非當月日期自動略過
     if(!name){ errs.push(`第${i+2}列：缺姓名`); return; }
     const emp=db.employees.find(e=>e.name===name||name.includes(e.name)||e.name.includes(name));
     if(!emp){ errs.push(`第${i+2}列：找不到員工「${name}」`); return; }
@@ -901,8 +904,9 @@ function analyzeEmployee(empId, month){
       else {
         const inM=toMins(rec.clockIn), outM=toMins(rec.clockOut);
         const sInM=toMins(sStart), sOutM=toMins(sEnd);
-        if(sInM!==null&&inM>sInM+(emp.lateGrace||5)){ lateMin=inM-sInM; status.push('遲到 '+lateMin+' 分'); rowClass='row-late'; lateCount++; }
-        if(sOutM!==null&&outM<sOutM-(emp.earlyGrace||5)){ earlyMin=sOutM-outM; status.push('早退 '+earlyMin+' 分'); if(!rowClass||rowClass==='row-ok') rowClass='row-early'; earlyCount++; }
+        const lateDeadline=sInM+(emp.lateGrace??30);
+        if(sInM!==null&&inM>lateDeadline){ lateMin=inM-lateDeadline; status.push('遲到 '+lateMin+' 分'); rowClass='row-late'; lateCount++; }
+        if((!isPT||sch)&&sOutM!==null&&outM<sOutM-(emp.earlyGrace??0)){ earlyMin=sOutM-outM; status.push('早退 '+earlyMin+' 分'); if(!rowClass||rowClass==='row-ok') rowClass='row-early'; earlyCount++; }
         if(!status.length){ status=['正常']; rowClass='row-ok'; }
         hours=calcWorkHours(rec.clockIn,rec.clockOut,emp);
         totalHours+=hours;
@@ -1057,11 +1061,13 @@ function renderAnnual(){
       earlyCount+=a.earlyCount; missingCount+=a.missingCount; absentCount+=a.absentCount;
       totalOT+=a.totalOT; expectedDays+=a.expectedWork;
       Object.entries(a.leaveBreakdown).forEach(([t,h])=>{ leaveBreakdown[t]=(leaveBreakdown[t]||0)+h; });
-      monthScores.push({month,score:calcScore(emp.id,month)});
+      // 工讀生：沒有排班的月份不納入評分（避免被計為100）
+      const isPT=emp.type==='part-time';
+      if(!isPT||a.expectedWork>0||a.totalDays>0) monthScores.push({month,score:calcScore(emp.id,month)});
     });
 
     const rate=expectedDays?Math.round(totalDays/expectedDays*100):0;
-    const avgScore=monthScores.length?Math.round(monthScores.reduce((s,m)=>s+m.score,0)/monthScores.length):100;
+    const avgScore=monthScores.length?Math.round(monthScores.reduce((s,m)=>s+m.score,0)/monthScores.length):0;
     const leaveTotal=fmt(Object.values(leaveBreakdown).reduce((a,b)=>a+b,0)/8,1);
 
     return {emp,totalDays,totalHours:fmt(totalHours),lateCount,earlyCount,missingCount,absentCount,
@@ -1201,9 +1207,9 @@ async function syncFromRagic(){
         existing.type=type;
         existing.ragicId=ragicId;
         // set defaults if missing
-        if(!existing.startTime) existing.startTime='09:00';
-        if(!existing.endTime) existing.endTime='17:30';
-        if(existing.lateGrace===undefined) existing.lateGrace=0;
+        if(!existing.startTime) existing.startTime='08:30';
+        if(!existing.endTime) existing.endTime='18:00';
+        if(existing.lateGrace===undefined) existing.lateGrace=30;
         if(existing.earlyGrace===undefined) existing.earlyGrace=0;
         if(!existing.lunchStart) existing.lunchStart='12:00';
         if(!existing.lunchEnd) existing.lunchEnd='13:00';
@@ -1213,8 +1219,8 @@ async function syncFromRagic(){
       } else {
         db.employees.push({
           id:uid(), ragicId, name, type,
-          startTime:'09:00', endTime:'17:30',
-          lateGrace:0, earlyGrace:0,
+          startTime:'08:30', endTime:'18:00',
+          lateGrace:30, earlyGrace:0,
           lunchStart:'12:00', lunchEnd:'13:00',
           lunchDeduct:true,
           weekdays:[1,2,3,4,5]
@@ -1389,6 +1395,32 @@ async function syncOTFromRagic(){
     msg.innerHTML=`<span style="color:var(--danger);">❌ 失敗：${esc(e.message)}</span>`;
   }
   btn.disabled=false; btn.textContent='🔗 從 Ragic 同步加班';
+}
+
+// ══ 一鍵同步全部 ══
+async function syncAllData(){
+  const btn=document.getElementById('ragic-all-btn');
+  const msg=document.getElementById('ragic-msg');
+  btn.disabled=true; btn.textContent='同步中...';
+  msg.innerHTML='<span style="color:var(--gray-400);">⏳ 同步員工資料...</span>';
+  try{
+    await syncFromRagic();
+    // 同步當月排班/請假/加班
+    const today=new Date();
+    const m=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0');
+    const sel=document.getElementById('import-month');
+    if(sel) sel.value=m;
+    msg.innerHTML='<span style="color:var(--gray-400);">⏳ 同步排班表...</span>';
+    await syncSchFromRagic();
+    msg.innerHTML='<span style="color:var(--gray-400);">⏳ 同步請假資料...</span>';
+    await syncLeavesFromRagic();
+    msg.innerHTML='<span style="color:var(--gray-400);">⏳ 同步加班資料...</span>';
+    await syncOTFromRagic();
+    msg.innerHTML='<span style="color:var(--success);">✅ 全部同步完成（員工 + '+ m +' 月排班/請假/加班）</span>';
+  }catch(e){
+    msg.innerHTML=`<span style="color:var(--danger);">❌ 同步失敗：${esc(e.message)}</span>`;
+  }
+  btn.disabled=false; btn.textContent='⚡ 一鍵同步全部';
 }
 
 // ══ 每月1號自動同步 ══
