@@ -1018,7 +1018,7 @@ function analyzeEmployee(empId, month){
     rows.push({date,emp,rec,sStart,sEnd,status,rowClass,hours,lateMin,earlyMin,isLeave,ot,isExpected,isNonWorkday,override});
   });
 
-  const expectedWork=expected.filter(d=>!leaveDates.includes(d)).length;
+  const expectedWork=expected.length; // 應出勤 = 工作日總數，不扣請假
   return {emp,rows,totalDays,totalHours:fmt(totalHours),lateCount,earlyCount,missingCount,absentCount,
     totalOT,leaveBreakdown,expectedWork,
     leaveTotal:fmt(Object.values(leaveBreakdown).reduce((a,b)=>a+b,0)/8,1)};
