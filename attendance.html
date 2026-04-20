@@ -498,8 +498,14 @@ function parseCSV(text){
   const lines=text.trim().split('\n').map(l=>l.trim()).filter(Boolean);
   if(!lines.length) return [];
   const first=lines[0].split(',')[0];
-  const hasHeader=isNaN(first)&&!first.match(/^\d{4}-/);
+  const hasHeader=isNaN(first)&&!first.match(/^\d{4}[-\/]/);
   return (hasHeader?lines.slice(1):lines).map(l=>l.split(',').map(c=>c.trim()));
+}
+function normalizeDate(s){
+  if(!s) return '';
+  const m=s.replace(/\//g,'-').match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if(!m) return s;
+  return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
 }
 
 // ══ EMPLOYEES ══
@@ -623,14 +629,17 @@ function importPunchText(text){
   const rows=parseCSV(text); let ok=0; const errs=[];
   const md=ensureMonth(m);
   rows.forEach((r,i)=>{
-    const[date,name,ci,co]=r;
-    if(!date||!name){ errs.push(`第${i+2}列：缺日期或姓名`); return; }
-    if(!date.match(/^\d{4}-\d{2}-\d{2}$/)){ errs.push(`第${i+2}列：日期格式錯誤(${date})`); return; }
+    const rawDate=r[0]||'';
+    if(!rawDate.match(/^\d{4}/)) return; // 跳過頁尾合計列
+    const date=normalizeDate(rawDate);
+    const name=r[3]||'', ci=r[5]||'', co=r[6]||'';
+    if(!date.match(/^\d{4}-\d{2}-\d{2}$/)){ errs.push(`第${i+2}列：日期格式錯誤(${rawDate})`); return; }
+    if(!name){ errs.push(`第${i+2}列：缺姓名`); return; }
     const emp=db.employees.find(e=>e.name===name);
     if(!emp){ errs.push(`第${i+2}列：找不到員工「${name}」`); return; }
     const idx=md.records.findIndex(x=>x.date===date&&x.employeeId===emp.id);
     if(idx>=0) md.records.splice(idx,1);
-    md.records.push({date,employeeId:emp.id,clockIn:ci||'',clockOut:co||''});
+    md.records.push({date,employeeId:emp.id,clockIn:ci,clockOut:co});
     ok++;
   });
   saveDB();
