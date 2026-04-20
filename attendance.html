@@ -935,9 +935,9 @@ function analyzeEmployee(empId, month){
     const ot=otMap[date];
     const sch=schMap[date];
     const override=overrideMap[empId+'|'+date];
-    const isWeekend=!isPT&&!workdays.includes(dow(date));
-    const isNatHol=!isPT&&isHoliday(date);
-    const isNonWorkday=isWeekend||isNatHol;
+    const isWeekend=!workdays.includes(dow(date)); // 不分正職工讀，六日都是假日
+    const isNatHol=isHoliday(date);
+    const isNonWorkday=isPT?(isWeekend&&!expected.includes(date))||isNatHol:isWeekend||isNatHol;
 
     const sStart=isPT?(sch?.scheduledStart||emp.startTime):emp.startTime;
     const sEnd=isPT?(sch?.scheduledEnd||emp.endTime):emp.endTime;
