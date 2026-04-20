@@ -500,12 +500,13 @@ function genMonthOpts(selId, val){
 function getEmpById(id){ return db.employees.find(e=>e.id===id); }
 
 function ensureMonth(m){
-  if(!db.monthlyData[m]) db.monthlyData[m]={records:[],leaves:[],overtimes:[],shiftChanges:[],ptSchedule:[]};
+  if(!db.monthlyData[m]) db.monthlyData[m]={records:[],leaves:[],overtimes:[],shiftChanges:[],ptSchedule:[],overrides:{}};
   const md=db.monthlyData[m];
   if(!md.leaves) md.leaves=[];
   if(!md.overtimes) md.overtimes=[];
   if(!md.shiftChanges) md.shiftChanges=[];
   if(!md.ptSchedule) md.ptSchedule=[];
+  if(!md.overrides) md.overrides={};
   return md;
 }
 
@@ -879,15 +880,14 @@ function delShift(m,id){
 // ══ ANOMALY ENGINE ══
 function analyzeEmployee(empId, month){
   const emp=getEmpById(empId); if(!emp) return null;
-  const md=db.monthlyData[month]||{records:[],leaves:[],overtimes:[],shiftChanges:[],ptSchedule:[]};
+  const md=db.monthlyData[month]||{records:[],leaves:[],overtimes:[],shiftChanges:[],ptSchedule:[],overrides:{}};
   const isPT=emp.type==='part-time';
+  const workdays=emp.weekdays||[1,2,3,4,5];
 
-  // expected dates（正職排除週末與國定假日）
   let expected=isPT
     ?(md.ptSchedule||[]).filter(s=>s.employeeId===empId).map(s=>s.date)
-    :monthDays(month).filter(d=>(emp.weekdays||[1,2,3,4,5]).includes(dow(d))&&!isHoliday(d));
+    :monthDays(month).filter(d=>workdays.includes(dow(d))&&!isHoliday(d));
 
-  // apply shift changes
   (md.shiftChanges||[]).filter(s=>s.employeeId===empId).forEach(s=>{
     expected=expected.filter(d=>d!==s.from);
     if(!expected.includes(s.to)) expected.push(s.to);
@@ -897,6 +897,7 @@ function analyzeEmployee(empId, month){
   const recMap=Object.fromEntries((md.records||[]).filter(r=>r.employeeId===empId).map(r=>[r.date,r]));
   const otMap=Object.fromEntries((md.overtimes||[]).filter(o=>o.employeeId===empId).map(o=>[o.date,o]));
   const schMap=Object.fromEntries((md.ptSchedule||[]).filter(s=>s.employeeId===empId).map(s=>[s.date,s]));
+  const overrideMap=md.overrides||{};
 
   const rows=[];
   let totalDays=0, totalHours=0, lateCount=0, earlyCount=0, missingCount=0, absentCount=0;
@@ -904,7 +905,12 @@ function analyzeEmployee(empId, month){
   (md.leaves||[]).filter(l=>l.employeeId===empId).forEach(l=>{ leaveBreakdown[l.type]=(leaveBreakdown[l.type]||0)+l.hours; });
   const totalOT=(md.overtimes||[]).filter(o=>o.employeeId===empId).reduce((s,o)=>s+o.hours,0);
 
-  const allDates=[...new Set([...expected,...Object.keys(recMap)])].sort();
+  // FT 顯示整月所有日期；PT 只顯示排班+打卡日；加入有 override 的日期
+  const overrideDates=Object.keys(overrideMap).filter(k=>k.startsWith(empId+'|')).map(k=>k.split('|')[1]);
+  const baseDates=isPT
+    ?[...new Set([...expected,...Object.keys(recMap)])]
+    :monthDays(month);
+  const allDates=[...new Set([...baseDates,...overrideDates])].filter(d=>d.startsWith(month)).sort();
 
   allDates.forEach(date=>{
     const rec=recMap[date];
@@ -912,16 +918,30 @@ function analyzeEmployee(empId, month){
     const isLeave=leaveDates.includes(date);
     const ot=otMap[date];
     const sch=schMap[date];
+    const override=overrideMap[empId+'|'+date];
+    const isNonWorkday=!isPT&&(!workdays.includes(dow(date))||isHoliday(date));
 
     const sStart=isPT?(sch?.scheduledStart||emp.startTime):emp.startTime;
     const sEnd=isPT?(sch?.scheduledEnd||emp.endTime):emp.endTime;
 
     let status=[], rowClass='', hours=0, lateMin=0, earlyMin=0;
 
-    if(isLeave&&!rec){
+    if(override){
+      status=[override];
+      rowClass=override==='曠職'?'row-absent':override==='假日'||override==='補假'?'':override==='請假'?'':'row-ok';
+      if(rec&&rec.clockIn&&rec.clockOut){ hours=calcWorkHours(rec.clockIn,rec.clockOut,emp); totalHours+=hours; }
+      if(override!=='假日'&&override!=='補假'&&override!=='請假') totalDays++;
+    } else if(isNonWorkday){
+      if(!rec){ status=['假日']; rowClass=''; }
+      else {
+        status=['假日出勤']; rowClass='row-ok';
+        if(rec.clockIn&&rec.clockOut){ hours=calcWorkHours(rec.clockIn,rec.clockOut,emp); totalHours+=hours; }
+        totalDays++;
+      }
+    } else if(isLeave&&!rec){
       status=['請假'];
       const lv=(md.leaves||[]).find(l=>l.employeeId===empId&&l.date===date);
-      hours=(lv?.hours||8)/8; // treat as day fraction for display
+      hours=(lv?.hours||8)/8;
     } else if(!rec&&isExpected){
       status=['缺勤']; rowClass='row-absent'; absentCount++;
     } else if(rec){
@@ -939,15 +959,22 @@ function analyzeEmployee(empId, month){
         hours=calcWorkHours(rec.clockIn,rec.clockOut,emp);
         totalHours+=hours;
       }
-    } else { return; } // not expected, no record → skip
+    } else { return; }
 
-    rows.push({date,emp,rec,sStart,sEnd,status,rowClass,hours,lateMin,earlyMin,isLeave,ot,isExpected});
+    rows.push({date,emp,rec,sStart,sEnd,status,rowClass,hours,lateMin,earlyMin,isLeave,ot,isExpected,isNonWorkday,override});
   });
 
   const expectedWork=expected.filter(d=>!leaveDates.includes(d)).length;
   return {emp,rows,totalDays,totalHours:fmt(totalHours),lateCount,earlyCount,missingCount,absentCount,
     totalOT,leaveBreakdown,expectedWork,
     leaveTotal:fmt(Object.values(leaveBreakdown).reduce((a,b)=>a+b,0)/8,1)};
+}
+
+function setOverride(m,empId,date,val){
+  const md=ensureMonth(m);
+  const key=empId+'|'+date;
+  if(val) md.overrides[key]=val; else delete md.overrides[key];
+  saveDB(); renderVerify();
 }
 
 function calcScore(empId, month){
@@ -1008,21 +1035,29 @@ function renderVerify(){
     document.getElementById('vfy-table').innerHTML='<div class="empty-state"><div class="ei">🔍</div><div>無考勤資料，請先匯入打卡紀錄</div></div>';
   } else {
     document.getElementById('vfy-table').innerHTML=`<table>
-      <thead><tr><th>日期</th><th>員工</th><th>類型</th><th>排班</th><th>上班打卡</th><th>下班打卡</th><th>時數</th><th>狀態</th></tr></thead>
+      <thead><tr><th>日期</th><th>員工</th><th>類型</th><th>排班</th><th>上班打卡</th><th>下班打卡</th><th>時數</th><th>狀態</th><th>調整</th></tr></thead>
       <tbody>
-      ${allRows.map(r=>`<tr class="${r.rowClass}">
-        <td>${r.date} <span style="font-size:10px;color:var(--gray-400);">${WD_LABEL[dow(r.date)]}</span></td>
-        <td>${esc(r.emp.name)}</td>
-        <td><span class="badge ${r.emp.type==='full-time'?'badge-ft':'badge-pt'}" style="font-size:10px;">${r.emp.type==='full-time'?'正':'讀'}</span></td>
-        <td style="font-size:11px;color:var(--gray-500);">${r.sStart||'-'}～${r.sEnd||'-'}</td>
-        <td>${r.rec?.clockIn||'<span style="color:var(--gray-400)">—</span>'}</td>
-        <td>${r.rec?.clockOut||'<span style="color:var(--gray-400)">—</span>'}</td>
-        <td>${r.hours?fmt(r.hours)+' h':r.isLeave?'<span style="color:var(--primary)">請假</span>':'-'}</td>
-        <td>${r.status.map(s=>{
-          const c=s.includes('正常')?'badge-ok':s.includes('遲到')?'badge-late':s.includes('早退')?'badge-early':s.includes('未打')?'badge-missing':s.includes('缺勤')?'badge-absent':'badge-leave';
+      ${allRows.map(r=>{
+        const statusHtml=r.status.map(s=>{
+          const c=s==='正常'?'badge-ok':s.includes('遲到')?'badge-late':s.includes('早退')?'badge-early':s.includes('未打')?'badge-missing':s==='缺勤'||s==='曠職'?'badge-absent':s==='假日'||s==='補假'?'badge-leave':s==='假日出勤'?'badge-ft':s==='請假'?'badge-leave':'badge-ot';
           return `<span class="badge ${c}">${esc(s)}</span>`;
-        }).join(' ')}${r.ot?` <span class="badge badge-ot">+${r.ot.hours}h加班</span>`:''}</td>
-      </tr>`).join('')}
+        }).join(' ')+(r.ot?` <span class="badge badge-ot">+${r.ot.hours}h加班</span>`:'');
+        const overrideSel=`<select class="inline-sel" style="padding:2px 5px;font-size:11px;min-width:68px;" onchange="setOverride('${month}','${r.emp.id}','${r.date}',this.value)">
+          <option value="">— 自動 —</option>
+          ${['正常','假日','補假','補班','請假','曠職','未打卡'].map(v=>`<option value="${v}"${r.override===v?' selected':''}>${v}</option>`).join('')}
+        </select>`;
+        return `<tr class="${r.rowClass}">
+          <td>${r.date} <span style="font-size:10px;color:var(--gray-400);">${WD_LABEL[dow(r.date)]}</span></td>
+          <td>${esc(r.emp.name)}</td>
+          <td><span class="badge ${r.emp.type==='full-time'?'badge-ft':'badge-pt'}" style="font-size:10px;">${r.emp.type==='full-time'?'正':'讀'}</span></td>
+          <td style="font-size:11px;color:var(--gray-500);">${r.isNonWorkday&&!r.override?'—':r.sStart+'～'+r.sEnd}</td>
+          <td>${r.rec?.clockIn||'<span style="color:var(--gray-400)">—</span>'}</td>
+          <td>${r.rec?.clockOut||'<span style="color:var(--gray-400)">—</span>'}</td>
+          <td>${r.hours?fmt(r.hours)+' h':r.isLeave?'<span style="color:var(--primary)">請假</span>':'-'}</td>
+          <td>${statusHtml}</td>
+          <td>${overrideSel}</td>
+        </tr>`;
+      }).join('')}
       </tbody></table>`;
   }
 
