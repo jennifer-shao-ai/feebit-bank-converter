@@ -935,21 +935,23 @@ function analyzeEmployee(empId, month){
     const ot=otMap[date];
     const sch=schMap[date];
     const override=overrideMap[empId+'|'+date];
-    const isNonWorkday=!isPT&&(!workdays.includes(dow(date))||isHoliday(date));
+    const isWeekend=!isPT&&!workdays.includes(dow(date));
+    const isNatHol=!isPT&&isHoliday(date);
+    const isNonWorkday=isWeekend||isNatHol;
 
     const sStart=isPT?(sch?.scheduledStart||emp.startTime):emp.startTime;
     const sEnd=isPT?(sch?.scheduledEnd||emp.endTime):emp.endTime;
 
     let status=[], rowClass='', hours=0, lateMin=0, earlyMin=0;
+    const NON_WORK_STATUSES=['假日','國定假日','彈性假期','補假','請假'];
 
     if(override){
       status=[override];
-      rowClass=override==='曠職'?'row-absent':override==='假日'||override==='補假'?'':override==='請假'?'':'row-ok';
+      rowClass=override==='曠職'?'row-absent':NON_WORK_STATUSES.includes(override)?'':'row-ok';
       if(rec&&rec.clockIn&&rec.clockOut){ hours=calcWorkHours(rec.clockIn,rec.clockOut,emp); totalHours+=hours; }
-      if(override!=='假日'&&override!=='補假'&&override!=='請假') totalDays++;
+      if(!NON_WORK_STATUSES.includes(override)) totalDays++;
     } else if(isNonWorkday){
-      // 週末/假日一律顯示「假日」，不顯示打卡資訊也不計入出勤
-      status=['假日']; rowClass='';
+      status=[isNatHol&&!isWeekend?'國定假日':'假日']; rowClass='';
     } else if(isLeave&&!rec){
       status=['請假'];
       const lv=(md.leaves||[]).find(l=>l.employeeId===empId&&l.date===date);
@@ -1005,6 +1007,10 @@ function setOverride(m,empId,date,val){
   const md=ensureMonth(m);
   const key=empId+'|'+date;
   if(val) md.overrides[key]=val; else delete md.overrides[key];
+  // 設為國定假日時自動加入假日清單
+  if(val==='國定假日'){
+    if(!db.holidays.includes(date)){ db.holidays.push(date); db.holidays.sort(); renderHolidays(); }
+  }
   saveDB(); renderVerify();
 }
 
@@ -1070,12 +1076,12 @@ function renderVerify(){
       <tbody>
       ${allRows.map(r=>{
         const statusHtml=r.status.map(s=>{
-          const c=s==='正常'?'badge-ok':s.includes('遲到')?'badge-late':s.includes('早退')?'badge-early':s.includes('未打')?'badge-missing':s==='缺勤'||s==='曠職'?'badge-absent':s==='假日'||s==='補假'?'badge-leave':s==='假日出勤'?'badge-ft':s==='請假'?'badge-leave':'badge-ot';
+          const c=s==='正常'?'badge-ok':s.includes('遲到')?'badge-late':s.includes('早退')?'badge-early':s.includes('未打')?'badge-missing':s==='缺勤'||s==='曠職'?'badge-absent':s==='國定假日'?'badge-missing':s==='彈性假期'?'badge-ot':s==='假日'||s==='補假'||s==='補班'?'badge-leave':s==='請假'?'badge-leave':'badge-ok';
           return `<span class="badge ${c}">${esc(s)}</span>`;
         }).join(' ')+(r.ot?` <span class="badge badge-ot">+${r.ot.hours}h加班</span>`:'');
         const overrideSel=`<select class="inline-sel" style="padding:2px 5px;font-size:11px;min-width:68px;" onchange="setOverride('${month}','${r.emp.id}','${r.date}',this.value)">
           <option value="">— 自動 —</option>
-          ${['正常','假日','補假','補班','請假','曠職','未打卡'].map(v=>`<option value="${v}"${r.override===v?' selected':''}>${v}</option>`).join('')}
+          ${['正常','假日','國定假日','彈性假期','補假','補班','請假','曠職','未打卡'].map(v=>`<option value="${v}"${r.override===v?' selected':''}>${v}</option>`).join('')}
         </select>`;
         return `<tr class="${r.rowClass}">
           <td>${r.date} <span style="font-size:10px;color:var(--gray-400);">${WD_LABEL[dow(r.date)]}</span></td>
