@@ -147,7 +147,7 @@ select.inline-sel:focus{border-color:var(--primary);}
     <div class="sidebar-label">系統</div>
     <a class="nav-item" href="tools.html"><span class="icon">🔧</span> 使用工具</a>
   </div>
-  <div class="sidebar-footer">v1.3 · Feebit © 2026</div>
+  <div class="sidebar-footer">v1.4 · Feebit © 2026</div>
 </div>
 
 <div id="main">
@@ -156,7 +156,7 @@ select.inline-sel:focus{border-color:var(--primary);}
       <button class="btn-hamburger" style="display:none;" onclick="openSidebar()">☰</button>
       <span class="topbar-title">考勤查驗</span>
       <span class="topbar-badge">人事工具</span>
-      <span style="font-size:11px;color:var(--gray-400);margin-left:4px;">v1.3</span>
+      <span style="font-size:11px;color:var(--gray-400);margin-left:4px;">v1.4</span>
     </div>
   </div>
 
@@ -645,7 +645,7 @@ function importPunchText(text){
     const name=r[3]||'', ci=r[5]||'', co=r[6]||'';
     if(!date.match(/^\d{4}-\d{2}-\d{2}$/)){ errs.push(`第${i+2}列：日期格式錯誤(${rawDate})`); return; }
     if(!name){ errs.push(`第${i+2}列：缺姓名`); return; }
-    const emp=db.employees.find(e=>e.name===name);
+    const emp=db.employees.find(e=>e.name===name||name.includes(e.name)||e.name.includes(name));
     if(!emp){ errs.push(`第${i+2}列：找不到員工「${name}」`); return; }
     const idx=md.records.findIndex(x=>x.date===date&&x.employeeId===emp.id);
     if(idx>=0) md.records.splice(idx,1);
