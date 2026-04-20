@@ -147,7 +147,7 @@ select.inline-sel:focus{border-color:var(--primary);}
     <div class="sidebar-label">系統</div>
     <a class="nav-item" href="tools.html"><span class="icon">🔧</span> 使用工具</a>
   </div>
-  <div class="sidebar-footer">v1.5 · Feebit © 2026</div>
+  <div class="sidebar-footer">v1.6 · Feebit © 2026</div>
 </div>
 
 <div id="main">
@@ -156,7 +156,7 @@ select.inline-sel:focus{border-color:var(--primary);}
       <button class="btn-hamburger" style="display:none;" onclick="openSidebar()">☰</button>
       <span class="topbar-title">考勤查驗</span>
       <span class="topbar-badge">人事工具</span>
-      <span style="font-size:11px;color:var(--gray-400);margin-left:4px;">v1.5</span>
+      <span style="font-size:11px;color:var(--gray-400);margin-left:4px;">v1.6</span>
     </div>
   </div>
 
@@ -1295,7 +1295,7 @@ async function syncFromRagic(){
     });
     if(!res.ok){ throw new Error('HTTP '+res.status+' - '+await res.text()); }
     const data=await res.json();
-    const records=Object.values(data).filter(r=>typeof r==='object'&&r._ragicId);
+    const records=ragicRecords(data);
 
     // filter 在職狀態 === '在職'
     const active=records.filter(r=>r['在職狀態']==='在職');
@@ -1391,8 +1391,7 @@ async function syncSchFromRagic(){
     const res=await fetch(schUrl+'?api&limit=500',{headers:{'Authorization':key}});
     if(!res.ok) throw new Error('HTTP '+res.status);
     const data=await res.json();
-    const records=Object.values(data).filter(r=>typeof r==='object'&&r._ragicId);
-    // 過濾當月
+    const records=ragicRecords(data);
     const monthRecs=records.filter(r=>String(r['年份'])===yr&&String(r['月份'])===String(parseInt(mo)));
     const md=ensureMonth(m);
     let ok=0, skip=0;
@@ -1437,7 +1436,7 @@ async function syncLeavesFromRagic(){
     const res=await fetch(lvUrl+'?api&limit=500',{headers:{'Authorization':key}});
     if(!res.ok) throw new Error('HTTP '+res.status);
     const data=await res.json();
-    const records=Object.values(data).filter(r=>typeof r==='object'&&r._ragicId);
+    const records=ragicRecords(data);
     const md=ensureMonth(m);
     let ok=0, skip=0;
     records.forEach(r=>{
@@ -1480,7 +1479,7 @@ async function syncOTFromRagic(){
     const res=await fetch(otUrl+'?api&limit=500',{headers:{'Authorization':key}});
     if(!res.ok) throw new Error('HTTP '+res.status);
     const data=await res.json();
-    const records=Object.values(data).filter(r=>typeof r==='object'&&r._ragicId);
+    const records=ragicRecords(data);
     const md=ensureMonth(m);
     let ok=0, skip=0;
     records.forEach(r=>{
@@ -1488,19 +1487,14 @@ async function syncOTFromRagic(){
       const name=String(r['員工姓名']||'').trim();
       const emp=db.employees.find(e=>e.name===name);
       if(!emp){ skip++; return; }
-      // 展開子表
-      const sub=r['_subtable_3000696'];
-      const subRows=sub?Object.values(sub):[];
-      subRows.forEach(s=>{
-        const date=ragicDate(s['起始日期']);
-        if(!date||!date.startsWith(m)) return;
-        const hours=parseFloat(s['時數'])||0;
-        const note=s['事由']||'';
-        // 去重：同員工同日
-        md.overtimes=md.overtimes.filter(o=>!(o.employeeId===emp.id&&o.date===date));
-        md.overtimes.push({id:uid(),employeeId:emp.id,date,hours,note});
-        ok++;
-      });
+      // 平面結構：每筆記錄即一筆加班
+      const date=ragicDate(r['起始日期']);
+      if(!date||!date.startsWith(m)) return;
+      const hours=parseFloat(r['總時數'])||0;
+      const note=r['備註']||r['事由']||'';
+      md.overtimes=md.overtimes.filter(o=>!(o.employeeId===emp.id&&o.date===date));
+      md.overtimes.push({id:uid(),employeeId:emp.id,date,hours,note});
+      ok++;
     });
     saveDB(); renderOTTable(m);
     msg.innerHTML=`<div style="padding:8px 12px;background:#dcfce7;border-radius:6px;font-size:13px;margin-bottom:10px;">✅ 加班同步完成：${ok} 筆（僅含簽核完成）${skip?`，${skip} 筆找不到對應員工`:''}</div>`;
@@ -1508,6 +1502,13 @@ async function syncOTFromRagic(){
     msg.innerHTML=`<span style="color:var(--danger);">❌ 失敗：${esc(e.message)}</span>`;
   }
   btn.disabled=false; btn.textContent='🔗 從 Ragic 同步加班';
+}
+
+// ══ Ragic record 過濾（row ID 為數字的 key）══
+function ragicRecords(data){
+  return Object.entries(data)
+    .filter(([k,v])=>!isNaN(parseInt(k))&&typeof v==='object'&&v!==null)
+    .map(([,v])=>v);
 }
 
 // ══ Ragic 原始資料偵錯 ══
@@ -1522,19 +1523,21 @@ async function debugRagic(type){
     const res=await fetch(url+'?api&limit=3',{headers:{'Authorization':key}});
     if(!res.ok) throw new Error('HTTP '+res.status+' '+await res.text());
     const data=await res.json();
-    const records=Object.values(data).filter(r=>typeof r==='object'&&r._ragicId);
+    const keys=Object.keys(data);
+    const records=ragicRecords(data);
     if(!records.length){
-      const rawPreview=esc(JSON.stringify(data).slice(0,400));
-      msg.innerHTML=`<div style="padding:8px;background:#fef9c3;border-radius:6px;font-size:12px;">⚠️ 無資料列（共 ${Object.keys(data).length} 個 key）<br><span style="font-family:monospace;color:var(--gray-600);">${rawPreview}</span></div>`;
+      // 顯示所有 key 讓我們診斷格式
+      const keyList=keys.map(k=>`<b>${esc(k)}</b>: ${esc(typeof data[k]==='object'?JSON.stringify(data[k]).slice(0,80):String(data[k]))}`).join('<br>');
+      msg.innerHTML=`<div style="padding:8px;background:#fef9c3;border-radius:6px;font-size:12px;">⚠️ 找不到數字型 row ID（共 ${keys.length} 個 key）<br><br>${keyList}</div>`;
       return;
     }
     const first=records[0];
-    const fields=Object.keys(first).filter(k=>!k.startsWith('_')).slice(0,30);
+    const fields=Object.keys(first).filter(k=>!k.startsWith('_')).slice(0,35);
     const sample=records.slice(0,2).map(r=>{
       const row=fields.map(f=>`<tr><td style="font-weight:600;padding:2px 8px;white-space:nowrap;">${esc(f)}</td><td style="padding:2px 8px;color:var(--gray-600);">${esc(String(r[f]??''))}</td></tr>`).join('');
       return `<table style="font-size:11px;font-family:monospace;margin-bottom:8px;border:1px solid var(--gray-200);border-radius:4px;">${row}</table>`;
     }).join('<hr style="margin:8px 0;">');
-    msg.innerHTML=`<details open><summary style="font-size:12px;font-weight:600;cursor:pointer;margin-bottom:8px;">🔎 原始欄位（共 ${records.length} 筆，顯示前 2 筆）— 請截圖給 Claude</summary>${sample}</details>`;
+    msg.innerHTML=`<details open><summary style="font-size:12px;font-weight:600;cursor:pointer;margin-bottom:8px;">🔎 原始欄位（共 ${records.length} 筆，顯示前 2 筆）</summary>${sample}</details>`;
   }catch(e){
     msg.innerHTML=`<span style="color:var(--danger);">❌ ${esc(e.message)}</span>`;
   }
