@@ -202,6 +202,16 @@ select.inline-sel:focus{border-color:var(--primary);}
       </div>
       <div class="tbl-wrap" id="emp-table"></div>
     </div>
+    <!-- Holiday Card -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">🗓️ 國定假日設定</span>
+        <button class="btn btn-outline btn-sm" onclick="saveHolidays()">儲存</button>
+      </div>
+      <p class="tip">每行輸入一個假日日期（格式 YYYY-MM-DD）。這些日期會從正職「應出勤日」中排除，避免誤判未打卡／缺勤。</p>
+      <textarea id="holiday-input" style="width:100%;height:140px;padding:8px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:12px;font-family:monospace;resize:vertical;" placeholder="2026-01-01&#10;2026-01-27&#10;2026-01-28&#10;2026-02-28&#10;2026-04-04&#10;2026-04-05&#10;2026-05-01&#10;2026-10-10"></textarea>
+      <div id="holiday-msg" style="margin-top:6px;font-size:12px;"></div>
+    </div>
   </div>
 
   <!-- ══ TAB: IMPORT ══ -->
@@ -244,6 +254,7 @@ select.inline-sel:focus{border-color:var(--primary);}
       <div id="import-ptsch" class="sub-content">
         <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
           <button class="btn btn-primary" onclick="syncSchFromRagic()" id="ragic-sch-btn">🔗 從 Ragic 同步排班</button>
+          <button class="btn btn-outline" onclick="debugRagic('sch')" id="ragic-sch-dbg">🔎 檢查原始資料</button>
           <button class="btn btn-outline" onclick="clearSch()">清除本月排班</button>
         </div>
         <div id="sch-msg"></div>
@@ -268,6 +279,7 @@ select.inline-sel:focus{border-color:var(--primary);}
       <div id="import-leaves" class="sub-content">
         <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
           <button class="btn btn-primary" onclick="syncLeavesFromRagic()" id="ragic-lv-btn">🔗 從 Ragic 同步請假</button>
+          <button class="btn btn-outline" onclick="debugRagic('lv')">🔎 檢查原始資料</button>
         </div>
         <div id="lv-msg"></div>
         <details style="margin-bottom:12px;">
@@ -296,6 +308,7 @@ select.inline-sel:focus{border-color:var(--primary);}
         <div class="section-label">加班申請</div>
         <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
           <button class="btn btn-primary" onclick="syncOTFromRagic()" id="ragic-ot-btn">🔗 從 Ragic 同步加班</button>
+          <button class="btn btn-outline" onclick="debugRagic('ot')">🔎 檢查原始資料</button>
         </div>
         <div id="ot-msg"></div>
         <details style="margin-bottom:12px;">
@@ -425,8 +438,8 @@ select.inline-sel:focus{border-color:var(--primary);}
 <script>
 // ══ STORAGE ══
 const SK = 'feebit_att_v1';
-let db = { employees:[], monthlyData:{} };
-function loadDB(){ try{ const s=localStorage.getItem(SK); if(s) db=JSON.parse(s); }catch(e){} }
+let db = { employees:[], monthlyData:{}, holidays:[] };
+function loadDB(){ try{ const s=localStorage.getItem(SK); if(s) db=JSON.parse(s); if(!db.holidays) db.holidays=[]; }catch(e){} }
 function saveDB(){ localStorage.setItem(SK,JSON.stringify(db)); }
 
 // ══ SIDEBAR ══
@@ -591,6 +604,21 @@ function delEmp(id){
   db.employees=db.employees.filter(e=>e.id!==id);
   saveDB(); renderEmployees();
 }
+
+// ══ HOLIDAYS ══
+function renderHolidays(){
+  const ta=document.getElementById('holiday-input'); if(!ta) return;
+  ta.value=(db.holidays||[]).join('\n');
+}
+function saveHolidays(){
+  const raw=document.getElementById('holiday-input').value;
+  const dates=raw.split('\n').map(s=>s.trim()).filter(s=>/^\d{4}-\d{2}-\d{2}$/.test(s));
+  db.holidays=dates; saveDB();
+  const msg=document.getElementById('holiday-msg');
+  msg.innerHTML=`<span style="color:var(--success);">✅ 已儲存 ${dates.length} 個假日</span>`;
+  setTimeout(()=>msg.innerHTML='',2000);
+}
+function isHoliday(date){ return (db.holidays||[]).includes(date); }
 
 // ══ IMPORT ══
 function initImport(){
@@ -854,10 +882,10 @@ function analyzeEmployee(empId, month){
   const md=db.monthlyData[month]||{records:[],leaves:[],overtimes:[],shiftChanges:[],ptSchedule:[]};
   const isPT=emp.type==='part-time';
 
-  // expected dates
+  // expected dates（正職排除週末與國定假日）
   let expected=isPT
     ?(md.ptSchedule||[]).filter(s=>s.employeeId===empId).map(s=>s.date)
-    :monthDays(month).filter(d=>(emp.weekdays||[1,2,3,4,5]).includes(dow(d)));
+    :monthDays(month).filter(d=>(emp.weekdays||[1,2,3,4,5]).includes(dow(d))&&!isHoliday(d));
 
   // apply shift changes
   (md.shiftChanges||[]).filter(s=>s.employeeId===empId).forEach(s=>{
@@ -1397,6 +1425,32 @@ async function syncOTFromRagic(){
   btn.disabled=false; btn.textContent='🔗 從 Ragic 同步加班';
 }
 
+// ══ Ragic 原始資料偵錯 ══
+async function debugRagic(type){
+  const key=getRagicKey(); if(!key) return;
+  const urls={sch:RAGIC_SCH_URL,lv:RAGIC_LV_URL,ot:RAGIC_OT_URL};
+  const msgIds={sch:'sch-msg',lv:'lv-msg',ot:'ot-msg'};
+  const url=urls[type]; const msgId=msgIds[type];
+  const msg=document.getElementById(msgId);
+  msg.innerHTML='<span style="color:var(--gray-400);">⏳ 讀取中...</span>';
+  try{
+    const res=await fetch(url+'?api&limit=3',{headers:{'Authorization':key}});
+    if(!res.ok) throw new Error('HTTP '+res.status+' '+await res.text());
+    const data=await res.json();
+    const records=Object.values(data).filter(r=>typeof r==='object'&&r._ragicId);
+    if(!records.length){ msg.innerHTML='<div style="padding:8px;background:#fef9c3;border-radius:6px;font-size:12px;">⚠️ 此表單無資料（共 '+Object.keys(data).length+' 個 key）</div>'; return; }
+    const first=records[0];
+    const fields=Object.keys(first).filter(k=>!k.startsWith('_')).slice(0,30);
+    const sample=records.slice(0,2).map(r=>{
+      const row=fields.map(f=>`<tr><td style="font-weight:600;padding:2px 8px;white-space:nowrap;">${esc(f)}</td><td style="padding:2px 8px;color:var(--gray-600);">${esc(String(r[f]??''))}</td></tr>`).join('');
+      return `<table style="font-size:11px;font-family:monospace;margin-bottom:8px;border:1px solid var(--gray-200);border-radius:4px;">${row}</table>`;
+    }).join('<hr style="margin:8px 0;">');
+    msg.innerHTML=`<details open><summary style="font-size:12px;font-weight:600;cursor:pointer;margin-bottom:8px;">🔎 原始欄位（共 ${records.length} 筆，顯示前 2 筆）— 請截圖給 Claude</summary>${sample}</details>`;
+  }catch(e){
+    msg.innerHTML=`<span style="color:var(--danger);">❌ ${esc(e.message)}</span>`;
+  }
+}
+
 // ══ 一鍵同步全部 ══
 async function syncAllData(){
   const btn=document.getElementById('ragic-all-btn');
@@ -1452,6 +1506,7 @@ async function autoSyncIfFirstOfMonth(){
 // ══ INIT ══
 loadDB();
 renderEmployees();
+renderHolidays();
 genMonthOpts('import-month');
 initRagicFields();
 autoSyncIfFirstOfMonth();
