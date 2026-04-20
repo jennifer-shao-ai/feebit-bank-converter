@@ -180,9 +180,25 @@ select.inline-sel:focus{border-color:var(--primary);}
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
         <div class="form-group" style="flex:3;min-width:260px;">
-          <label>Ragic Sheet URL</label>
+          <label>員工資料 Sheet URL</label>
           <input type="text" id="ragic-url" placeholder="https://ap13.ragic.com/...">
         </div>
+        <div class="form-group" style="flex:3;min-width:260px;">
+          <label>排班表 Sheet URL</label>
+          <input type="text" id="ragic-sch-url" placeholder="https://ap13.ragic.com/...">
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:8px;">
+        <div class="form-group" style="flex:3;min-width:260px;">
+          <label>請假單 Sheet URL</label>
+          <input type="text" id="ragic-lv-url" placeholder="https://ap13.ragic.com/...">
+        </div>
+        <div class="form-group" style="flex:3;min-width:260px;">
+          <label>加班申請 Sheet URL</label>
+          <input type="text" id="ragic-ot-url" placeholder="https://ap13.ragic.com/...">
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:8px;">
         <div class="form-group" style="flex:3;min-width:260px;">
           <label>API Key（Basic xxxxx）</label>
           <input type="password" id="ragic-key" placeholder="Basic blRaQ...">
@@ -932,12 +948,8 @@ function analyzeEmployee(empId, month){
       if(rec&&rec.clockIn&&rec.clockOut){ hours=calcWorkHours(rec.clockIn,rec.clockOut,emp); totalHours+=hours; }
       if(override!=='假日'&&override!=='補假'&&override!=='請假') totalDays++;
     } else if(isNonWorkday){
-      if(!rec){ status=['假日']; rowClass=''; }
-      else {
-        status=['假日出勤']; rowClass='row-ok';
-        if(rec.clockIn&&rec.clockOut){ hours=calcWorkHours(rec.clockIn,rec.clockOut,emp); totalHours+=hours; }
-        totalDays++;
-      }
+      // 週末/假日一律顯示「假日」，不顯示打卡資訊也不計入出勤
+      status=['假日']; rowClass='';
     } else if(isLeave&&!rec){
       status=['請假'];
       const lv=(md.leaves||[]).find(l=>l.employeeId===empId&&l.date===date);
@@ -968,6 +980,25 @@ function analyzeEmployee(empId, month){
   return {emp,rows,totalDays,totalHours:fmt(totalHours),lateCount,earlyCount,missingCount,absentCount,
     totalOT,leaveBreakdown,expectedWork,
     leaveTotal:fmt(Object.values(leaveBreakdown).reduce((a,b)=>a+b,0)/8,1)};
+}
+
+function editPunchCell(el,m,empId,date,field){
+  const cur=el.querySelector('input')?el.querySelector('input').value:(el.textContent.trim()==='—'?'':el.textContent.trim());
+  const inp=document.createElement('input');
+  inp.type='time'; inp.value=cur;
+  inp.style.cssText='padding:2px 4px;font-size:12px;border:1px solid var(--primary);border-radius:4px;width:82px;';
+  el.innerHTML=''; el.appendChild(inp); inp.focus();
+  let saved=false;
+  const save=()=>{ if(saved) return; saved=true; savePunchEdit(m,empId,date,field,inp.value); };
+  inp.addEventListener('blur',save);
+  inp.addEventListener('keydown',e=>{ if(e.key==='Enter'){inp.blur();} if(e.key==='Escape'){saved=true; renderVerify();} });
+}
+function savePunchEdit(m,empId,date,field,val){
+  const md=ensureMonth(m);
+  let rec=md.records.find(r=>r.employeeId===empId&&r.date===date);
+  if(!rec){ rec={date,employeeId:empId,clockIn:'',clockOut:''}; md.records.push(rec); }
+  if(field==='in') rec.clockIn=val; else rec.clockOut=val;
+  saveDB(); renderVerify();
 }
 
 function setOverride(m,empId,date,val){
@@ -1051,8 +1082,8 @@ function renderVerify(){
           <td>${esc(r.emp.name)}</td>
           <td><span class="badge ${r.emp.type==='full-time'?'badge-ft':'badge-pt'}" style="font-size:10px;">${r.emp.type==='full-time'?'正':'讀'}</span></td>
           <td style="font-size:11px;color:var(--gray-500);">${r.isNonWorkday&&!r.override?'—':r.sStart+'～'+r.sEnd}</td>
-          <td>${r.rec?.clockIn||'<span style="color:var(--gray-400)">—</span>'}</td>
-          <td>${r.rec?.clockOut||'<span style="color:var(--gray-400)">—</span>'}</td>
+          <td style="cursor:pointer;" onclick="editPunchCell(this,'${month}','${r.emp.id}','${r.date}','in')" title="點擊編輯">${r.rec?.clockIn||'<span style="color:var(--gray-400)">—</span>'}</td>
+          <td style="cursor:pointer;" onclick="editPunchCell(this,'${month}','${r.emp.id}','${r.date}','out')" title="點擊編輯">${r.rec?.clockOut||'<span style="color:var(--gray-400)">—</span>'}</td>
           <td>${r.hours?fmt(r.hours)+' h':r.isLeave?'<span style="color:var(--primary)">請假</span>':'-'}</td>
           <td>${statusHtml}</td>
           <td>${overrideSel}</td>
@@ -1201,9 +1232,6 @@ function renderAnnual(){
 
 // ══ RAGIC SYNC ══
 const RAGIC_CFG_KEY='feebit_ragic_cfg';
-const RAGIC_SCH_URL='https://ap13.ragic.com/feebit50968407/personnel/17';
-const RAGIC_LV_URL='https://ap13.ragic.com/feebit50968407/personnel/4';
-const RAGIC_OT_URL='https://ap13.ragic.com/feebit50968407/personnel/8';
 
 function loadRagicConfig(){
   try{ return JSON.parse(localStorage.getItem(RAGIC_CFG_KEY))||{}; }catch(e){ return {}; }
@@ -1211,8 +1239,11 @@ function loadRagicConfig(){
 function saveRagicConfig(){
   const url=document.getElementById('ragic-url').value.trim();
   const key=document.getElementById('ragic-key').value.trim();
-  if(!url||!key){ alert('請填寫 URL 與 API Key'); return; }
-  localStorage.setItem(RAGIC_CFG_KEY,JSON.stringify({url,key}));
+  const schUrl=document.getElementById('ragic-sch-url').value.trim();
+  const lvUrl=document.getElementById('ragic-lv-url').value.trim();
+  const otUrl=document.getElementById('ragic-ot-url').value.trim();
+  if(!url||!key){ alert('請填寫員工 URL 與 API Key'); return; }
+  localStorage.setItem(RAGIC_CFG_KEY,JSON.stringify({url,key,schUrl,lvUrl,otUrl}));
   document.getElementById('ragic-msg').innerHTML='<span style="color:var(--success);">✅ 設定已儲存</span>';
   setTimeout(()=>{ document.getElementById('ragic-msg').innerHTML=''; },2000);
 }
@@ -1221,6 +1252,16 @@ function initRagicFields(){
   const cfg=loadRagicConfig();
   if(cfg.url) document.getElementById('ragic-url').value=cfg.url;
   if(cfg.key) document.getElementById('ragic-key').value=cfg.key;
+  if(cfg.schUrl) document.getElementById('ragic-sch-url').value=cfg.schUrl;
+  if(cfg.lvUrl) document.getElementById('ragic-lv-url').value=cfg.lvUrl;
+  if(cfg.otUrl) document.getElementById('ragic-ot-url').value=cfg.otUrl;
+}
+
+function getRagicSheetUrl(type){
+  const cfg=loadRagicConfig();
+  const url=cfg[type+'Url']||document.getElementById('ragic-'+type+'-url')?.value?.trim()||'';
+  if(!url) alert('請先到「員工設定」頁面填寫「'+({sch:'排班表',lv:'請假單',ot:'加班申請'}[type])+'」的 Ragic URL 並儲存');
+  return url;
 }
 
 // 聘雇類別 → tool type
@@ -1340,7 +1381,8 @@ async function syncSchFromRagic(){
   btn.disabled=true; btn.textContent='同步中...';
   msg.innerHTML='<span style="color:var(--gray-400);">⏳ 從 Ragic 拉取排班資料...</span>';
   try{
-    const res=await fetch(RAGIC_SCH_URL+'?api&limit=500',{headers:{'Authorization':key}});
+    const schUrl=getRagicSheetUrl('sch'); if(!schUrl){ btn.disabled=false; btn.textContent='🔗 從 Ragic 同步排班'; return; }
+    const res=await fetch(schUrl+'?api&limit=500',{headers:{'Authorization':key}});
     if(!res.ok) throw new Error('HTTP '+res.status);
     const data=await res.json();
     const records=Object.values(data).filter(r=>typeof r==='object'&&r._ragicId);
@@ -1385,7 +1427,8 @@ async function syncLeavesFromRagic(){
   btn.disabled=true; btn.textContent='同步中...';
   msg.innerHTML='<span style="color:var(--gray-400);">⏳ 從 Ragic 拉取請假資料...</span>';
   try{
-    const res=await fetch(RAGIC_LV_URL+'?api&limit=500',{headers:{'Authorization':key}});
+    const lvUrl=getRagicSheetUrl('lv'); if(!lvUrl){ btn.disabled=false; btn.textContent='🔗 從 Ragic 同步請假'; return; }
+    const res=await fetch(lvUrl+'?api&limit=500',{headers:{'Authorization':key}});
     if(!res.ok) throw new Error('HTTP '+res.status);
     const data=await res.json();
     const records=Object.values(data).filter(r=>typeof r==='object'&&r._ragicId);
@@ -1427,7 +1470,8 @@ async function syncOTFromRagic(){
   btn.disabled=true; btn.textContent='同步中...';
   msg.innerHTML='<span style="color:var(--gray-400);">⏳ 從 Ragic 拉取加班資料...</span>';
   try{
-    const res=await fetch(RAGIC_OT_URL+'?api&limit=500',{headers:{'Authorization':key}});
+    const otUrl=getRagicSheetUrl('ot'); if(!otUrl){ btn.disabled=false; btn.textContent='🔗 從 Ragic 同步加班'; return; }
+    const res=await fetch(otUrl+'?api&limit=500',{headers:{'Authorization':key}});
     if(!res.ok) throw new Error('HTTP '+res.status);
     const data=await res.json();
     const records=Object.values(data).filter(r=>typeof r==='object'&&r._ragicId);
@@ -1463,17 +1507,21 @@ async function syncOTFromRagic(){
 // ══ Ragic 原始資料偵錯 ══
 async function debugRagic(type){
   const key=getRagicKey(); if(!key) return;
-  const urls={sch:RAGIC_SCH_URL,lv:RAGIC_LV_URL,ot:RAGIC_OT_URL};
   const msgIds={sch:'sch-msg',lv:'lv-msg',ot:'ot-msg'};
-  const url=urls[type]; const msgId=msgIds[type];
+  const msgId=msgIds[type];
   const msg=document.getElementById(msgId);
+  const url=getRagicSheetUrl(type); if(!url) return;
   msg.innerHTML='<span style="color:var(--gray-400);">⏳ 讀取中...</span>';
   try{
     const res=await fetch(url+'?api&limit=3',{headers:{'Authorization':key}});
     if(!res.ok) throw new Error('HTTP '+res.status+' '+await res.text());
     const data=await res.json();
     const records=Object.values(data).filter(r=>typeof r==='object'&&r._ragicId);
-    if(!records.length){ msg.innerHTML='<div style="padding:8px;background:#fef9c3;border-radius:6px;font-size:12px;">⚠️ 此表單無資料（共 '+Object.keys(data).length+' 個 key）</div>'; return; }
+    if(!records.length){
+      const rawPreview=esc(JSON.stringify(data).slice(0,400));
+      msg.innerHTML=`<div style="padding:8px;background:#fef9c3;border-radius:6px;font-size:12px;">⚠️ 無資料列（共 ${Object.keys(data).length} 個 key）<br><span style="font-family:monospace;color:var(--gray-600);">${rawPreview}</span></div>`;
+      return;
+    }
     const first=records[0];
     const fields=Object.keys(first).filter(k=>!k.startsWith('_')).slice(0,30);
     const sample=records.slice(0,2).map(r=>{
