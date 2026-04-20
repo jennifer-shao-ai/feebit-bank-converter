@@ -147,7 +147,7 @@ select.inline-sel:focus{border-color:var(--primary);}
     <div class="sidebar-label">系統</div>
     <a class="nav-item" href="tools.html"><span class="icon">🔧</span> 使用工具</a>
   </div>
-  <div class="sidebar-footer">v1.6 · Feebit © 2026</div>
+  <div class="sidebar-footer">v1.7 · Feebit © 2026</div>
 </div>
 
 <div id="main">
@@ -156,7 +156,7 @@ select.inline-sel:focus{border-color:var(--primary);}
       <button class="btn-hamburger" style="display:none;" onclick="openSidebar()">☰</button>
       <span class="topbar-title">考勤查驗</span>
       <span class="topbar-badge">人事工具</span>
-      <span style="font-size:11px;color:var(--gray-400);margin-left:4px;">v1.6</span>
+      <span style="font-size:11px;color:var(--gray-400);margin-left:4px;">v1.7</span>
     </div>
   </div>
 
@@ -893,6 +893,45 @@ function delShift(m,id){
   saveDB(); renderShTable(m);
 }
 
+// ══ 勞基法假別上限 ══
+const LEAVE_LIMITS={
+  '事假':  {max:14, warn:12, note:'全年上限 14 天（無薪）'},
+  '病假':  {max:30, warn:25, note:'全年上限 30 天（半薪）'},
+  '婚假':  {max:8,  warn:7,  note:'一次性 8 天'},
+  '喪假':  {max:8,  warn:7,  note:'依親等 3–8 天'},
+  '公假':  {max:null,warn:null,note:'依實際需要'},
+  '特休':  {max:null,warn:null,note:'依年資計算（勞基法第38條）'},
+  '補休':  {max:null,warn:null,note:'加班換補休'},
+  '產假':  {max:56, warn:50, note:'8 週（56 天）'},
+  '陪產假':{max:7,  warn:6,  note:'7 天'},
+  '育嬰留停':{max:null,warn:null,note:'依育嬰留職停薪辦法'},
+};
+
+function renderLeaveBalance(leaveBreakdown, title='假別累計'){
+  const rows=Object.entries(leaveBreakdown).filter(([,h])=>h>0).map(([type,hours])=>{
+    const days=parseFloat((hours/8).toFixed(1));
+    const lim=LEAVE_LIMITS[type];
+    let tag='';
+    if(lim?.max&&days>=lim.max) tag=`<span style="color:var(--danger);font-weight:700;">⚠️ 已達上限</span>`;
+    else if(lim?.warn&&days>=lim.warn) tag=`<span style="color:var(--warning);font-weight:600;">接近上限</span>`;
+    const maxStr=lim?.max?`/ ${lim.max} 天`:'';
+    const noteStr=lim?.note?`<span style="color:var(--gray-400);font-size:10px;"> ${lim.note}</span>`:'';
+    return `<tr>
+      <td><span class="badge badge-leave">${esc(type)}</span></td>
+      <td style="font-weight:600;">${days} 天 ${maxStr}</td>
+      <td>${tag}${noteStr}</td>
+    </tr>`;
+  }).join('');
+  if(!rows) return '';
+  return `<details style="margin-top:8px;">
+    <summary style="font-size:12px;font-weight:600;cursor:pointer;color:var(--gray-600);">📋 ${title}（點擊展開）</summary>
+    <table style="margin-top:8px;font-size:12px;width:100%;">
+      <thead><tr><th>假別</th><th>已用</th><th>狀態</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </details>`;
+}
+
 // ══ ANOMALY ENGINE ══
 function analyzeEmployee(empId, month){
   const emp=getEmpById(empId); if(!emp) return null;
@@ -939,11 +978,12 @@ function analyzeEmployee(empId, month){
     const isNatHol=isHoliday(date);
     const isNonWorkday=isPT?(isWeekend&&!expected.includes(date))||isNatHol:isWeekend||isNatHol;
 
-    const sStart=isPT?(sch?.scheduledStart||emp.startTime):emp.startTime;
-    const sEnd=isPT?(sch?.scheduledEnd||emp.endTime):emp.endTime;
+    const sStart=isPT?(sch?.scheduledStart||''):emp.startTime; // 工讀無排班留空
+    const sEnd=isPT?(sch?.scheduledEnd||''):emp.endTime;
 
     let status=[], rowClass='', hours=0, lateMin=0, earlyMin=0;
-    const NON_WORK_STATUSES=['假日','國定假日','彈性假期','補假','請假'];
+    const LEAVE_TYPES=['特休','病假','事假','婚假','喪假','公假','補休','產假','陪產假','育嬰留停','其他'];
+    const NON_WORK_STATUSES=['假日','國定假日','彈性假期','補假','請假',...LEAVE_TYPES];
 
     if(override){
       status=[override];
@@ -953,8 +993,8 @@ function analyzeEmployee(empId, month){
     } else if(isNonWorkday){
       status=[isNatHol&&!isWeekend?'國定假日':'假日']; rowClass='';
     } else if(isLeave&&!rec){
-      status=['請假'];
       const lv=(md.leaves||[]).find(l=>l.employeeId===empId&&l.date===date);
+      status=[lv?.type||'請假']; // 顯示實際假別
       hours=(lv?.hours||8)/8;
     } else if(!rec&&isExpected){
       status=['缺勤']; rowClass='row-absent'; absentCount++;
@@ -1076,7 +1116,8 @@ function renderVerify(){
       <tbody>
       ${allRows.map(r=>{
         const statusHtml=r.status.map(s=>{
-          const c=s==='正常'?'badge-ok':s.includes('遲到')?'badge-late':s.includes('早退')?'badge-early':s.includes('未打')?'badge-missing':s==='缺勤'||s==='曠職'?'badge-absent':s==='國定假日'?'badge-missing':s==='彈性假期'?'badge-ot':s==='假日'||s==='補假'||s==='補班'?'badge-leave':s==='請假'?'badge-leave':'badge-ok';
+          const LEAVE_T=['特休','病假','事假','婚假','喪假','公假','補休','產假','陪產假','育嬰留停','其他','請假'];
+          const c=s==='正常'?'badge-ok':s.includes('遲到')?'badge-late':s.includes('早退')?'badge-early':s.includes('未打')?'badge-missing':s==='缺勤'||s==='曠職'?'badge-absent':s==='國定假日'?'badge-missing':s==='彈性假期'?'badge-ot':s==='假日'||s==='補假'||s==='補班'?'badge-leave':LEAVE_T.includes(s)?'badge-leave':'badge-ok';
           return `<span class="badge ${c}">${esc(s)}</span>`;
         }).join(' ')+(r.ot?` <span class="badge badge-ot">+${r.ot.hours}h加班</span>`:'');
         const overrideSel=`<select class="inline-sel" style="padding:2px 5px;font-size:11px;min-width:68px;" onchange="setOverride('${month}','${r.emp.id}','${r.date}',this.value)">
@@ -1125,7 +1166,7 @@ function renderVerify(){
         <div class="stat-box ${a.totalOT?'good':''}"><div class="num" style="font-size:18px;">${a.totalOT}</div><div class="lbl">加班時數</div></div>
         <div class="stat-box"><div class="num" style="font-size:18px;">${a.leaveTotal}</div><div class="lbl">請假天數</div></div>
       </div>
-      <div style="font-size:12px;color:var(--gray-500);margin-top:4px;">假別：${leaveParts}</div>
+      ${renderLeaveBalance(a.leaveBreakdown,'本月假別明細')}
     </div>`;
   }).join('');
 }
@@ -1215,10 +1256,10 @@ function renderAnnual(){
           <div style="display:flex;align-items:center;gap:8px;">
             <strong>${esc(s.emp.name)}</strong>
             <span class="badge ${s.emp.type==='full-time'?'badge-ft':'badge-pt'}">${s.emp.type==='full-time'?'正職':'工讀'}</span>
-            <span style="font-size:12px;color:var(--gray-500);">假別：${Object.entries(s.leaveBreakdown).map(([t,h])=>`${t} ${fmt(h/8,1)}天`).join('、')||'無'}</span>
-          </div>
+            </div>
         </div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+        ${renderLeaveBalance(s.leaveBreakdown,`${year} 年假別累計與勞基法對照`)}
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:12px;">
           ${s.monthScores.map(ms=>{
             const sc=ms.score;
             const bc=sc>=90?'bar-hi':sc>=75?'bar-md':'bar-lo';
