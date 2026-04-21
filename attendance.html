@@ -1062,6 +1062,9 @@ function analyzeEmployee(empId, month){
     const sStart=isPT?(sch?.scheduledStart||''):emp.startTime; // 工讀無排班留空
     const sEnd=isPT?(sch?.scheduledEnd||''):emp.endTime;
 
+    // 工讀生：沒有排班且沒有加班申請的日子，完全跳過不顯示也不計算
+    if(isPT&&!sch&&!ot) return;
+
     let status=[], rowClass='', hours=0, lateMin=0, earlyMin=0;
     const LEAVE_TYPES=['特休','病假','事假','婚假','喪假','公假','補休','產假','陪產假','育嬰留停','生理假','排班調整','其他'];
     const NON_WORK_STATUSES=['假日','國定假日','彈性假期','補假','請假',...LEAVE_TYPES];
@@ -1086,9 +1089,7 @@ function analyzeEmployee(empId, month){
     } else if(!rec&&isExpected){
       status=['缺勤']; rowClass='row-absent'; absentCount++;
     } else if(rec){
-      // 工讀生：沒有排班也沒有加班申請的日子不列入出勤
-      if(isPT&&!sch&&!ot){ return; }
-      // 工讀生：沒有打卡時間不算出勤日
+      // 工讀生：有排班但沒有打卡時間不算出勤日
       if(isPT&&!rec.clockIn&&!rec.clockOut){ return; }
       totalDays++;
       if(!rec.clockIn&&!rec.clockOut){ status=['未打卡']; rowClass='row-missing'; missingCount++; }
