@@ -1503,7 +1503,7 @@ async function syncFromRagic(){
         existing.name=name;
         existing.type=type;
         existing.ragicId=ragicId;
-        if(hireDate&&!existing.hireDate) existing.hireDate=hireDate;
+        if(hireDate) existing.hireDate=hireDate;
         // set defaults if missing
         if(!existing.startTime) existing.startTime='08:30';
         if(!existing.endTime) existing.endTime='18:00';
