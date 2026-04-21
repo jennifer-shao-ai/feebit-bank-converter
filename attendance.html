@@ -451,6 +451,25 @@ select.inline-sel:focus{border-color:var(--primary);}
   </div>
 </div>
 
+<!-- ══ MODAL: PUNCH EDIT ══ -->
+<div id="modal-punch-edit" class="modal-overlay" onclick="if(event.target===this)closePunchEdit()">
+  <div class="modal" style="width:380px;">
+    <div class="modal-header">
+      <span class="modal-title">修正打卡時間</span>
+      <button class="modal-close" onclick="closePunchEdit()">✕</button>
+    </div>
+    <div id="punch-edit-info" style="margin-bottom:14px;font-size:13px;color:var(--gray-600);"></div>
+    <div class="form-row">
+      <div class="form-group"><label>上班打卡</label><input type="time" id="punch-edit-in"></div>
+      <div class="form-group"><label>下班打卡</label><input type="time" id="punch-edit-out"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closePunchEdit()">取消</button>
+      <button class="btn btn-primary" onclick="savePunchEdit()">儲存</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ══ STORAGE ══
 const SK = 'feebit_att_v1';
@@ -724,7 +743,10 @@ function renderPunchTable(m){
       <td>${esc(emp?.name||r.employeeId)}</td>
       <td>${r.clockIn||'<span style="color:var(--danger)">—</span>'}</td>
       <td>${r.clockOut||'<span style="color:var(--danger)">—</span>'}</td>
-      <td><button class="btn btn-outline btn-sm" onclick="delPunch('${m}','${r.date}','${r.employeeId}')">刪除</button></td>
+      <td>
+        <button class="btn btn-outline btn-sm" onclick="openPunchEdit('${m}','${r.date}','${r.employeeId}')">編輯</button>
+        <button class="btn btn-danger btn-sm" style="margin-left:4px" onclick="delPunch('${m}','${r.date}','${r.employeeId}')">刪除</button>
+      </td>
     </tr>`;
   }).join('')}</tbody></table>`;
 }
@@ -732,6 +754,31 @@ function renderPunchTable(m){
 function delPunch(m,date,empId){
   db.monthlyData[m].records=db.monthlyData[m].records.filter(r=>!(r.date===date&&r.employeeId===empId));
   saveDB(); renderPunchTable(m);
+}
+
+let punchEditCtx=null;
+function openPunchEdit(m,date,empId){
+  const rec=db.monthlyData[m]?.records.find(r=>r.date===date&&r.employeeId===empId);
+  if(!rec) return;
+  const emp=getEmpById(empId);
+  punchEditCtx={m,date,empId};
+  document.getElementById('punch-edit-info').textContent=`${date}　${emp?.name||empId}`;
+  document.getElementById('punch-edit-in').value=rec.clockIn||'';
+  document.getElementById('punch-edit-out').value=rec.clockOut||'';
+  document.getElementById('modal-punch-edit').classList.add('open');
+}
+function closePunchEdit(){ document.getElementById('modal-punch-edit').classList.remove('open'); punchEditCtx=null; }
+function savePunchEdit(){
+  if(!punchEditCtx) return;
+  const {m,date,empId}=punchEditCtx;
+  const rec=db.monthlyData[m]?.records.find(r=>r.date===date&&r.employeeId===empId);
+  if(rec){
+    rec.clockIn=document.getElementById('punch-edit-in').value;
+    rec.clockOut=document.getElementById('punch-edit-out').value;
+    saveDB();
+  }
+  closePunchEdit();
+  renderPunchTable(m);
 }
 
 // ─ Schedule ─
@@ -948,7 +995,10 @@ function analyzeEmployee(empId, month){
     if(!expected.includes(s.to)) expected.push(s.to);
   });
 
-  const leaveDates=(md.leaves||[]).filter(l=>l.employeeId===empId).map(l=>l.date);
+  const empLeaves=(md.leaves||[]).filter(l=>l.employeeId===empId);
+  const leaveDates=empLeaves.map(l=>l.date);
+  const publicLeaveDates=empLeaves.filter(l=>l.type==='公假').map(l=>l.date);
+  const otherLeaveDates=empLeaves.filter(l=>l.type!=='公假').map(l=>l.date);
   const recMap=Object.fromEntries((md.records||[]).filter(r=>r.employeeId===empId).map(r=>[r.date,r]));
   const otMap=Object.fromEntries((md.overtimes||[]).filter(o=>o.employeeId===empId).map(o=>[o.date,o]));
   const schMap=Object.fromEntries((md.ptSchedule||[]).filter(s=>s.employeeId===empId).map(s=>[s.date,s]));
@@ -957,7 +1007,7 @@ function analyzeEmployee(empId, month){
   const rows=[];
   let totalDays=0, totalHours=0, lateCount=0, earlyCount=0, missingCount=0, absentCount=0;
   const leaveBreakdown={};
-  (md.leaves||[]).filter(l=>l.employeeId===empId).forEach(l=>{ leaveBreakdown[l.type]=(leaveBreakdown[l.type]||0)+l.hours; });
+  empLeaves.filter(l=>l.type!=='公假').forEach(l=>{ leaveBreakdown[l.type]=(leaveBreakdown[l.type]||0)+l.hours; });
   const totalOT=(md.overtimes||[]).filter(o=>o.employeeId===empId).reduce((s,o)=>s+o.hours,0);
 
   // FT 顯示整月所有日期；PT 只顯示排班+打卡日；加入有 override 的日期
@@ -971,6 +1021,7 @@ function analyzeEmployee(empId, month){
     const rec=recMap[date];
     const isExpected=expected.includes(date);
     const isLeave=leaveDates.includes(date);
+    const isPublicLeave=publicLeaveDates.includes(date);
     const ot=otMap[date];
     const sch=schMap[date];
     const override=overrideMap[empId+'|'+date];
@@ -992,10 +1043,11 @@ function analyzeEmployee(empId, month){
       if(!NON_WORK_STATUSES.includes(override)) totalDays++;
     } else if(isNonWorkday){
       status=[isNatHol&&!isWeekend?'國定假日':'假日']; rowClass='';
+    } else if(isPublicLeave&&!rec){
+      status=['公假']; rowClass='row-ok'; totalDays++; hours=8; totalHours+=hours;
     } else if(isLeave&&!rec){
-      const lv=(md.leaves||[]).find(l=>l.employeeId===empId&&l.date===date);
-      status=[lv?.type||'請假']; // 顯示實際假別
-      hours=(lv?.hours||8)/8;
+      const lv=empLeaves.find(l=>l.date===date);
+      status=[lv?.type||'請假'];
     } else if(!rec&&isExpected){
       status=['缺勤']; rowClass='row-absent'; absentCount++;
     } else if(rec){
@@ -1015,7 +1067,7 @@ function analyzeEmployee(empId, month){
       }
     } else { return; }
 
-    rows.push({date,emp,rec,sStart,sEnd,status,rowClass,hours,lateMin,earlyMin,isLeave,ot,isExpected,isNonWorkday,override});
+    rows.push({date,emp,rec,sStart,sEnd,status,rowClass,hours,lateMin,earlyMin,isLeave,isPublicLeave,ot,isExpected,isNonWorkday,override});
   });
 
   const expectedWork=expected.length; // 應出勤 = 工作日總數，不扣請假
@@ -1095,6 +1147,7 @@ function renderVerify(){
   const totMissing=analyses.reduce((s,a)=>s+a.missingCount,0);
   const totAbsent=analyses.reduce((s,a)=>s+a.absentCount,0);
   const totOT=analyses.reduce((s,a)=>s+a.totalOT,0);
+  const totLeave=fmt(analyses.reduce((s,a)=>s+Object.values(a.leaveBreakdown).reduce((x,y)=>x+y,0),0)/8,1);
 
   document.getElementById('vfy-stats').innerHTML=`
     <div class="stat-box good"><div class="num">${totDays}</div><div class="lbl">出勤人日</div></div>
@@ -1103,6 +1156,7 @@ function renderVerify(){
     <div class="stat-box ${totMissing?'danger':''}"><div class="num">${totMissing}</div><div class="lbl">未打卡</div></div>
     <div class="stat-box ${totAbsent?'danger':''}"><div class="num">${totAbsent}</div><div class="lbl">缺勤天數</div></div>
     <div class="stat-box"><div class="num">${totOT}</div><div class="lbl">加班時數</div></div>
+    <div class="stat-box"><div class="num">${totLeave}</div><div class="lbl">請假天數</div></div>
   `;
 
   // merge all rows for table
@@ -1117,7 +1171,7 @@ function renderVerify(){
       ${allRows.map(r=>{
         const statusHtml=r.status.map(s=>{
           const LEAVE_T=['特休','病假','事假','婚假','喪假','公假','補休','產假','陪產假','育嬰留停','其他','請假'];
-          const c=s==='正常'?'badge-ok':s.includes('遲到')?'badge-late':s.includes('早退')?'badge-early':s.includes('未打')?'badge-missing':s==='缺勤'||s==='曠職'?'badge-absent':s==='國定假日'?'badge-missing':s==='彈性假期'?'badge-ot':s==='假日'||s==='補假'||s==='補班'?'badge-leave':LEAVE_T.includes(s)?'badge-leave':'badge-ok';
+          const c=s==='正常'?'badge-ok':s==='公假'?'badge-ok':s.includes('遲到')?'badge-late':s.includes('早退')?'badge-early':s.includes('未打')?'badge-missing':s==='缺勤'||s==='曠職'?'badge-absent':s==='國定假日'?'badge-missing':s==='彈性假期'?'badge-ot':s==='假日'||s==='補假'||s==='補班'?'badge-leave':LEAVE_T.includes(s)?'badge-leave':'badge-ok';
           return `<span class="badge ${c}">${esc(s)}</span>`;
         }).join(' ')+(r.ot?` <span class="badge badge-ot">+${r.ot.hours}h加班</span>`:'');
         const overrideSel=`<select class="inline-sel" style="padding:2px 5px;font-size:11px;min-width:68px;" onchange="setOverride('${month}','${r.emp.id}','${r.date}',this.value)">
@@ -1131,7 +1185,7 @@ function renderVerify(){
           <td style="font-size:11px;color:var(--gray-500);">${r.isNonWorkday&&!r.override?'—':r.sStart+'～'+r.sEnd}</td>
           <td style="cursor:pointer;" onclick="editPunchCell(this,'${month}','${r.emp.id}','${r.date}','in')" title="點擊編輯">${r.rec?.clockIn||'<span style="color:var(--gray-400)">—</span>'}</td>
           <td style="cursor:pointer;" onclick="editPunchCell(this,'${month}','${r.emp.id}','${r.date}','out')" title="點擊編輯">${r.rec?.clockOut||'<span style="color:var(--gray-400)">—</span>'}</td>
-          <td>${r.hours?fmt(r.hours)+' h':r.isLeave?'<span style="color:var(--primary)">請假</span>':'-'}</td>
+          <td>${r.isLeave&&!r.isPublicLeave&&!r.rec?`<span style="color:var(--primary);font-size:11px;">${esc(r.status[0]||'請假')}</span>`:r.hours?fmt(r.hours)+' h':'-'}</td>
           <td>${statusHtml}</td>
           <td>${overrideSel}</td>
         </tr>`;
@@ -1143,7 +1197,6 @@ function renderVerify(){
   document.getElementById('vfy-summary').innerHTML=analyses.map(a=>{
     const score=calcScore(a.emp.id,month);
     const barClass=score>=90?'bar-hi':score>=75?'bar-md':'bar-lo';
-    const leaveParts=Object.entries(a.leaveBreakdown).map(([t,h])=>`${t} ${fmt(h/8,1)}天`).join('、')||'無';
     return `<div class="card">
       <div class="card-header" style="margin-bottom:10px;">
         <div style="display:flex;align-items:center;gap:8px;">
@@ -1239,7 +1292,7 @@ function renderAnnual(){
             <td>${s.absentCount?`<span style="color:var(--danger);font-weight:600;">${s.absentCount}</span>`:0}</td>
             <td>${s.totalHours} h</td>
             <td>${s.totalOT?`<span class="badge badge-ot">${s.totalOT}h</span>`:'-'}</td>
-            <td>${s.leaveTotal>0?s.leaveTotal+' 天':'-'}</td>
+            <td style="white-space:normal;min-width:80px;">${s.leaveTotal>0?`${s.leaveTotal}天${Object.entries(s.leaveBreakdown).length?`<div style="font-size:10px;color:var(--gray-500);margin-top:2px;">${Object.entries(s.leaveBreakdown).map(([t,h])=>`${t}:${fmt(h/8,1)}天`).join(' ')}</div>`:''}`:'-'}</td>
             <td>
               <div style="display:flex;align-items:center;gap:6px;">
                 <div class="score-wrap" style="width:50px;"><div class="score-bar ${barClass}" style="width:${s.avgScore}%;"></div></div>
