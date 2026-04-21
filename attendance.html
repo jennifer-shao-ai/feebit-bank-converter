@@ -380,6 +380,19 @@ select.inline-sel:focus{border-color:var(--primary);}
       <div class="tbl-wrap" id="vfy-table"></div>
     </div>
     <div id="vfy-summary"></div>
+    <div style="margin-top:20px;padding:12px 16px;background:#f8fafc;border:1px solid var(--gray-200);border-radius:8px;font-size:12px;color:var(--gray-600);line-height:1.8;">
+      <strong style="color:var(--gray-700);display:block;margin-bottom:6px;">📋 考勤評分說明（滿分 100 分）</strong>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:4px 24px;">
+        <span>⏰ 遲到 1 次：<strong style="color:var(--warning);">－3 分</strong></span>
+        <span>🚪 早退 1 次：<strong style="color:var(--warning);">－3 分</strong></span>
+        <span>❓ 缺刷卡 1 次：<strong style="color:var(--danger);">－5 分</strong></span>
+        <span>🚫 缺勤 1 天：<strong style="color:var(--danger);">－10 分</strong></span>
+        <span>📋 請假 1 天：<strong style="color:var(--gray-500);">－1 分</strong></span>
+        <span>🎯 加班申請：<strong style="color:var(--success);">不扣分</strong></span>
+        <span>✅ 特休 / 公假 / 生理假 / 排班調整：<strong style="color:var(--success);">不扣分</strong></span>
+      </div>
+      <div style="margin-top:6px;color:var(--gray-400);font-size:11px;">遲到寬限分鐘內不計；最低 0 分，最高 100 分。</div>
+    </div>
   </div>
 
   <!-- ══ TAB: ANNUAL ══ -->
