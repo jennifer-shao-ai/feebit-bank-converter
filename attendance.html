@@ -1015,6 +1015,9 @@ function analyzeEmployee(empId, month){
     expected=expected.filter(d=>d!==s.from);
     if(!isPT&&!expected.includes(s.to)) expected.push(s.to);
   });
+  // 排除被標記為非工作日的 override（彈性假期、補假等）
+  const NON_WORK_OVERRIDES=['彈性假期','補假','國定假日','假日'];
+  expected=expected.filter(d=>!NON_WORK_OVERRIDES.includes(overrideMap[empId+'|'+d]));
 
   const empLeaves=(md.leaves||[]).filter(l=>l.employeeId===empId);
   const leaveDates=empLeaves.map(l=>l.date);
