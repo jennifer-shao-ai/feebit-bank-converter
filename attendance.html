@@ -992,7 +992,7 @@ function analyzeEmployee(empId, month){
 
   (md.shiftChanges||[]).filter(s=>s.employeeId===empId).forEach(s=>{
     expected=expected.filter(d=>d!==s.from);
-    if(!expected.includes(s.to)) expected.push(s.to);
+    if(!isPT&&!expected.includes(s.to)) expected.push(s.to);
   });
 
   const empLeaves=(md.leaves||[]).filter(l=>l.employeeId===empId);
@@ -1594,7 +1594,7 @@ async function syncOTFromRagic(){
     const sample=records[0]||{};
     const hasVal=f=>f in sample&&sample[f]!=null&&String(sample[f]).trim()!=='';
     const fName=  ['員工姓名','*員工姓名','姓名','*姓名','人員'].find(hasVal)||'員工姓名';
-    const fDate=  ['起始日期','*起始日期','加班日期','*加班日期','日期','申請日期'].find(hasVal)||'起始日期';
+    const fDate=  ['起始日期','*起始日期','加班日期','*加班日期','日期','申請日期'].find(hasVal)||Object.keys(sample).find(k=>k.includes('日期')&&hasVal(k))||'起始日期';
     const fHours= ['總時數','*總時數','加班時數','時數','申請時數'].find(hasVal)||'總時數';
     const fStatus=['簽核狀態','狀態','審核狀態','核准狀態'].find(f=>f in sample)||'簽核狀態';
     const fNote=  ['備註','事由','加班事由','說明'].find(f=>f in sample)||'備註';
