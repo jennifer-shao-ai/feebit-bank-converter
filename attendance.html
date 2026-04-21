@@ -307,6 +307,7 @@ select.inline-sel:focus{border-color:var(--primary);}
               <select id="lv-type" class="inline-sel">
                 <option>特休</option><option>病假</option><option>事假</option>
                 <option>婚假</option><option>喪假</option><option>公假</option>
+                <option>生理假</option><option>排班調整</option>
                 <option>補休</option><option>產假</option><option>陪產假</option>
                 <option>育嬰留停</option><option>其他</option>
               </select>
@@ -1007,7 +1008,8 @@ function analyzeEmployee(empId, month){
   const rows=[];
   let totalDays=0, totalHours=0, lateCount=0, earlyCount=0, missingCount=0, absentCount=0;
   const leaveBreakdown={};
-  empLeaves.filter(l=>l.type!=='公假').forEach(l=>{
+  const NO_DEDUCT_LEAVES=['公假','生理假','特休','排班調整'];
+  empLeaves.filter(l=>!NO_DEDUCT_LEAVES.includes(l.type)).forEach(l=>{
     const lr=recMap[l.date];
     const hasActualPunch=lr&&lr.clockIn&&lr.clockOut;
     const days=hasActualPunch ? l.hours/8 : 1; // 當天有打卡才用小時換算，否則算整天
@@ -1038,7 +1040,7 @@ function analyzeEmployee(empId, month){
     const sEnd=isPT?(sch?.scheduledEnd||''):emp.endTime;
 
     let status=[], rowClass='', hours=0, lateMin=0, earlyMin=0;
-    const LEAVE_TYPES=['特休','病假','事假','婚假','喪假','公假','補休','產假','陪產假','育嬰留停','其他'];
+    const LEAVE_TYPES=['特休','病假','事假','婚假','喪假','公假','補休','產假','陪產假','育嬰留停','生理假','排班調整','其他'];
     const NON_WORK_STATUSES=['假日','國定假日','彈性假期','補假','請假',...LEAVE_TYPES];
 
     if(override && override!=='免早退'){
@@ -1182,7 +1184,7 @@ function renderVerify(){
       <tbody>
       ${allRows.map(r=>{
         const statusHtml=r.status.map(s=>{
-          const LEAVE_T=['特休','病假','事假','婚假','喪假','公假','補休','產假','陪產假','育嬰留停','其他','請假'];
+          const LEAVE_T=['特休','病假','事假','婚假','喪假','公假','生理假','排班調整','補休','產假','陪產假','育嬰留停','其他','請假'];
           const c=s==='正常'?'badge-ok':s==='公假'?'badge-ok':s.includes('遲到')?'badge-late':s.includes('早退')?'badge-early':s.includes('未打')?'badge-missing':s==='缺勤'||s==='曠職'?'badge-absent':s==='國定假日'?'badge-missing':s==='彈性假期'?'badge-ot':s==='假日'||s==='補假'||s==='補班'?'badge-leave':LEAVE_T.includes(s)?'badge-leave':'badge-ok';
           return `<span class="badge ${c}">${esc(s)}</span>`;
         }).join(' ')+(r.ot?` <span class="badge badge-ot">+${r.ot.hours}h加班</span>`:'');
