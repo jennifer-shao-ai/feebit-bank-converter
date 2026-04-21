@@ -1581,12 +1581,13 @@ async function syncOTFromRagic(){
     const records=ragicRecords(data);
     const md=ensureMonth(m);
     let ok=0, skipEmp=0, skipDate=0, skipStatus=0;
+    const missingEmpNames=new Set();
 
-    // 偵測欄位名稱（相容不同 Ragic 表單設計）
+    // 偵測欄位名稱（相容不同 Ragic 表單設計，含星號必填標記）
     const sample=records[0]||{};
-    const fName=  ['員工姓名','姓名','人員'].find(f=>f in sample)||'員工姓名';
-    const fDate=  ['起始日期','加班日期','日期','申請日期'].find(f=>f in sample)||'起始日期';
-    const fHours= ['總時數','加班時數','時數','申請時數'].find(f=>f in sample)||'總時數';
+    const fName=  ['員工姓名','*員工姓名','姓名','*姓名','人員'].find(f=>f in sample)||'員工姓名';
+    const fDate=  ['起始日期','*起始日期','加班日期','*加班日期','日期','申請日期'].find(f=>f in sample)||'起始日期';
+    const fHours= ['總時數','*總時數','加班時數','時數','申請時數'].find(f=>f in sample)||'總時數';
     const fStatus=['簽核狀態','狀態','審核狀態','核准狀態'].find(f=>f in sample)||'簽核狀態';
     const fNote=  ['備註','事由','加班事由','說明'].find(f=>f in sample)||'備註';
 
@@ -1602,7 +1603,7 @@ async function syncOTFromRagic(){
 
       const name=String(r[fName]||'').trim();
       const emp=db.employees.find(e=>e.name===name);
-      if(!emp){ skipEmp++; return; }
+      if(!emp){ skipEmp++; missingEmpNames.add(name); return; }
 
       const date=ragicDate(r[fDate]);
       if(!date||!date.startsWith(m)){ skipDate++; return; }
@@ -1619,7 +1620,7 @@ async function syncOTFromRagic(){
 
     const diagParts=[];
     if(skipStatus) diagParts.push(`${skipStatus} 筆簽核狀態未通過（偵測到：${statusValues.slice(0,5).join('、')||'無'}）`);
-    if(skipEmp)    diagParts.push(`${skipEmp} 筆找不到員工`);
+    if(skipEmp)    diagParts.push(`${skipEmp} 筆找不到員工（Ragic 名稱：${[...missingEmpNames].slice(0,5).join('、')}）`);
     if(skipDate)   diagParts.push(`${skipDate} 筆不在 ${m} 月`);
     const diagStr=diagParts.length?`<br><span style="font-size:11px;color:var(--gray-500);">${diagParts.join('；')}</span>`:'';
     const statusNote=!hasKnownApproved&&statusValues.length?`<br><span style="font-size:11px;color:var(--warning);">⚠️ 無法識別簽核狀態（${statusValues.slice(0,3).join('、')}），已全部匯入</span>`:'';
