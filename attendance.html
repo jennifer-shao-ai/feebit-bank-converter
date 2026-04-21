@@ -465,7 +465,7 @@ select.inline-sel:focus{border-color:var(--primary);}
     </div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closePunchEdit()">取消</button>
-      <button class="btn btn-primary" onclick="savePunchEdit()">儲存</button>
+      <button class="btn btn-primary" onclick="saveModalPunchEdit()">儲存</button>
     </div>
   </div>
 </div>
@@ -768,7 +768,7 @@ function openPunchEdit(m,date,empId){
   document.getElementById('modal-punch-edit').classList.add('open');
 }
 function closePunchEdit(){ document.getElementById('modal-punch-edit').classList.remove('open'); punchEditCtx=null; }
-function savePunchEdit(){
+function saveModalPunchEdit(){
   if(!punchEditCtx) return;
   const {m,date,empId}=punchEditCtx;
   const rec=db.monthlyData[m]?.records.find(r=>r.date===date&&r.employeeId===empId);
