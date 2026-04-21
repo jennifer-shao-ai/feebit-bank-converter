@@ -1086,6 +1086,8 @@ function analyzeEmployee(empId, month){
     } else if(!rec&&isExpected){
       status=['缺勤']; rowClass='row-absent'; absentCount++;
     } else if(rec){
+      // 工讀生：沒有排班也沒有加班申請的打卡日不列入出勤
+      if(isPT&&!sch&&!ot){ return; }
       totalDays++;
       if(!rec.clockIn&&!rec.clockOut){ status=['未打卡']; rowClass='row-missing'; missingCount++; }
       else if(!rec.clockIn){ status=['未打上班卡']; rowClass='row-missing'; missingCount++; }
@@ -1204,11 +1206,9 @@ function renderVerify(){
 
   const analyses=emps.map(e=>analyzeEmployee(e.id,month)).filter(Boolean);
 
-  // 本月曆法工作日（Mon-Fri，不含 db.holidays 及任何員工 override 為彈性假期/補假/國定假日 的日期）
-  const mdOvr=db.monthlyData[month]?.overrides||{};
-  const flexDates=new Set(Object.entries(mdOvr).filter(([,v])=>['彈性假期','補假','國定假日','假日'].includes(v)).map(([k])=>k.split('|')[1]));
+  // 本月曆法工作日（Mon-Fri，只排除 db.holidays 公司假日；個人 override 只影響個人應出勤）
   const calWeekdays=monthDays(month).filter(d=>[1,2,3,4,5].includes(dow(d))).length;
-  const calWorkdays=monthDays(month).filter(d=>[1,2,3,4,5].includes(dow(d))&&!isHoliday(d)&&!flexDates.has(d)).length;
+  const calWorkdays=monthDays(month).filter(d=>[1,2,3,4,5].includes(dow(d))&&!isHoliday(d)).length;
 
   // stats summary
   const totDays=analyses.reduce((s,a)=>s+a.totalDays,0);
