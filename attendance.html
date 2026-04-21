@@ -1331,9 +1331,10 @@ function renderAnnual(){
   const year=document.getElementById('ann-year').value;
   const filterEmp=document.getElementById('ann-emp').value;
   const emps=filterEmp?db.employees.filter(e=>e.id===filterEmp):db.employees;
-  const prevMonth=new Date(new Date().getFullYear(),new Date().getMonth(),1); // 本月1日
-  prevMonth.setMonth(prevMonth.getMonth()-1); // 上月1日
-  const cutoff=prevMonth.toISOString().slice(0,7); // YYYY-MM
+  const _now=new Date();
+  const _y=_now.getMonth()===0?_now.getFullYear()-1:_now.getFullYear();
+  const _m=_now.getMonth()===0?12:_now.getMonth(); // 上月（1-based）
+  const cutoff=`${_y}-${String(_m).padStart(2,'0')}`;
   const months=Object.keys(db.monthlyData).filter(m=>m.startsWith(year+'-')&&m<=cutoff).sort();
   const content=document.getElementById('ann-content');
 
