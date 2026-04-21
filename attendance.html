@@ -1041,11 +1041,16 @@ function analyzeEmployee(empId, month){
     const LEAVE_TYPES=['特休','病假','事假','婚假','喪假','公假','補休','產假','陪產假','育嬰留停','其他'];
     const NON_WORK_STATUSES=['假日','國定假日','彈性假期','補假','請假',...LEAVE_TYPES];
 
-    if(override){
+    if(override && override!=='免早退'){
       status=[override];
-      rowClass=override==='曠職'?'row-absent':NON_WORK_STATUSES.includes(override)?'':'row-ok';
-      if(rec&&rec.clockIn&&rec.clockOut){ hours=calcWorkHours(rec.clockIn,rec.clockOut,emp); totalHours+=hours; }
-      if(!NON_WORK_STATUSES.includes(override)) totalDays++;
+      if(override==='公假'){
+        rowClass='row-ok'; totalDays++;
+        if(rec&&rec.clockIn&&rec.clockOut){ hours=calcWorkHours(rec.clockIn,rec.clockOut,emp); totalHours+=hours; }
+      } else {
+        rowClass=override==='曠職'?'row-absent':NON_WORK_STATUSES.includes(override)?'':'row-ok';
+        if(rec&&rec.clockIn&&rec.clockOut){ hours=calcWorkHours(rec.clockIn,rec.clockOut,emp); totalHours+=hours; }
+        if(!NON_WORK_STATUSES.includes(override)) totalDays++;
+      }
     } else if(isNonWorkday){
       status=[isNatHol&&!isWeekend?'國定假日':'假日']; rowClass='';
     } else if(isPublicLeave&&(!rec||(!rec.clockIn&&!rec.clockOut))){
@@ -1065,7 +1070,7 @@ function analyzeEmployee(empId, month){
         const sInM=toMins(sStart), sOutM=toMins(sEnd);
         const lateDeadline=sInM+(emp.lateGrace??30);
         if(sInM!==null&&inM>lateDeadline){ lateMin=inM-lateDeadline; status.push('遲到 '+lateMin+' 分'); rowClass='row-late'; lateCount++; }
-        if((!isPT||sch)&&sOutM!==null&&outM<sOutM-(emp.earlyGrace??0)){ earlyMin=sOutM-outM; status.push('早退 '+earlyMin+' 分'); if(!rowClass||rowClass==='row-ok') rowClass='row-early'; earlyCount++; }
+        if((!isPT||sch)&&sOutM!==null&&outM<sOutM-(emp.earlyGrace??0)&&override!=='免早退'){ earlyMin=sOutM-outM; status.push('早退 '+earlyMin+' 分'); if(!rowClass||rowClass==='row-ok') rowClass='row-early'; earlyCount++; }
         if(!status.length){ status=['正常']; rowClass='row-ok'; }
         hours=calcWorkHours(rec.clockIn,rec.clockOut,emp);
         totalHours+=hours;
@@ -1118,7 +1123,9 @@ function calcScore(empId, month){
   s-=r.earlyCount*3;
   s-=r.missingCount*5;
   s-=r.absentCount*10;
-  return Math.max(0,Math.min(100,s));
+  const leaveTotal=Object.values(r.leaveBreakdown||{}).reduce((a,b)=>a+b,0);
+  s-=leaveTotal; // 每請假1天扣1分，公假不計（公假不進leaveBreakdown）
+  return Math.max(0,Math.min(100,Math.round(s*10)/10));
 }
 
 // ══ VERIFY ══
@@ -1181,7 +1188,7 @@ function renderVerify(){
         }).join(' ')+(r.ot?` <span class="badge badge-ot">+${r.ot.hours}h加班</span>`:'');
         const overrideSel=`<select class="inline-sel" style="padding:2px 5px;font-size:11px;min-width:68px;" onchange="setOverride('${month}','${r.emp.id}','${r.date}',this.value)">
           <option value="">— 自動 —</option>
-          ${['正常','假日','國定假日','彈性假期','補假','補班','請假','曠職','未打卡'].map(v=>`<option value="${v}"${r.override===v?' selected':''}>${v}</option>`).join('')}
+          ${['正常','公假','免早退','假日','國定假日','彈性假期','補假','補班','請假','曠職','未打卡'].map(v=>`<option value="${v}"${r.override===v?' selected':''}>${v}</option>`).join('')}
         </select>`;
         return `<tr class="${r.rowClass}">
           <td>${r.date} <span style="font-size:10px;color:var(--gray-400);">${WD_LABEL[dow(r.date)]}</span></td>
@@ -1585,9 +1592,10 @@ async function syncOTFromRagic(){
 
     // 偵測欄位名稱（相容不同 Ragic 表單設計，含星號必填標記）
     const sample=records[0]||{};
-    const fName=  ['員工姓名','*員工姓名','姓名','*姓名','人員'].find(f=>f in sample)||'員工姓名';
-    const fDate=  ['起始日期','*起始日期','加班日期','*加班日期','日期','申請日期'].find(f=>f in sample)||'起始日期';
-    const fHours= ['總時數','*總時數','加班時數','時數','申請時數'].find(f=>f in sample)||'總時數';
+    const hasVal=f=>f in sample&&sample[f]!=null&&String(sample[f]).trim()!=='';
+    const fName=  ['員工姓名','*員工姓名','姓名','*姓名','人員'].find(hasVal)||'員工姓名';
+    const fDate=  ['起始日期','*起始日期','加班日期','*加班日期','日期','申請日期'].find(hasVal)||'起始日期';
+    const fHours= ['總時數','*總時數','加班時數','時數','申請時數'].find(hasVal)||'總時數';
     const fStatus=['簽核狀態','狀態','審核狀態','核准狀態'].find(f=>f in sample)||'簽核狀態';
     const fNote=  ['備註','事由','加班事由','說明'].find(f=>f in sample)||'備註';
 
