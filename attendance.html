@@ -1336,8 +1336,7 @@ function renderAnnual(){
   const emps=filterEmp?db.employees.filter(e=>e.id===filterEmp):db.employees;
   const months=Object.keys(db.monthlyData).filter(m=>{
     if(!m.startsWith(year+'-')) return false;
-    const md=db.monthlyData[m];
-    return (md.records?.length||0)+(md.leaves?.length||0)+(md.overtimes?.length||0)>0;
+    return (db.monthlyData[m].records?.length||0)>0;
   }).sort();
   const content=document.getElementById('ann-content');
 
