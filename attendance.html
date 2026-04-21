@@ -147,7 +147,7 @@ select.inline-sel:focus{border-color:var(--primary);}
     <div class="sidebar-label">系統</div>
     <a class="nav-item" href="tools.html"><span class="icon">🔧</span> 使用工具</a>
   </div>
-  <div class="sidebar-footer">v2.0 · Feebit © 2026</div>
+  <div class="sidebar-footer">v2.1 · Feebit © 2026</div>
 </div>
 
 <div id="main">
@@ -156,7 +156,7 @@ select.inline-sel:focus{border-color:var(--primary);}
       <button class="btn-hamburger" style="display:none;" onclick="openSidebar()">☰</button>
       <span class="topbar-title">考勤查驗</span>
       <span class="topbar-badge">人事工具</span>
-      <span style="font-size:11px;color:var(--gray-400);margin-left:4px;">v2.0</span>
+      <span style="font-size:11px;color:var(--gray-400);margin-left:4px;">v2.1</span>
     </div>
   </div>
 
@@ -1015,9 +1015,6 @@ function analyzeEmployee(empId, month){
     expected=expected.filter(d=>d!==s.from);
     if(!isPT&&!expected.includes(s.to)) expected.push(s.to);
   });
-  // 排除被標記為非工作日的 override（彈性假期、補假等）
-  const NON_WORK_OVERRIDES=['彈性假期','補假','國定假日','假日'];
-  expected=expected.filter(d=>!NON_WORK_OVERRIDES.includes(overrideMap[empId+'|'+d]));
 
   const empLeaves=(md.leaves||[]).filter(l=>l.employeeId===empId);
   const leaveDates=empLeaves.map(l=>l.date);
@@ -1027,6 +1024,9 @@ function analyzeEmployee(empId, month){
   const otMap=Object.fromEntries((md.overtimes||[]).filter(o=>o.employeeId===empId).map(o=>[o.date,o]));
   const schMap=Object.fromEntries((md.ptSchedule||[]).filter(s=>s.employeeId===empId).map(s=>[s.date,s]));
   const overrideMap=md.overrides||{};
+  // 排除被標記為非工作日的 override（彈性假期、補假等）
+  const NON_WORK_OVERRIDES=['彈性假期','補假','國定假日','假日'];
+  expected=expected.filter(d=>!NON_WORK_OVERRIDES.includes(overrideMap[empId+'|'+d]));
 
   const rows=[];
   let totalDays=0, totalHours=0, lateCount=0, earlyCount=0, missingCount=0, absentCount=0;
