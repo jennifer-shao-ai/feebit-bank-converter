@@ -1593,8 +1593,11 @@ async function syncOTFromRagic(){
     // 偵測欄位名稱（相容不同 Ragic 表單設計，含星號必填標記）
     const sample=records[0]||{};
     const hasVal=f=>f in sample&&sample[f]!=null&&String(sample[f]).trim()!=='';
+    const isDateLike=v=>v!=null&&/^\d{4}[\/\-]/.test(String(v));
     const fName=  ['員工姓名','*員工姓名','姓名','*姓名','人員'].find(hasVal)||'員工姓名';
-    const fDate=  ['起始日期','*起始日期','加班日期','*加班日期','日期','申請日期'].find(hasVal)||Object.keys(sample).find(k=>k.includes('日期')&&hasVal(k))||'起始日期';
+    const fDate=  ['起始日期','*起始日期','加班日期','*加班日期','日期','申請日期'].find(hasVal)
+      ||Object.keys(sample).find(k=>isDateLike(sample[k]))
+      ||'起始日期';
     const fHours= ['總時數','*總時數','加班時數','時數','申請時數'].find(hasVal)||'總時數';
     const fStatus=['簽核狀態','狀態','審核狀態','核准狀態'].find(f=>f in sample)||'簽核狀態';
     const fNote=  ['備註','事由','加班事由','說明'].find(f=>f in sample)||'備註';
@@ -1632,7 +1635,7 @@ async function syncOTFromRagic(){
     const diagParts=[];
     if(skipStatus) diagParts.push(`${skipStatus} 筆簽核狀態未通過（偵測到：${statusValues.slice(0,5).join('、')||'無'}）`);
     if(skipEmp)    diagParts.push(`${skipEmp} 筆找不到員工（Ragic 名稱：${[...missingEmpNames].slice(0,5).join('、')}）`);
-    if(skipDate)   diagParts.push(`${skipDate} 筆日期為空`);
+    if(skipDate){const availKeys=Object.keys(sample).filter(k=>!k.startsWith('_')).join('、');diagParts.push(`${skipDate} 筆日期為空（Ragic 可用欄位：${availKeys||'無'}）`);}
     if(skipHours)  diagParts.push(`${skipHours} 筆時數為 0 或無法解析`);
     // 顯示第一筆原始值供對照
     const s0=records[0]||{};
