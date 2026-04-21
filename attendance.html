@@ -415,6 +415,10 @@ select.inline-sel:focus{border-color:var(--primary);}
       </div>
     </div>
     <div class="form-row">
+      <div class="form-group"><label>到職日期</label><input type="date" id="emp-hire-date"></div>
+      <div class="form-group"></div>
+    </div>
+    <div class="form-row">
       <div class="form-group"><label>標準上班時間</label><input type="time" id="emp-start" value="09:00"></div>
       <div class="form-group"><label>標準下班時間</label><input type="time" id="emp-end" value="18:00"></div>
     </div>
@@ -587,6 +591,7 @@ function openEmpModal(id){
     const e=db.employees.find(x=>x.id===id); if(!e) return;
     document.getElementById('emp-name').value=e.name;
     document.getElementById('emp-type').value=e.type;
+    document.getElementById('emp-hire-date').value=e.hireDate||'';
     document.getElementById('emp-start').value=e.startTime||'09:00';
     document.getElementById('emp-end').value=e.endTime||'18:00';
     document.getElementById('emp-late').value=e.lateGrace||0;
@@ -599,6 +604,7 @@ function openEmpModal(id){
   } else {
     document.getElementById('emp-name').value='';
     document.getElementById('emp-type').value='full-time';
+    document.getElementById('emp-hire-date').value='';
     document.getElementById('emp-start').value='08:30';
     document.getElementById('emp-end').value='18:00';
     document.getElementById('emp-late').value=30;
@@ -621,6 +627,7 @@ function saveEmployee(){
     id:editId||uid(),
     ragicId:existing?.ragicId||'',
     name,
+    hireDate:document.getElementById('emp-hire-date').value||'',
     type:document.getElementById('emp-type').value,
     startTime:document.getElementById('emp-start').value,
     endTime:document.getElementById('emp-end').value,
@@ -1130,6 +1137,33 @@ function calcScore(empId, month){
   return Math.max(0,Math.min(100,Math.round(s*10)/10));
 }
 
+// 依年資計算本年度特休額度（勞基法第38條）
+function calcAnnualLeaveDays(hireDate, asOfDate){
+  if(!hireDate) return null;
+  const diffMs=new Date(asOfDate)-new Date(hireDate);
+  if(diffMs<0) return 0;
+  const months=diffMs/(30.4375*24*3600*1000);
+  if(months<6) return 0;
+  const yrs=diffMs/(365.25*24*3600*1000);
+  if(yrs<1) return 3;
+  if(yrs<2) return 7;
+  if(yrs<3) return 10;
+  if(yrs<5) return 14;
+  if(yrs<10) return 15;
+  return Math.min(30,15+Math.floor(yrs)-9);
+}
+// 計算某員工某年度已用特休天數（跨所有月份）
+function calcUsedAnnualLeave(empId, year){
+  const y=String(year);
+  return Object.keys(db.monthlyData).filter(m=>m.startsWith(y+'-')).reduce((sum,m)=>{
+    const leaves=(db.monthlyData[m]?.leaves||[]).filter(l=>l.employeeId===empId&&l.type==='特休');
+    return sum+leaves.reduce((s,l)=>{
+      const lr=(db.monthlyData[m]?.records||[]).find(r=>r.date===l.date&&r.employeeId===empId);
+      return s+(lr?.clockIn&&lr?.clockOut?l.hours/8:1);
+    },0);
+  },0);
+}
+
 // ══ VERIFY ══
 function initVerify(){
   const today=new Date();
@@ -1234,6 +1268,22 @@ function renderVerify(){
         <div class="stat-box"><div class="num" style="font-size:18px;">${a.leaveTotal}</div><div class="lbl">請假天數</div></div>
       </div>
       ${renderLeaveBalance(a.leaveBreakdown,'本月假別明細')}
+      ${(()=>{
+        const emp=a.emp; const yr=month.substring(0,4);
+        const entitled=calcAnnualLeaveDays(emp.hireDate, month+'-01');
+        if(entitled===null) return '';
+        const used=calcUsedAnnualLeave(emp.id, yr);
+        const remain=Math.max(0,entitled-used);
+        const yrs=(( new Date(month+'-01')-new Date(emp.hireDate))/(365.25*24*3600*1000));
+        const yrLabel=yrs>=1?`${Math.floor(yrs)}年${Math.floor((yrs%1)*12)}個月`:'未滿1年';
+        const cls=remain===0?'danger':remain<=3?'warn':'good';
+        return `<div style="margin-top:8px;padding:8px 12px;background:#f8fafc;border-radius:6px;font-size:12px;color:var(--gray-700);display:flex;gap:16px;flex-wrap:wrap;">
+          <span>📅 年資：${yrLabel}</span>
+          <span>🎯 ${yr}年度特休額度：<strong>${entitled}</strong> 天</span>
+          <span>✅ 已用：<strong>${fmt(used,1)}</strong> 天</span>
+          <span class="${cls}" style="font-weight:700;">剩餘：${fmt(remain,1)} 天</span>
+        </div>`;
+      })()}
     </div>`;
   }).join('');
 }
@@ -1419,11 +1469,14 @@ async function syncFromRagic(){
       // find existing by ragicId or name
       let existing=db.employees.find(e=>e.ragicId&&e.ragicId===ragicId)||db.employees.find(e=>e.name===name);
 
+      const hireDateRaw=r['到職日期']||r['*到職日期']||r['到職日']||r['*到職日']||'';
+      const hireDate=hireDateRaw?ragicDate(hireDateRaw):'';
       if(existing){
         // update name & type; keep manual settings (hours, grace, weekdays)
         existing.name=name;
         existing.type=type;
         existing.ragicId=ragicId;
+        if(hireDate&&!existing.hireDate) existing.hireDate=hireDate;
         // set defaults if missing
         if(!existing.startTime) existing.startTime='08:30';
         if(!existing.endTime) existing.endTime='18:00';
@@ -1436,7 +1489,7 @@ async function syncFromRagic(){
         updated++;
       } else {
         db.employees.push({
-          id:uid(), ragicId, name, type,
+          id:uid(), ragicId, name, type, hireDate,
           startTime:'08:30', endTime:'18:00',
           lateGrace:30, earlyGrace:0,
           lunchStart:'12:00', lunchEnd:'13:00',
