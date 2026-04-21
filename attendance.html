@@ -1201,6 +1201,10 @@ function renderVerify(){
 
   const analyses=emps.map(e=>analyzeEmployee(e.id,month)).filter(Boolean);
 
+  // 本月曆法工作日（Mon-Fri，不含 db.holidays）
+  const calWorkdays=monthDays(month).filter(d=>[1,2,3,4,5].includes(dow(d))&&!isHoliday(d)).length;
+  const calWeekdays=monthDays(month).filter(d=>[1,2,3,4,5].includes(dow(d))).length;
+
   // stats summary
   const totDays=analyses.reduce((s,a)=>s+a.totalDays,0);
   const totLate=analyses.reduce((s,a)=>s+a.lateCount,0);
@@ -1211,6 +1215,11 @@ function renderVerify(){
   const totLeave=fmt(analyses.reduce((s,a)=>s+Object.values(a.leaveBreakdown).reduce((x,y)=>x+y,0),0),1);
 
   document.getElementById('vfy-stats').innerHTML=`
+    <div class="stat-box" style="border:1.5px solid var(--gray-200);">
+      <div class="num" style="font-size:18px;">${calWorkdays}</div>
+      <div class="lbl">本月工作日</div>
+      ${calWeekdays!==calWorkdays?`<div style="font-size:10px;color:var(--gray-400);margin-top:2px;">平日${calWeekdays}天，排除假日${calWeekdays-calWorkdays}天</div>`:'<div style="font-size:10px;color:var(--gray-400);margin-top:2px;">（未設定假日）</div>'}
+    </div>
     <div class="stat-box good"><div class="num">${totDays}</div><div class="lbl">出勤人日</div></div>
     <div class="stat-box ${totLate?'warn':''}"><div class="num">${totLate}</div><div class="lbl">遲到次數</div></div>
     <div class="stat-box ${totEarly?'warn':''}"><div class="num">${totEarly}</div><div class="lbl">早退次數</div></div>
@@ -1271,6 +1280,8 @@ function renderVerify(){
         </div>
       </div>
       <div class="stats-row" style="grid-template-columns:repeat(auto-fill,minmax(90px,1fr));">
+        <div class="stat-box" style="border:1.5px solid var(--gray-200);"><div class="num" style="font-size:18px;">${calWorkdays}</div><div class="lbl">本月工作日</div></div>
+        <div class="stat-box"><div class="num" style="font-size:18px;">${a.expectedWork}</div><div class="lbl">應出勤</div></div>
         <div class="stat-box"><div class="num" style="font-size:18px;">${a.totalDays}</div><div class="lbl">出勤天數</div></div>
         <div class="stat-box"><div class="num" style="font-size:18px;">${a.totalHours}</div><div class="lbl">出勤時數</div></div>
         <div class="stat-box ${a.lateCount?'warn':''}"><div class="num" style="font-size:18px;">${a.lateCount}</div><div class="lbl">遲到</div></div>
