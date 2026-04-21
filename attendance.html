@@ -1580,7 +1580,7 @@ async function syncOTFromRagic(){
     const data=await res.json();
     const records=ragicRecords(data);
     const md=ensureMonth(m);
-    let ok=0, skipEmp=0, skipDate=0, skipStatus=0;
+    let ok=0, skipEmp=0, skipStatus=0;
     const missingEmpNames=new Set();
 
     // 偵測欄位名稱（相容不同 Ragic 表單設計，含星號必填標記）
@@ -1606,22 +1606,24 @@ async function syncOTFromRagic(){
       if(!emp){ skipEmp++; missingEmpNames.add(name); return; }
 
       const date=ragicDate(r[fDate]);
-      if(!date||!date.startsWith(m)){ skipDate++; return; }
+      if(!date){ return; }
 
       const hours=parseFloat(r[fHours])||0;
       if(!hours) return;
       const note=String(r[fNote]||'');
-      md.overtimes=md.overtimes.filter(o=>!(o.employeeId===emp.id&&o.date===date));
-      md.overtimes.push({id:uid(),employeeId:emp.id,date,hours,note});
+      // 依照紀錄本身的日期放進對應月份（不限於目前選取月份）
+      const recMonth=date.substring(0,7);
+      const recMd=ensureMonth(recMonth);
+      recMd.overtimes=recMd.overtimes.filter(o=>!(o.employeeId===emp.id&&o.date===date));
+      recMd.overtimes.push({id:uid(),employeeId:emp.id,date,hours,note});
       ok++;
     });
 
-    saveDB(); renderOTTable(m);
+    saveDB(); renderOTTable(m); // 顯示目前選取月份的結果
 
     const diagParts=[];
     if(skipStatus) diagParts.push(`${skipStatus} 筆簽核狀態未通過（偵測到：${statusValues.slice(0,5).join('、')||'無'}）`);
     if(skipEmp)    diagParts.push(`${skipEmp} 筆找不到員工（Ragic 名稱：${[...missingEmpNames].slice(0,5).join('、')}）`);
-    if(skipDate)   diagParts.push(`${skipDate} 筆不在 ${m} 月`);
     const diagStr=diagParts.length?`<br><span style="font-size:11px;color:var(--gray-500);">${diagParts.join('；')}</span>`:'';
     const statusNote=!hasKnownApproved&&statusValues.length?`<br><span style="font-size:11px;color:var(--warning);">⚠️ 無法識別簽核狀態（${statusValues.slice(0,3).join('、')}），已全部匯入</span>`:'';
     msg.innerHTML=`<div style="padding:8px 12px;background:${ok?'#dcfce7':'#fef9c3'};border-radius:6px;font-size:13px;margin-bottom:10px;">${ok?'✅':'⚠️'} 加班同步完成：${ok} 筆 / 共 ${records.length} 筆原始資料${diagStr}${statusNote}<br><span style="font-size:11px;color:var(--gray-400);">欄位對應：姓名=${fName}｜日期=${fDate}｜時數=${fHours}｜狀態=${fStatus}</span></div>`;
