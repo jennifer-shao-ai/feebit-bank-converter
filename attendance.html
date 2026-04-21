@@ -1482,9 +1482,19 @@ async function syncFromRagic(){
     const data=await res.json();
     const records=ragicRecords(data);
 
-    // filter 在職狀態 === '在職'
-    const active=records.filter(r=>r['在職狀態']==='在職');
-    if(!active.length){ msg.innerHTML='<span style="color:var(--warning);">⚠️ 沒有找到在職員工（在職狀態 = 在職）</span>'; btn.disabled=false; btn.textContent='🔄 立即同步'; return; }
+    // filter 在職狀態（相容不同欄位名稱與值）
+    const STATUS_FIELDS=['在職狀態','*在職狀態','員工狀態','狀態','在職'];
+    const ACTIVE_VALS=['在職','在職中','active','Active','Y','是','1'];
+    const fStatus=STATUS_FIELDS.find(f=>records.some(r=>r[f]!=null&&String(r[f]).trim()!==''));
+    const active=fStatus
+      ?records.filter(r=>ACTIVE_VALS.includes(String(r[fStatus]||'').trim()))
+      :records; // 找不到狀態欄位就全部匯入
+    if(!active.length){
+      const sample=records[0]||{};
+      const availFields=Object.keys(sample).filter(k=>!k.startsWith('_')).join('、');
+      msg.innerHTML=`<span style="color:var(--warning);">⚠️ 沒有找到在職員工${fStatus?`（${fStatus} 的值不在白名單）`:'（找不到狀態欄位）'}，Ragic 可用欄位：${availFields||'無'}</span>`;
+      btn.disabled=false; btn.textContent='🔄 立即同步'; return;
+    }
 
     let added=0, updated=0;
     active.forEach(r=>{
