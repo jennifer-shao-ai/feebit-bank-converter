@@ -1334,7 +1334,11 @@ function renderAnnual(){
   const year=document.getElementById('ann-year').value;
   const filterEmp=document.getElementById('ann-emp').value;
   const emps=filterEmp?db.employees.filter(e=>e.id===filterEmp):db.employees;
-  const months=Object.keys(db.monthlyData).filter(m=>m.startsWith(year+'-')).sort();
+  const months=Object.keys(db.monthlyData).filter(m=>{
+    if(!m.startsWith(year+'-')) return false;
+    const md=db.monthlyData[m];
+    return (md.records?.length||0)+(md.leaves?.length||0)+(md.overtimes?.length||0)>0;
+  }).sort();
   const content=document.getElementById('ann-content');
 
   if(!emps.length){ content.innerHTML='<div class="empty-state"><div class="ei">👥</div><div>請先新增員工</div></div>'; return; }
