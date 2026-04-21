@@ -1565,11 +1565,10 @@ async function syncLeavesFromRagic(){
   btn.disabled=false; btn.textContent='🔗 從 Ragic 同步請假';
 }
 
-// ─ 同步加班申請（僅簽核完成）─
+// ─ 同步加班申請 ─
 async function syncOTFromRagic(){
   const key=getRagicKey(); if(!key) return;
   const m=document.getElementById('import-month').value;
-  const [yr,mo]=m.split('-');
   const btn=document.getElementById('ragic-ot-btn');
   const msg=document.getElementById('ot-msg');
   btn.disabled=true; btn.textContent='同步中...';
@@ -1581,23 +1580,50 @@ async function syncOTFromRagic(){
     const data=await res.json();
     const records=ragicRecords(data);
     const md=ensureMonth(m);
-    let ok=0, skip=0;
+    let ok=0, skipEmp=0, skipDate=0, skipStatus=0;
+
+    // 偵測欄位名稱（相容不同 Ragic 表單設計）
+    const sample=records[0]||{};
+    const fName=  ['員工姓名','姓名','人員'].find(f=>f in sample)||'員工姓名';
+    const fDate=  ['起始日期','加班日期','日期','申請日期'].find(f=>f in sample)||'起始日期';
+    const fHours= ['總時數','加班時數','時數','申請時數'].find(f=>f in sample)||'總時數';
+    const fStatus=['簽核狀態','狀態','審核狀態','核准狀態'].find(f=>f in sample)||'簽核狀態';
+    const fNote=  ['備註','事由','加班事由','說明'].find(f=>f in sample)||'備註';
+
+    // 偵測「已核准」的狀態值（第一筆有資料的就當作樣本）
+    const statusValues=[...new Set(records.map(r=>String(r[fStatus]||'')).filter(Boolean))];
+    const APPROVED_VALS=['簽核完成','已核准','核准','同意','通過','approved','完成'];
+    // 若偵測到的狀態值都不在白名單內，就不過濾（全部匯入）
+    const hasKnownApproved=statusValues.some(v=>APPROVED_VALS.includes(v));
+
     records.forEach(r=>{
-      if(r['簽核狀態']!=='簽核完成') return;
-      const name=String(r['員工姓名']||'').trim();
+      const status=String(r[fStatus]||'');
+      if(hasKnownApproved && !APPROVED_VALS.includes(status)){ skipStatus++; return; }
+
+      const name=String(r[fName]||'').trim();
       const emp=db.employees.find(e=>e.name===name);
-      if(!emp){ skip++; return; }
-      // 平面結構：每筆記錄即一筆加班
-      const date=ragicDate(r['起始日期']);
-      if(!date||!date.startsWith(m)) return;
-      const hours=parseFloat(r['總時數'])||0;
-      const note=r['備註']||r['事由']||'';
+      if(!emp){ skipEmp++; return; }
+
+      const date=ragicDate(r[fDate]);
+      if(!date||!date.startsWith(m)){ skipDate++; return; }
+
+      const hours=parseFloat(r[fHours])||0;
+      if(!hours) return;
+      const note=String(r[fNote]||'');
       md.overtimes=md.overtimes.filter(o=>!(o.employeeId===emp.id&&o.date===date));
       md.overtimes.push({id:uid(),employeeId:emp.id,date,hours,note});
       ok++;
     });
+
     saveDB(); renderOTTable(m);
-    msg.innerHTML=`<div style="padding:8px 12px;background:#dcfce7;border-radius:6px;font-size:13px;margin-bottom:10px;">✅ 加班同步完成：${ok} 筆（僅含簽核完成）${skip?`，${skip} 筆找不到對應員工`:''}</div>`;
+
+    const diagParts=[];
+    if(skipStatus) diagParts.push(`${skipStatus} 筆簽核狀態未通過（偵測到：${statusValues.slice(0,5).join('、')||'無'}）`);
+    if(skipEmp)    diagParts.push(`${skipEmp} 筆找不到員工`);
+    if(skipDate)   diagParts.push(`${skipDate} 筆不在 ${m} 月`);
+    const diagStr=diagParts.length?`<br><span style="font-size:11px;color:var(--gray-500);">${diagParts.join('；')}</span>`:'';
+    const statusNote=!hasKnownApproved&&statusValues.length?`<br><span style="font-size:11px;color:var(--warning);">⚠️ 無法識別簽核狀態（${statusValues.slice(0,3).join('、')}），已全部匯入</span>`:'';
+    msg.innerHTML=`<div style="padding:8px 12px;background:${ok?'#dcfce7':'#fef9c3'};border-radius:6px;font-size:13px;margin-bottom:10px;">${ok?'✅':'⚠️'} 加班同步完成：${ok} 筆 / 共 ${records.length} 筆原始資料${diagStr}${statusNote}<br><span style="font-size:11px;color:var(--gray-400);">欄位對應：姓名=${fName}｜日期=${fDate}｜時數=${fHours}｜狀態=${fStatus}</span></div>`;
   }catch(e){
     msg.innerHTML=`<span style="color:var(--danger);">❌ 失敗：${esc(e.message)}</span>`;
   }
