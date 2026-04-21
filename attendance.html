@@ -1480,7 +1480,16 @@ async function syncFromRagic(){
     });
     if(!res.ok){ throw new Error('HTTP '+res.status+' - '+await res.text()); }
     const data=await res.json();
+    // 偵錯：顯示 Ragic 回傳的原始結構
+    const rawKeys=Object.keys(data||{});
+    const firstKey=rawKeys[0];
+    const firstVal=firstKey!=null?data[firstKey]:null;
+    console.log('[Ragic員工]',{rawKeys:rawKeys.slice(0,5),firstKey,firstVal});
     const records=ragicRecords(data);
+    if(!records.length){
+      msg.innerHTML=`<span style="color:var(--warning);">⚠️ Ragic 回傳 ${rawKeys.length} 筆原始資料但無法解析。第一個 key="${firstKey}"，值=${JSON.stringify(firstVal).slice(0,100)}</span>`;
+      btn.disabled=false; btn.textContent='🔄 立即同步'; return;
+    }
 
     // filter 在職狀態（相容不同欄位名稱與值）
     const STATUS_FIELDS=['在職狀態','*在職狀態','員工狀態','狀態','在職'];
