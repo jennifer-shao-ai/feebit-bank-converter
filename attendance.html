@@ -1465,8 +1465,9 @@ function mapEmpType(ragicType){
 async function syncFromRagic(){
   const cfg=loadRagicConfig();
   const url=cfg.url||document.getElementById('ragic-url').value.trim();
-  const key=cfg.key||document.getElementById('ragic-key').value.trim();
-  if(!url||!key){ alert('請先填寫並儲存 Ragic URL 與 API Key'); return; }
+  if(!url){ alert('請先填寫並儲存 Ragic URL 與 API Key'); return; }
+  const key=getRagicKey();
+  if(!key) return;
 
   const btn=document.getElementById('ragic-sync-btn');
   const msg=document.getElementById('ragic-msg');
