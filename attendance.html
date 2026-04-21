@@ -1043,9 +1043,9 @@ function analyzeEmployee(empId, month){
       if(!NON_WORK_STATUSES.includes(override)) totalDays++;
     } else if(isNonWorkday){
       status=[isNatHol&&!isWeekend?'國定假日':'假日']; rowClass='';
-    } else if(isPublicLeave&&!rec){
+    } else if(isPublicLeave&&(!rec||(!rec.clockIn&&!rec.clockOut))){
       status=['公假']; rowClass='row-ok'; totalDays++; hours=8; totalHours+=hours;
-    } else if(isLeave&&!rec){
+    } else if(isLeave&&(!rec||(!rec.clockIn&&!rec.clockOut))){
       const lv=empLeaves.find(l=>l.date===date);
       status=[lv?.type||'請假'];
     } else if(!rec&&isExpected){
