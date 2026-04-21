@@ -1086,8 +1086,10 @@ function analyzeEmployee(empId, month){
     } else if(!rec&&isExpected){
       status=['缺勤']; rowClass='row-absent'; absentCount++;
     } else if(rec){
-      // 工讀生：沒有排班也沒有加班申請的打卡日不列入出勤
+      // 工讀生：沒有排班也沒有加班申請的日子不列入出勤
       if(isPT&&!sch&&!ot){ return; }
+      // 工讀生：沒有打卡時間不算出勤日
+      if(isPT&&!rec.clockIn&&!rec.clockOut){ return; }
       totalDays++;
       if(!rec.clockIn&&!rec.clockOut){ status=['未打卡']; rowClass='row-missing'; missingCount++; }
       else if(!rec.clockIn){ status=['未打上班卡']; rowClass='row-missing'; missingCount++; }
