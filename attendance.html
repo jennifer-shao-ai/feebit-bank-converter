@@ -1482,14 +1482,14 @@ async function syncFromRagic(){
     });
     if(!res.ok){ throw new Error('HTTP '+res.status+' - '+await res.text()); }
     const data=await res.json();
-    // 偵錯：顯示 Ragic 回傳的原始結構
-    const rawKeys=Object.keys(data||{});
-    const firstKey=rawKeys[0];
-    const firstVal=firstKey!=null?data[firstKey]:null;
-    console.log('[Ragic員工]',{rawKeys:rawKeys.slice(0,5),firstKey,firstVal});
+    if(data.status==='ERROR'){
+      msg.innerHTML=`<span style="color:var(--danger);">❌ Ragic 回傳錯誤：${esc(data.errMsg||data.error||JSON.stringify(data).slice(0,200))}</span>`;
+      btn.disabled=false; btn.textContent='🔄 立即同步'; return;
+    }
     const records=ragicRecords(data);
     if(!records.length){
-      msg.innerHTML=`<span style="color:var(--warning);">⚠️ Ragic 回傳 ${rawKeys.length} 筆原始資料但無法解析。第一個 key="${firstKey}"，值=${JSON.stringify(firstVal).slice(0,100)}</span>`;
+      const rawKeys=Object.keys(data||{});
+      msg.innerHTML=`<span style="color:var(--warning);">⚠️ Ragic 無資料（共 ${rawKeys.length} 個 key：${rawKeys.slice(0,5).join('、')}）</span>`;
       btn.disabled=false; btn.textContent='🔄 立即同步'; return;
     }
 
