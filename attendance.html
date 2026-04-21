@@ -1331,11 +1331,7 @@ function renderAnnual(){
   const year=document.getElementById('ann-year').value;
   const filterEmp=document.getElementById('ann-emp').value;
   const emps=filterEmp?db.employees.filter(e=>e.id===filterEmp):db.employees;
-  const _now=new Date();
-  const _y=_now.getMonth()===0?_now.getFullYear()-1:_now.getFullYear();
-  const _m=_now.getMonth()===0?12:_now.getMonth(); // 上月（1-based）
-  const cutoff=`${_y}-${String(_m).padStart(2,'0')}`;
-  const months=Object.keys(db.monthlyData).filter(m=>m.startsWith(year+'-')&&m<=cutoff).sort();
+  const months=Object.keys(db.monthlyData).filter(m=>m.startsWith(year+'-')).sort();
   const content=document.getElementById('ann-content');
 
   if(!emps.length){ content.innerHTML='<div class="empty-state"><div class="ei">👥</div><div>請先新增員工</div></div>'; return; }
@@ -1367,7 +1363,7 @@ function renderAnnual(){
 
   content.innerHTML=`
     <div class="card">
-      <div class="card-header"><span class="card-title">${year} 年度考勤總覽</span><span style="font-size:11px;color:var(--gray-400);">計算至 ${cutoff}（本月資料次月才會匯入）</span></div>
+      <div class="card-header"><span class="card-title">${year} 年度考勤總覽</span><span style="font-size:11px;color:var(--gray-400);">共 ${months.length} 個月資料</span></div>
       <div class="tbl-wrap"><table>
         <thead><tr>
           <th>員工</th><th>類型</th><th>應出勤</th><th>實出勤</th><th>出勤率</th>
