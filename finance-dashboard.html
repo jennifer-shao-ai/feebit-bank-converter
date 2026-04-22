@@ -129,6 +129,7 @@ tr.total-row td{font-weight:700;background:var(--gray-100)!important;border-top:
       <button class="btn btn-outline" onclick="openDbModal()" style="font-size:12px;padding:4px 10px">⚙️ 初始化DB</button>
       <button class="btn btn-outline" onclick="openRagicModal()" style="font-size:12px;padding:4px 10px">🔗 Ragic 設定</button>
       <button id="sync-btn" class="btn btn-outline" onclick="syncFromRagic()" style="font-size:12px;padding:4px 12px">↻ 從 Ragic 同步</button>
+      <button class="btn btn-outline" onclick="debugRagic()" style="font-size:12px;padding:4px 10px">🔎 Debug</button>
       <button class="btn btn-primary" onclick="document.getElementById('csv-input').click()" style="font-size:12px;padding:4px 12px">⬆ 上傳CSV</button>
       <input type="file" id="csv-input" accept=".csv" style="display:none">
       <span class="topbar-badge">v1.2</span>
@@ -548,7 +549,14 @@ CREATE TABLE IF NOT EXISTS finance_transactions (
 CREATE UNIQUE INDEX IF NOT EXISTS finance_txn_uq
   ON finance_transactions(txn_date, type, amount, payee, description);
 ALTER TABLE finance_transactions ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "allow_all" ON finance_transactions FOR ALL USING (true) WITH CHECK (true);`;
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE tablename='finance_transactions' AND policyname='allow_all'
+  ) THEN
+    CREATE POLICY "allow_all" ON finance_transactions FOR ALL USING (true) WITH CHECK (true);
+  END IF;
+END $$;`;
 
 function openDbModal(){document.getElementById('db-modal').classList.add('open');}
 function closeDbModal(){document.getElementById('db-modal').classList.remove('open');}
@@ -557,6 +565,29 @@ function copySql(){
   const b=event.target;b.textContent='✅ 已複製';setTimeout(()=>b.textContent='複製 SQL',2000);
 }
 document.getElementById('db-modal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeDbModal();});
+
+// ── RAGIC DEBUG ──
+async function debugRagic(){
+  const cfg=loadRagicCfg();
+  if(!cfg.apiKey||!cfg.sheetUrl){alert('請先設定 Ragic 網址與 API Key');openRagicModal();return;}
+  const baseUrl=cfg.sheetUrl.split('?')[0];
+  try{
+    const res=await fetch(`${baseUrl}?api&limit=3`,{headers:{'Authorization':cfg.apiKey}});
+    const text=await res.text();
+    if(!res.ok){alert(`HTTP ${res.status}\n${text.slice(0,300)}`);return;}
+    const json=JSON.parse(text);
+    const keys=Object.keys(json);
+    const rows=Object.entries(json).filter(([k,v])=>!isNaN(parseInt(k))&&typeof v==='object'&&v!==null);
+    if(!rows.length){
+      alert(`Ragic 回傳 ${keys.length} 個 key，但找不到數字 row ID\n\nKeys: ${keys.slice(0,10).join(', ')}\n\n前100字: ${text.slice(0,200)}`);
+      return;
+    }
+    const first=rows[0][1];
+    const fields=Object.keys(first).filter(k=>!k.startsWith('_')).slice(0,15);
+    const preview=fields.map(f=>`${f}: ${String(first[f]??'').slice(0,50)}`).join('\n');
+    alert(`✅ 找到 ${rows.length} 筆資料，第一筆欄位：\n\n${preview}`);
+  }catch(e){alert('Debug 失敗：'+e.message);}
+}
 
 // ── RAGIC CONFIG ──
 const RAGIC_CFG_KEY = 'feebit_finance_ragic';
