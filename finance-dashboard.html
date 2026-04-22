@@ -223,14 +223,10 @@ tr.total-row td{font-weight:700;background:var(--gray-100)!important;border-top:
       <input type="text" id="ragic-sheet-url" placeholder="https://ap13.ragic.com/..." style="width:100%;padding:8px 10px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:13px;box-sizing:border-box">
     </div>
     <div style="margin-bottom:12px">
-      <div style="font-size:11px;color:var(--gray-600);margin-bottom:4px">Ragic 登入 Email</div>
-      <input type="text" id="ragic-email" placeholder="your@email.com" style="width:100%;padding:8px 10px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:13px;box-sizing:border-box">
-    </div>
-    <div style="margin-bottom:12px">
       <div style="font-size:11px;color:var(--gray-600);margin-bottom:4px">Ragic API Key</div>
-      <input type="password" id="ragic-api-key" placeholder="貼上 API Key（不含 Basic）" style="width:100%;padding:8px 10px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:13px;box-sizing:border-box">
+      <input type="password" id="ragic-api-key" placeholder="貼上 API Key" style="width:100%;padding:8px 10px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:13px;box-sizing:border-box">
     </div>
-    <p style="font-size:11px;color:var(--gray-500);margin-bottom:16px">API Key 取得：Ragic → 右上角頭像 → API Key</p>
+    <p style="font-size:11px;color:var(--gray-500);margin-bottom:16px">取得：Ragic → 右上角頭像 → API Key → 複製那串 key</p>
     <div style="display:flex;gap:8px;justify-content:flex-end">
       <button class="btn btn-outline" onclick="closeRagicModal()">取消</button>
       <button class="btn btn-primary" onclick="saveRagicModal()">儲存</button>
@@ -603,20 +599,17 @@ function saveRagicCfg(cfg){ localStorage.setItem(RAGIC_CFG_KEY, JSON.stringify(c
 function openRagicModal(){
   const cfg = loadRagicCfg();
   document.getElementById('ragic-sheet-url').value = cfg.sheetUrl || '';
-  document.getElementById('ragic-email').value = cfg.email || '';
   document.getElementById('ragic-api-key').value = cfg.rawKey || '';
   document.getElementById('ragic-modal').classList.add('open');
 }
 function closeRagicModal(){ document.getElementById('ragic-modal').classList.remove('open'); }
 function saveRagicModal(){
   const sheetUrl = document.getElementById('ragic-sheet-url').value.trim();
-  const email = document.getElementById('ragic-email').value.trim();
   const rawKey = document.getElementById('ragic-api-key').value.trim();
   if(!sheetUrl){ alert('請填入表格網址'); return; }
-  if(!email){ alert('請填入 Email'); return; }
   if(!rawKey){ alert('請填入 API Key'); return; }
-  const apiKey = 'Basic ' + btoa(email + ':' + rawKey);
-  saveRagicCfg({ sheetUrl, email, rawKey, apiKey });
+  const apiKey = 'Basic ' + rawKey.replace(/^Basic\s*/i, '');
+  saveRagicCfg({ sheetUrl, rawKey, apiKey });
   closeRagicModal();
   alert('✅ 已儲存，可以點「從 Ragic 同步」');
 }
