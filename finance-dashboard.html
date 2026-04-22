@@ -216,12 +216,16 @@ tr.total-row td{font-weight:700;background:var(--gray-100)!important;border-top:
 <div class="modal-overlay" id="ragic-modal">
   <div class="modal-box" style="width:420px">
     <h3 style="margin-bottom:8px">🔗 Ragic API 設定</h3>
-    <p style="font-size:12px;color:var(--gray-600);margin-bottom:16px">API Key 儲存於瀏覽器本機，不會出現在程式碼或 GitHub 上</p>
+    <p style="font-size:12px;color:var(--gray-600);margin-bottom:16px">設定儲存於瀏覽器本機，不會出現在程式碼或 GitHub 上</p>
+    <div style="margin-bottom:12px">
+      <div style="font-size:11px;color:var(--gray-600);margin-bottom:4px">Ragic 表格網址</div>
+      <input type="text" id="ragic-sheet-url" placeholder="https://ap13.ragic.com/..." style="width:100%;padding:8px 10px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:13px;box-sizing:border-box">
+    </div>
     <div style="margin-bottom:12px">
       <div style="font-size:11px;color:var(--gray-600);margin-bottom:4px">Ragic API Key</div>
-      <input type="password" id="ragic-api-key" placeholder="貼上你的 Ragic API Key" style="width:100%;padding:8px 10px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:13px;box-sizing:border-box">
+      <input type="password" id="ragic-api-key" placeholder="Basic xxxxxxxx" style="width:100%;padding:8px 10px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:13px;box-sizing:border-box">
     </div>
-    <p style="font-size:11px;color:var(--gray-500);margin-bottom:16px">格式：<code>Basic xxxxxxxx</code>（Ragic → 右上角頭像 → API Key，複製整串貼上）</p>
+    <p style="font-size:11px;color:var(--gray-500);margin-bottom:16px">API Key 取得：Ragic → 右上角頭像 → API Key，複製整串（含 Basic）貼上</p>
     <div style="display:flex;gap:8px;justify-content:flex-end">
       <button class="btn btn-outline" onclick="closeRagicModal()">取消</button>
       <button class="btn btn-primary" onclick="saveRagicModal()">儲存</button>
@@ -562,14 +566,18 @@ function loadRagicCfg(){ try{return JSON.parse(localStorage.getItem(RAGIC_CFG_KE
 function saveRagicCfg(cfg){ localStorage.setItem(RAGIC_CFG_KEY, JSON.stringify(cfg)); }
 
 function openRagicModal(){
-  document.getElementById('ragic-api-key').value = loadRagicCfg().apiKey || '';
+  const cfg = loadRagicCfg();
+  document.getElementById('ragic-sheet-url').value = cfg.sheetUrl || '';
+  document.getElementById('ragic-api-key').value = cfg.apiKey || '';
   document.getElementById('ragic-modal').classList.add('open');
 }
 function closeRagicModal(){ document.getElementById('ragic-modal').classList.remove('open'); }
 function saveRagicModal(){
+  const sheetUrl = document.getElementById('ragic-sheet-url').value.trim();
   const key = document.getElementById('ragic-api-key').value.trim();
+  if(!sheetUrl){ alert('請填入表格網址'); return; }
   if(!key){ alert('請填入 API Key'); return; }
-  saveRagicCfg({ apiKey: key });
+  saveRagicCfg({ sheetUrl, apiKey: key });
   closeRagicModal();
   alert('✅ 已儲存，可以點「從 Ragic 同步」');
 }
@@ -582,8 +590,9 @@ async function syncFromRagic(){
   btn.textContent='⏳ 同步中...'; btn.disabled=true;
   try{
     let all=[], offset=0, limit=1000;
+    const baseUrl = cfg.sheetUrl.split('?')[0];
     while(true){
-      const url=`${RAGIC_URL}?api&limit=${limit}&offset=${offset}`;
+      const url=`${baseUrl}?api&limit=${limit}&offset=${offset}`;
       const res=await fetch(url,{headers:{'Authorization':cfg.apiKey}});
       if(!res.ok) throw new Error(`Ragic 回應 ${res.status}，請確認 API Key 格式是否正確`);
       const json=await res.json();
