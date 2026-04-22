@@ -102,28 +102,26 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Microsoft
 
   <div class="sidebar-section">
     <div class="sidebar-label">財務</div>
-    <div class="nav-item" onclick="location.href='bank-converter.html'" id="nav-bank">
+    <a class="nav-item" href="bank-converter.html" id="nav-bank">
       <span class="icon">🏦</span> 帳務轉換
-    </div>
-    <div class="nav-item" onclick="location.href='accounting-ops.html'" id="nav-accounting">
+    </a>
+    <a class="nav-item" href="accounting-ops.html" id="nav-accounting">
       <span class="icon">📅</span> 例行帳務作業
-    </div>
-    <div class="nav-item" onclick="location.href='finance-dashboard.html'" id="nav-finance">
+    </a>
+    <a class="nav-item" href="finance-dashboard.html" id="nav-finance">
       <span class="icon">📊</span> 帳務分析
-    </div>
-    <div class="nav-item" onclick="location.href='coupang-invoice.html'" id="nav-coupang">
+    </a>
+    <a class="nav-item" href="coupang-invoice.html" id="nav-coupang">
       <span class="icon">🧾</span> 酷澎發票轉檔
-    </div>
-    <div class="nav-item" onclick="location.href='coupang-reconcile.html'" id="nav-reconcile">
+    </a>
+    <a class="nav-item" href="coupang-reconcile.html" id="nav-reconcile">
       <span class="icon">🔍</span> 酷澎商城對帳
-    </div>
-    <div class="nav-item" onclick="location.href='shopee-converter.html'" id="nav-shopee">
+    </a>
+    <a class="nav-item" href="shopee-converter.html" id="nav-shopee">
       <span class="icon">🛒</span> 蝦皮撥款轉換
-    </div>
-    <div class="nav-item soon" id="nav-price">
-      <span class="icon">💰</span> 定價試算
-      <span class="soon-tag">即將推出</span>
-    </div>
+    </a>
+    <a class="nav-item" href="profit-calculator.html" id="nav-price"><span class="icon">💰</span> 毛利試算機</a>
+    <a class="nav-item" href="brand-sales.html" id="nav-brand"><span class="icon">📈</span> 品牌銷售分析</a>
   </div>
 
   <div class="sidebar-section">
@@ -152,46 +150,46 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Microsoft
 
   <div class="sidebar-section">
     <div class="sidebar-label">人事</div>
-    <div class="nav-item" onclick="location.href='attendance.html'" id="nav-attendance">
+    <a class="nav-item" href="attendance.html" id="nav-attendance">
       <span class="icon">🗓️</span> 考勤查驗
-    </div>
+    </a>
   </div>
 
   <div class="sidebar-section">
     <div class="sidebar-label">庫存</div>
-    <div class="nav-item" onclick="location.href='stock-analysis.html'" id="nav-stock">
+    <a class="nav-item" href="stock-analysis.html" id="nav-stock">
       <span class="icon">📦</span> 庫存訂貨分析
-    </div>
-    <div class="nav-item" onclick="location.href='slow-mover-alert.html'" id="nav-slow">
+    </a>
+    <a class="nav-item" href="slow-mover-alert.html" id="nav-slow">
       <span class="icon">🔴</span> 滯銷品警示
-    </div>
-    <div class="nav-item" onclick="location.href='feebit-inventory-filter.html'" id="nav-inventory">
+    </a>
+    <a class="nav-item" href="feebit-inventory-filter.html" id="nav-inventory">
       <span class="icon">🏪</span> 商品篩選工具
-    </div>
+    </a>
   </div>
 
   <div class="sidebar-section">
     <div class="sidebar-label">研發</div>
-    <a class="nav-item" href="research-notes.html">
+    <a class="nav-item" href="research-notes.html" id="nav-research">
       <span class="icon">📚</span> 研發筆記
     </a>
   </div>
 
   <div class="sidebar-section">
     <div class="sidebar-label">生活</div>
-    <a class="nav-item" href="travel-planner.html">
+    <a class="nav-item" href="travel-planner.html" id="nav-travel">
       <span class="icon">✈️</span> 旅行規劃
     </a>
   </div>
 
   <div class="sidebar-section">
     <div class="sidebar-label">系統</div>
-    <a class="nav-item" href="tools.html">
+    <a class="nav-item" href="tools.html" id="nav-tools">
       <span class="icon">🔧</span> 使用工具
     </a>
   </div>
 
-  <div class="sidebar-footer">v1.7 · Feebit © 2026</div>
+  <div class="sidebar-footer">v1.8 · Feebit © 2026</div>
 </div>
 
 <!-- ── SIDEBAR OVERLAY ── -->
@@ -237,7 +235,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Microsoft
         <div class="home-card" onclick="location.href='coupang-invoice.html'">
           <div class="hc-icon">🧾</div>
           <div class="hc-name">酷澎發票轉檔</div>
-          <div class="hc-desc">上傳酷澎 Excel，自動清理 Sku Name 欄特殊符號，保留英文、數字、中文</div>
+          <div class="hc-desc">上傳酷澎 Excel，自動清理 SKU Name 欄特殊符號，保留英文、數字、中文</div>
           <div class="hc-tag">可使用</div>
         </div>
         <div class="home-card" onclick="location.href='coupang-reconcile.html'">
@@ -252,11 +250,17 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Microsoft
           <div class="hc-desc">上傳蝦皮撥款明細，自動整理為可匯入帳務系統的格式</div>
           <div class="hc-tag">可使用</div>
         </div>
-        <div class="home-card soon">
+        <div class="home-card" onclick="location.href='profit-calculator.html'">
           <div class="hc-icon">💰</div>
-          <div class="hc-name">定價試算</div>
-          <div class="hc-desc">輸入成本自動計算建議售價與毛利率</div>
-          <div class="hc-tag">即將推出</div>
+          <div class="hc-name">毛利試算機</div>
+          <div class="hc-desc">單品／套組成本輸入，跨平台毛利率即時試算，建議售價自動計算</div>
+          <div class="hc-tag">可使用</div>
+        </div>
+        <div class="home-card" onclick="location.href='brand-sales.html'">
+          <div class="hc-icon">📈</div>
+          <div class="hc-name">品牌銷售分析</div>
+          <div class="hc-desc">上傳商品銷售 CSV，自動加總各品牌銷售額、排名與佔比</div>
+          <div class="hc-tag">可使用</div>
         </div>
         <div class="home-card soon">
           <div class="hc-icon">📢</div>
@@ -269,6 +273,18 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Microsoft
           <div class="hc-name">客服回覆</div>
           <div class="hc-desc">輸入客訴情境，自動產出溫和但不退讓的回覆</div>
           <div class="hc-tag">即將推出</div>
+        </div>
+        <div class="home-card soon">
+          <div class="hc-icon">🤝</div>
+          <div class="hc-name">廠商談判</div>
+          <div class="hc-desc">依情境產出談判策略與話術</div>
+          <div class="hc-tag">即將推出</div>
+        </div>
+        <div class="home-card" onclick="location.href='attendance.html'">
+          <div class="hc-icon">🗓️</div>
+          <div class="hc-name">考勤查驗</div>
+          <div class="hc-desc">正職／工讀打卡稽核、遲到早退異常標記、請假加班紀錄、年度考勤評分</div>
+          <div class="hc-tag">可使用</div>
         </div>
         <div class="home-card" onclick="location.href='stock-analysis.html'">
           <div class="hc-icon">📦</div>
@@ -287,18 +303,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Microsoft
           <div class="hc-name">商品篩選工具</div>
           <div class="hc-desc">上傳 Excel 以貨號或 EAN13 隱藏停產品項，匯出時自動標記持續上架欄 Y/N</div>
           <div class="hc-tag">可使用</div>
-        </div>
-        <div class="home-card" onclick="location.href='attendance.html'">
-          <div class="hc-icon">🗓️</div>
-          <div class="hc-name">考勤查驗</div>
-          <div class="hc-desc">正職／工讀打卡稽核、遲到早退異常標記、請假加班紀錄、年度考勤評分</div>
-          <div class="hc-tag">可使用</div>
-        </div>
-        <div class="home-card soon">
-          <div class="hc-icon">🤝</div>
-          <div class="hc-name">廠商談判</div>
-          <div class="hc-desc">依情境產出談判策略與話術</div>
-          <div class="hc-tag">即將推出</div>
         </div>
         <div class="home-card" onclick="location.href='research-notes.html'">
           <div class="hc-icon">📚</div>

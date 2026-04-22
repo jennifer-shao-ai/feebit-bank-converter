@@ -81,6 +81,12 @@ tr:hover td{background:var(--gray-50);}
 .section-label{font-size:12px;font-weight:600;color:var(--gray-500);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;}
 select.inline-sel{padding:6px 10px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:13px;outline:none;}
 select.inline-sel:focus{border-color:var(--primary);}
+.upload-zone{border:2px dashed var(--gray-300);border-radius:10px;padding:28px 20px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;margin-bottom:12px;background:var(--gray-50);}
+.upload-zone:hover,.upload-zone.drag-over{border-color:var(--primary);background:#f0f7ff;}
+.upload-zone .uz-icon{font-size:28px;margin-bottom:6px;}
+.upload-zone .uz-label{font-size:13px;font-weight:500;color:var(--gray-700);}
+.upload-zone .uz-sub{font-size:11px;color:var(--gray-400);margin-top:4px;}
+.upload-zone input[type=file]{display:none;}
 @media(max-width:768px){.form-row{grid-template-columns:1fr;}.btn-hamburger{display:block!important;}}
 </style>
 </head>
@@ -105,7 +111,7 @@ select.inline-sel:focus{border-color:var(--primary);}
     <a class="nav-item" href="coupang-invoice.html"><span class="icon">🧾</span> 酷澎發票轉檔</a>
     <a class="nav-item" href="coupang-reconcile.html"><span class="icon">🔍</span> 酷澎商城對帳</a>
     <a class="nav-item" href="shopee-converter.html"><span class="icon">🛒</span> 蝦皮撥款轉換</a>
-    <div class="nav-item soon"><span class="icon">💰</span> 定價試算<span class="soon-tag">即將推出</span></div>
+    <a class="nav-item" href="profit-calculator.html"><span class="icon">💰</span> 毛利試算機</a>
   </div>
   <div class="sidebar-section">
     <div class="sidebar-label">行銷</div>
@@ -126,6 +132,7 @@ select.inline-sel:focus{border-color:var(--primary);}
   <div class="sidebar-section">
     <div class="sidebar-label">庫存</div>
     <a class="nav-item" href="stock-analysis.html"><span class="icon">📦</span> 庫存訂貨分析</a>
+    <a class="nav-item" href="slow-mover-alert.html"><span class="icon">🔴</span> 滯銷品警示</a>
     <a class="nav-item" href="feebit-inventory-filter.html"><span class="icon">🏪</span> 商品篩選工具</a>
   </div>
   <div class="sidebar-section">
@@ -140,7 +147,7 @@ select.inline-sel:focus{border-color:var(--primary);}
     <div class="sidebar-label">系統</div>
     <a class="nav-item" href="tools.html"><span class="icon">🔧</span> 使用工具</a>
   </div>
-  <div class="sidebar-footer">v1.1 · Feebit © 2026</div>
+  <div class="sidebar-footer">v2.2 · Feebit © 2026</div>
 </div>
 
 <div id="main">
@@ -149,7 +156,7 @@ select.inline-sel:focus{border-color:var(--primary);}
       <button class="btn-hamburger" style="display:none;" onclick="openSidebar()">☰</button>
       <span class="topbar-title">考勤查驗</span>
       <span class="topbar-badge">人事工具</span>
-      <span style="font-size:11px;color:var(--gray-400);margin-left:4px;">v1.1</span>
+      <span style="font-size:11px;color:var(--gray-400);margin-left:4px;">v2.2</span>
     </div>
   </div>
 
@@ -166,13 +173,32 @@ select.inline-sel:focus{border-color:var(--primary);}
     <div class="card" style="margin-bottom:12px;">
       <div class="card-header" style="margin-bottom:12px;">
         <span class="card-title">🔗 Ragic 員工資料同步</span>
-        <button class="btn btn-primary btn-sm" onclick="syncFromRagic()" id="ragic-sync-btn">🔄 立即同步</button>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button class="btn btn-primary btn-sm" onclick="syncFromRagic()" id="ragic-sync-btn">🔄 同步員工</button>
+          <button class="btn btn-primary btn-sm" onclick="syncAllData()" id="ragic-all-btn" style="background:#7c3aed;">⚡ 一鍵同步全部</button>
+        </div>
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
         <div class="form-group" style="flex:3;min-width:260px;">
-          <label>Ragic Sheet URL</label>
+          <label>員工資料 Sheet URL</label>
           <input type="text" id="ragic-url" placeholder="https://ap13.ragic.com/...">
         </div>
+        <div class="form-group" style="flex:3;min-width:260px;">
+          <label>排班表 Sheet URL</label>
+          <input type="text" id="ragic-sch-url" placeholder="https://ap13.ragic.com/...">
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:8px;">
+        <div class="form-group" style="flex:3;min-width:260px;">
+          <label>請假單 Sheet URL</label>
+          <input type="text" id="ragic-lv-url" placeholder="https://ap13.ragic.com/...">
+        </div>
+        <div class="form-group" style="flex:3;min-width:260px;">
+          <label>加班申請 Sheet URL</label>
+          <input type="text" id="ragic-ot-url" placeholder="https://ap13.ragic.com/...">
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:8px;">
         <div class="form-group" style="flex:3;min-width:260px;">
           <label>API Key（Basic xxxxx）</label>
           <input type="password" id="ragic-key" placeholder="Basic blRaQ...">
@@ -191,6 +217,16 @@ select.inline-sel:focus{border-color:var(--primary);}
         <button class="btn btn-primary btn-sm" onclick="openEmpModal()">＋ 手動新增</button>
       </div>
       <div class="tbl-wrap" id="emp-table"></div>
+    </div>
+    <!-- Holiday Card -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">🗓️ 國定假日設定</span>
+        <button class="btn btn-outline btn-sm" onclick="saveHolidays()">儲存</button>
+      </div>
+      <p class="tip">每行輸入一個假日日期（格式 YYYY-MM-DD）。這些日期會從正職「應出勤日」中排除，避免誤判未打卡／缺勤。</p>
+      <textarea id="holiday-input" style="width:100%;height:140px;padding:8px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:12px;font-family:monospace;resize:vertical;" placeholder="2026-01-01&#10;2026-01-27&#10;2026-01-28&#10;2026-02-28&#10;2026-04-04&#10;2026-04-05&#10;2026-05-01&#10;2026-10-10"></textarea>
+      <div id="holiday-msg" style="margin-top:6px;font-size:12px;"></div>
     </div>
   </div>
 
@@ -213,11 +249,15 @@ select.inline-sel:focus{border-color:var(--primary);}
 
       <!-- Punch -->
       <div id="import-punch" class="sub-content active">
-        <p class="tip">格式：日期,姓名,上班打卡,下班打卡（含或不含標題列均可；未打卡留空）</p>
+        <p class="tip">上傳 CSV 檔案，一次匯入當月所有人打卡資料。格式：日期,姓名,上班打卡,下班打卡（可含標題列；未打卡留空）</p>
         <div class="code-hint">日期,姓名,上班打卡,下班打卡<br>2026-04-01,王小明,09:00,18:05<br>2026-04-01,李小華,09:15,<br>2026-04-02,王小明,,18:00</div>
-        <div class="form-group"><textarea id="punch-csv" placeholder="在此貼上 CSV 資料..."></textarea></div>
+        <label class="upload-zone" id="punch-drop" ondragover="uzDrag(event,'punch-drop')" ondragleave="uzLeave('punch-drop')" ondrop="uzDrop(event,'punch-drop',importPunchText)">
+          <input type="file" id="punch-file" accept=".csv,text/csv" onchange="uzPick(event,importPunchText)">
+          <div class="uz-icon">📂</div>
+          <div class="uz-label">點擊選擇 CSV 檔案，或直接拖曳到這裡</div>
+          <div class="uz-sub">支援一份 CSV 包含多位員工、整月資料</div>
+        </label>
         <div style="display:flex;gap:8px;margin-bottom:12px;">
-          <button class="btn btn-primary" onclick="importPunch()">匯入打卡紀錄</button>
           <button class="btn btn-outline" onclick="clearPunch()">清除本月</button>
         </div>
         <div id="punch-msg"></div>
@@ -228,14 +268,24 @@ select.inline-sel:focus{border-color:var(--primary);}
 
       <!-- PT Schedule -->
       <div id="import-ptsch" class="sub-content">
-        <p class="tip">僅工讀生需填。格式：日期,姓名,排班開始,排班結束</p>
-        <div class="code-hint">日期,姓名,排班開始,排班結束<br>2026-04-01,陳工讀,10:00,14:00<br>2026-04-03,陳工讀,14:00,18:00</div>
-        <div class="form-group"><textarea id="sch-csv" placeholder="在此貼上排班表 CSV..."></textarea></div>
-        <div style="display:flex;gap:8px;margin-bottom:12px;">
-          <button class="btn btn-primary" onclick="importSch()">匯入排班表</button>
+        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+          <button class="btn btn-primary" onclick="syncSchFromRagic()" id="ragic-sch-btn">🔗 從 Ragic 同步排班</button>
+          <button class="btn btn-outline" onclick="debugRagic('sch')" id="ragic-sch-dbg">🔎 檢查原始資料</button>
           <button class="btn btn-outline" onclick="clearSch()">清除本月排班</button>
         </div>
         <div id="sch-msg"></div>
+        <details style="margin-bottom:12px;">
+          <summary style="font-size:12px;color:var(--gray-400);cursor:pointer;">▶ 或手動上傳 CSV</summary>
+          <div style="margin-top:10px;">
+            <p class="tip">格式：日期,姓名,排班開始,排班結束</p>
+            <div class="code-hint">日期,姓名,排班開始,排班結束<br>2026-04-01,陳工讀,10:00,14:00<br>2026-04-03,陳工讀,14:00,18:00</div>
+            <label class="upload-zone" id="sch-drop" ondragover="uzDrag(event,'sch-drop')" ondragleave="uzLeave('sch-drop')" ondrop="uzDrop(event,'sch-drop',importSchText)">
+              <input type="file" id="sch-file" accept=".csv,text/csv" onchange="uzPick(event,importSchText)">
+              <div class="uz-icon">📂</div>
+              <div class="uz-label">點擊選擇 CSV 或拖曳到這裡</div>
+            </label>
+          </div>
+        </details>
         <hr class="divider">
         <div class="section-label">已匯入排班</div>
         <div class="tbl-wrap" id="sch-table"></div>
@@ -243,34 +293,51 @@ select.inline-sel:focus{border-color:var(--primary);}
 
       <!-- Leaves -->
       <div id="import-leaves" class="sub-content">
-        <div class="inline-form">
-          <div class="form-group"><label>員工</label><select id="lv-emp" class="inline-sel" style="min-width:100px;"></select></div>
-          <div class="form-group"><label>日期</label><input type="date" id="lv-date"></div>
-          <div class="form-group"><label>假別</label>
-            <select id="lv-type" class="inline-sel">
-              <option>特休</option><option>病假</option><option>事假</option>
-              <option>婚假</option><option>喪假</option><option>公假</option>
-              <option>補休</option><option>產假</option><option>陪產假</option>
-              <option>育嬰留停</option><option>其他</option>
-            </select>
-          </div>
-          <div class="form-group"><label>時數</label><input type="number" id="lv-hours" value="8" min="0.5" max="24" step="0.5" style="width:70px;"></div>
-          <div class="form-group"><label>備註</label><input type="text" id="lv-note" placeholder="選填" style="min-width:120px;"></div>
-          <div class="form-group"><label>&nbsp;</label><button class="btn btn-primary" onclick="addLeave()">新增</button></div>
+        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+          <button class="btn btn-primary" onclick="syncLeavesFromRagic()" id="ragic-lv-btn">🔗 從 Ragic 同步請假</button>
+          <button class="btn btn-outline" onclick="debugRagic('lv')">🔎 檢查原始資料</button>
         </div>
+        <div id="lv-msg"></div>
+        <details style="margin-bottom:12px;">
+          <summary style="font-size:12px;color:var(--gray-400);cursor:pointer;">▶ 或手動新增單筆</summary>
+          <div style="margin-top:10px;" class="inline-form">
+            <div class="form-group"><label>員工</label><select id="lv-emp" class="inline-sel" style="min-width:100px;"></select></div>
+            <div class="form-group"><label>日期</label><input type="date" id="lv-date"></div>
+            <div class="form-group"><label>假別</label>
+              <select id="lv-type" class="inline-sel">
+                <option>特休</option><option>病假</option><option>事假</option>
+                <option>婚假</option><option>喪假</option><option>公假</option>
+                <option>生理假</option><option>排班調整</option>
+                <option>補休</option><option>產假</option><option>陪產假</option>
+                <option>育嬰留停</option><option>其他</option>
+              </select>
+            </div>
+            <div class="form-group"><label>時數</label><input type="number" id="lv-hours" value="8" min="0.5" max="24" step="0.5" style="width:70px;"></div>
+            <div class="form-group"><label>備註</label><input type="text" id="lv-note" placeholder="選填" style="min-width:120px;"></div>
+            <div class="form-group"><label>&nbsp;</label><button class="btn btn-outline" onclick="addLeave()">新增</button></div>
+          </div>
+        </details>
         <div class="tbl-wrap" id="lv-table"></div>
       </div>
 
       <!-- OT / Shift -->
       <div id="import-ot" class="sub-content">
         <div class="section-label">加班申請</div>
-        <div class="inline-form">
-          <div class="form-group"><label>員工</label><select id="ot-emp" class="inline-sel" style="min-width:100px;"></select></div>
-          <div class="form-group"><label>日期</label><input type="date" id="ot-date"></div>
-          <div class="form-group"><label>時數</label><input type="number" id="ot-hours" value="1" min="0.5" max="12" step="0.5" style="width:70px;"></div>
-          <div class="form-group"><label>備註</label><input type="text" id="ot-note" placeholder="選填" style="min-width:120px;"></div>
-          <div class="form-group"><label>&nbsp;</label><button class="btn btn-primary" onclick="addOT()">新增</button></div>
+        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+          <button class="btn btn-primary" onclick="syncOTFromRagic()" id="ragic-ot-btn">🔗 從 Ragic 同步加班</button>
+          <button class="btn btn-outline" onclick="debugRagic('ot')">🔎 檢查原始資料</button>
         </div>
+        <div id="ot-msg"></div>
+        <details style="margin-bottom:12px;">
+          <summary style="font-size:12px;color:var(--gray-400);cursor:pointer;">▶ 或手動新增單筆</summary>
+          <div style="margin-top:10px;" class="inline-form">
+            <div class="form-group"><label>員工</label><select id="ot-emp" class="inline-sel" style="min-width:100px;"></select></div>
+            <div class="form-group"><label>日期</label><input type="date" id="ot-date"></div>
+            <div class="form-group"><label>時數</label><input type="number" id="ot-hours" value="1" min="0.5" max="12" step="0.5" style="width:70px;"></div>
+            <div class="form-group"><label>備註</label><input type="text" id="ot-note" placeholder="選填" style="min-width:120px;"></div>
+            <div class="form-group"><label>&nbsp;</label><button class="btn btn-outline" onclick="addOT()">新增</button></div>
+          </div>
+        </details>
         <div class="tbl-wrap" id="ot-table"></div>
         <hr class="divider">
         <div class="section-label">調班申請</div>
@@ -313,6 +380,19 @@ select.inline-sel:focus{border-color:var(--primary);}
       <div class="tbl-wrap" id="vfy-table"></div>
     </div>
     <div id="vfy-summary"></div>
+    <div style="margin-top:20px;padding:12px 16px;background:#f8fafc;border:1px solid var(--gray-200);border-radius:8px;font-size:12px;color:var(--gray-600);line-height:1.8;">
+      <strong style="color:var(--gray-700);display:block;margin-bottom:6px;">📋 考勤評分說明（滿分 100 分）</strong>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:4px 24px;">
+        <span>⏰ 遲到 1 次：<strong style="color:var(--warning);">－3 分</strong></span>
+        <span>🚪 早退 1 次：<strong style="color:var(--warning);">－3 分</strong></span>
+        <span>❓ 缺刷卡 1 次：<strong style="color:var(--danger);">－5 分</strong></span>
+        <span>🚫 缺勤 1 天：<strong style="color:var(--danger);">－10 分</strong></span>
+        <span>📋 請假 1 天：<strong style="color:var(--gray-500);">－1 分</strong></span>
+        <span>🎯 加班申請：<strong style="color:var(--success);">不扣分</strong></span>
+        <span>✅ 特休 / 公假 / 生理假 / 排班調整：<strong style="color:var(--success);">不扣分</strong></span>
+      </div>
+      <div style="margin-top:6px;color:var(--gray-400);font-size:11px;">遲到寬限分鐘內不計；最低 0 分，最高 100 分。</div>
+    </div>
   </div>
 
   <!-- ══ TAB: ANNUAL ══ -->
@@ -348,11 +428,15 @@ select.inline-sel:focus{border-color:var(--primary);}
       </div>
     </div>
     <div class="form-row">
+      <div class="form-group"><label>到職日期</label><input type="date" id="emp-hire-date"></div>
+      <div class="form-group"></div>
+    </div>
+    <div class="form-row">
       <div class="form-group"><label>標準上班時間</label><input type="time" id="emp-start" value="09:00"></div>
       <div class="form-group"><label>標準下班時間</label><input type="time" id="emp-end" value="18:00"></div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label>遲到寬限（分鐘）</label><input type="number" id="emp-late" value="0" min="0" max="60"></div>
+      <div class="form-group"><label>遲到寬限（分鐘）</label><input type="number" id="emp-late" value="30" min="0" max="60"></div>
       <div class="form-group"><label>早退寬限（分鐘）</label><input type="number" id="emp-early" value="0" min="0" max="60"></div>
     </div>
     <div class="form-row">
@@ -385,11 +469,30 @@ select.inline-sel:focus{border-color:var(--primary);}
   </div>
 </div>
 
+<!-- ══ MODAL: PUNCH EDIT ══ -->
+<div id="modal-punch-edit" class="modal-overlay" onclick="if(event.target===this)closePunchEdit()">
+  <div class="modal" style="width:380px;">
+    <div class="modal-header">
+      <span class="modal-title">修正打卡時間</span>
+      <button class="modal-close" onclick="closePunchEdit()">✕</button>
+    </div>
+    <div id="punch-edit-info" style="margin-bottom:14px;font-size:13px;color:var(--gray-600);"></div>
+    <div class="form-row">
+      <div class="form-group"><label>上班打卡</label><input type="time" id="punch-edit-in"></div>
+      <div class="form-group"><label>下班打卡</label><input type="time" id="punch-edit-out"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closePunchEdit()">取消</button>
+      <button class="btn btn-primary" onclick="saveModalPunchEdit()">儲存</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ══ STORAGE ══
 const SK = 'feebit_att_v1';
-let db = { employees:[], monthlyData:{} };
-function loadDB(){ try{ const s=localStorage.getItem(SK); if(s) db=JSON.parse(s); }catch(e){} }
+let db = { employees:[], monthlyData:{}, holidays:[] };
+function loadDB(){ try{ const s=localStorage.getItem(SK); if(s) db=JSON.parse(s); if(!db.holidays) db.holidays=[]; }catch(e){} }
 function saveDB(){ localStorage.setItem(SK,JSON.stringify(db)); }
 
 // ══ SIDEBAR ══
@@ -421,13 +524,12 @@ function diffH(a,b){ const da=toMins(a),db=toMins(b); if(da===null||db===null) r
 function calcWorkHours(clockIn, clockOut, emp){
   if(!clockIn||!clockOut) return 0;
   let hours=diffH(clockIn,clockOut);
-  if(emp?.lunchDeduct&&emp?.lunchStart&&emp?.lunchEnd){
-    const inM=toMins(clockIn),outM=toMins(clockOut);
-    const lsM=toMins(emp.lunchStart),leM=toMins(emp.lunchEnd);
-    if(inM<leM&&outM>lsM){
-      const overlap=(Math.min(outM,leM)-Math.max(inM,lsM))/60;
-      hours=Math.max(0,hours-overlap);
-    }
+  // 12:00~13:00 固定午休，全員強制扣除
+  const inM=toMins(clockIn),outM=toMins(clockOut);
+  const lsM=720,leM=780;
+  if(inM<leM&&outM>lsM){
+    const overlap=(Math.min(outM,leM)-Math.max(inM,lsM))/60;
+    hours=Math.max(0,hours-overlap);
   }
   return hours;
 }
@@ -451,12 +553,13 @@ function genMonthOpts(selId, val){
 function getEmpById(id){ return db.employees.find(e=>e.id===id); }
 
 function ensureMonth(m){
-  if(!db.monthlyData[m]) db.monthlyData[m]={records:[],leaves:[],overtimes:[],shiftChanges:[],ptSchedule:[]};
+  if(!db.monthlyData[m]) db.monthlyData[m]={records:[],leaves:[],overtimes:[],shiftChanges:[],ptSchedule:[],overrides:{}};
   const md=db.monthlyData[m];
   if(!md.leaves) md.leaves=[];
   if(!md.overtimes) md.overtimes=[];
   if(!md.shiftChanges) md.shiftChanges=[];
   if(!md.ptSchedule) md.ptSchedule=[];
+  if(!md.overrides) md.overrides={};
   return md;
 }
 
@@ -464,8 +567,14 @@ function parseCSV(text){
   const lines=text.trim().split('\n').map(l=>l.trim()).filter(Boolean);
   if(!lines.length) return [];
   const first=lines[0].split(',')[0];
-  const hasHeader=isNaN(first)&&!first.match(/^\d{4}-/);
+  const hasHeader=isNaN(first)&&!first.match(/^\d{4}[-\/]/);
   return (hasHeader?lines.slice(1):lines).map(l=>l.split(',').map(c=>c.trim()));
+}
+function normalizeDate(s){
+  if(!s) return '';
+  const m=s.replace(/\//g,'-').match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if(!m) return s;
+  return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
 }
 
 // ══ EMPLOYEES ══
@@ -495,6 +604,7 @@ function openEmpModal(id){
     const e=db.employees.find(x=>x.id===id); if(!e) return;
     document.getElementById('emp-name').value=e.name;
     document.getElementById('emp-type').value=e.type;
+    document.getElementById('emp-hire-date').value=e.hireDate||'';
     document.getElementById('emp-start').value=e.startTime||'09:00';
     document.getElementById('emp-end').value=e.endTime||'18:00';
     document.getElementById('emp-late').value=e.lateGrace||0;
@@ -507,9 +617,10 @@ function openEmpModal(id){
   } else {
     document.getElementById('emp-name').value='';
     document.getElementById('emp-type').value='full-time';
-    document.getElementById('emp-start').value='09:00';
-    document.getElementById('emp-end').value='17:30';
-    document.getElementById('emp-late').value=0;
+    document.getElementById('emp-hire-date').value='';
+    document.getElementById('emp-start').value='08:30';
+    document.getElementById('emp-end').value='18:00';
+    document.getElementById('emp-late').value=30;
     document.getElementById('emp-early').value=0;
     document.getElementById('emp-lunch-start').value='12:00';
     document.getElementById('emp-lunch-end').value='13:00';
@@ -529,6 +640,7 @@ function saveEmployee(){
     id:editId||uid(),
     ragicId:existing?.ragicId||'',
     name,
+    hireDate:document.getElementById('emp-hire-date').value||'',
     type:document.getElementById('emp-type').value,
     startTime:document.getElementById('emp-start').value,
     endTime:document.getElementById('emp-end').value,
@@ -550,6 +662,21 @@ function delEmp(id){
   saveDB(); renderEmployees();
 }
 
+// ══ HOLIDAYS ══
+function renderHolidays(){
+  const ta=document.getElementById('holiday-input'); if(!ta) return;
+  ta.value=(db.holidays||[]).join('\n');
+}
+function saveHolidays(){
+  const raw=document.getElementById('holiday-input').value;
+  const dates=raw.split('\n').map(s=>s.trim()).filter(s=>/^\d{4}-\d{2}-\d{2}$/.test(s));
+  db.holidays=dates; saveDB();
+  const msg=document.getElementById('holiday-msg');
+  msg.innerHTML=`<span style="color:var(--success);">✅ 已儲存 ${dates.length} 個假日</span>`;
+  setTimeout(()=>msg.innerHTML='',2000);
+}
+function isHoliday(date){ return (db.holidays||[]).includes(date); }
+
 // ══ IMPORT ══
 function initImport(){
   const today=new Date();
@@ -570,26 +697,50 @@ function refreshEmpDrops(){
   ['lv-emp','ot-emp','sh-emp'].forEach(id=>{ const s=document.getElementById(id); if(s) s.innerHTML=opts||'<option value="">（無員工）</option>'; });
 }
 
+// ─ Upload zone helpers ─
+function uzDrag(e,id){ e.preventDefault(); document.getElementById(id).classList.add('drag-over'); }
+function uzLeave(id){ document.getElementById(id).classList.remove('drag-over'); }
+function uzDrop(e,id,handler){ e.preventDefault(); uzLeave(id); const f=e.dataTransfer.files[0]; if(f) readCSVFile(f,handler); }
+function uzPick(e,handler){ const f=e.target.files[0]; if(f) readCSVFile(f,handler); e.target.value=''; }
+function readCSVFile(file,handler){
+  if(!file.name.toLowerCase().endsWith('.csv')&&file.type!=='text/csv'){ alert('請選擇 .csv 檔案'); return; }
+  const r1=new FileReader();
+  r1.onload=ev=>{
+    const text=ev.target.result;
+    // 若含亂碼（replacement char），改用 Big5 重讀
+    if(text.includes('\uFFFD')){
+      const r2=new FileReader();
+      r2.onload=ev2=>handler(ev2.target.result);
+      r2.readAsText(file,'big5');
+    } else {
+      handler(text);
+    }
+  };
+  r1.readAsText(file,'UTF-8');
+}
+
 // ─ Punch ─
-function importPunch(){
+function importPunchText(text){
   const m=document.getElementById('import-month').value;
-  const text=document.getElementById('punch-csv').value;
-  if(!text.trim()){ alert('請貼上 CSV'); return; }
+  if(!text.trim()){ alert('CSV 檔案為空'); return; }
   const rows=parseCSV(text); let ok=0; const errs=[];
   const md=ensureMonth(m);
   rows.forEach((r,i)=>{
-    const[date,name,ci,co]=r;
-    if(!date||!name){ errs.push(`第${i+2}列：缺日期或姓名`); return; }
-    if(!date.match(/^\d{4}-\d{2}-\d{2}$/)){ errs.push(`第${i+2}列：日期格式錯誤(${date})`); return; }
-    const emp=db.employees.find(e=>e.name===name);
+    const rawDate=r[0]||'';
+    if(!rawDate.match(/^\d{4}/)) return; // 跳過頁尾合計列
+    const date=normalizeDate(rawDate);
+    const name=r[3]||'', ci=r[5]||'', co=r[6]||'';
+    if(!date.match(/^\d{4}-\d{2}-\d{2}$/)){ errs.push(`第${i+2}列：日期格式錯誤(${rawDate})`); return; }
+    if(!date.startsWith(m)) return; // 非當月日期自動略過
+    if(!name){ errs.push(`第${i+2}列：缺姓名`); return; }
+    const emp=db.employees.find(e=>e.name===name||name.includes(e.name)||e.name.includes(name));
     if(!emp){ errs.push(`第${i+2}列：找不到員工「${name}」`); return; }
     const idx=md.records.findIndex(x=>x.date===date&&x.employeeId===emp.id);
     if(idx>=0) md.records.splice(idx,1);
-    md.records.push({date,employeeId:emp.id,clockIn:ci||'',clockOut:co||''});
+    md.records.push({date,employeeId:emp.id,clockIn:ci,clockOut:co});
     ok++;
   });
   saveDB();
-  document.getElementById('punch-csv').value='';
   document.getElementById('punch-msg').innerHTML=`<div style="padding:8px 12px;background:#dcfce7;border-radius:6px;font-size:13px;margin-bottom:10px;">✅ 成功匯入 ${ok} 筆${errs.length?'，'+errs.length+' 筆錯誤：<br>'+errs.map(esc).join('<br>'):''}  </div>`;
   renderPunchTable(m);
 }
@@ -613,7 +764,10 @@ function renderPunchTable(m){
       <td>${esc(emp?.name||r.employeeId)}</td>
       <td>${r.clockIn||'<span style="color:var(--danger)">—</span>'}</td>
       <td>${r.clockOut||'<span style="color:var(--danger)">—</span>'}</td>
-      <td><button class="btn btn-outline btn-sm" onclick="delPunch('${m}','${r.date}','${r.employeeId}')">刪除</button></td>
+      <td>
+        <button class="btn btn-outline btn-sm" onclick="openPunchEdit('${m}','${r.date}','${r.employeeId}')">編輯</button>
+        <button class="btn btn-danger btn-sm" style="margin-left:4px" onclick="delPunch('${m}','${r.date}','${r.employeeId}')">刪除</button>
+      </td>
     </tr>`;
   }).join('')}</tbody></table>`;
 }
@@ -623,11 +777,35 @@ function delPunch(m,date,empId){
   saveDB(); renderPunchTable(m);
 }
 
+let punchEditCtx=null;
+function openPunchEdit(m,date,empId){
+  const rec=db.monthlyData[m]?.records.find(r=>r.date===date&&r.employeeId===empId);
+  if(!rec) return;
+  const emp=getEmpById(empId);
+  punchEditCtx={m,date,empId};
+  document.getElementById('punch-edit-info').textContent=`${date}　${emp?.name||empId}`;
+  document.getElementById('punch-edit-in').value=rec.clockIn||'';
+  document.getElementById('punch-edit-out').value=rec.clockOut||'';
+  document.getElementById('modal-punch-edit').classList.add('open');
+}
+function closePunchEdit(){ document.getElementById('modal-punch-edit').classList.remove('open'); punchEditCtx=null; }
+function saveModalPunchEdit(){
+  if(!punchEditCtx) return;
+  const {m,date,empId}=punchEditCtx;
+  const rec=db.monthlyData[m]?.records.find(r=>r.date===date&&r.employeeId===empId);
+  if(rec){
+    rec.clockIn=document.getElementById('punch-edit-in').value;
+    rec.clockOut=document.getElementById('punch-edit-out').value;
+    saveDB();
+  }
+  closePunchEdit();
+  renderPunchTable(m);
+}
+
 // ─ Schedule ─
-function importSch(){
+function importSchText(text){
   const m=document.getElementById('import-month').value;
-  const text=document.getElementById('sch-csv').value;
-  if(!text.trim()){ alert('請貼上排班表 CSV'); return; }
+  if(!text.trim()){ alert('CSV 檔案為空'); return; }
   const rows=parseCSV(text); let ok=0; const errs=[];
   const md=ensureMonth(m);
   rows.forEach((r,i)=>{
@@ -641,7 +819,6 @@ function importSch(){
     ok++;
   });
   saveDB();
-  document.getElementById('sch-csv').value='';
   document.getElementById('sch-msg').innerHTML=`<div style="padding:8px 12px;background:#dcfce7;border-radius:6px;font-size:13px;margin-bottom:10px;">✅ 匯入 ${ok} 筆${errs.length?'，'+errs.length+' 筆錯誤':''}</div>`;
   renderSchTable(m);
 }
@@ -784,55 +961,136 @@ function delShift(m,id){
   saveDB(); renderShTable(m);
 }
 
+// ══ 勞基法假別上限 ══
+const LEAVE_LIMITS={
+  '事假':  {max:14, warn:12, note:'全年上限 14 天（無薪）'},
+  '病假':  {max:30, warn:25, note:'全年上限 30 天（半薪）'},
+  '婚假':  {max:8,  warn:7,  note:'一次性 8 天'},
+  '喪假':  {max:8,  warn:7,  note:'依親等 3–8 天'},
+  '公假':  {max:null,warn:null,note:'依實際需要'},
+  '特休':  {max:null,warn:null,note:'依年資計算（勞基法第38條）'},
+  '補休':  {max:null,warn:null,note:'加班換補休'},
+  '產假':  {max:56, warn:50, note:'8 週（56 天）'},
+  '陪產假':{max:7,  warn:6,  note:'7 天'},
+  '育嬰留停':{max:null,warn:null,note:'依育嬰留職停薪辦法'},
+};
+
+function renderLeaveBalance(leaveBreakdown, title='假別累計'){
+  const rows=Object.entries(leaveBreakdown).filter(([,h])=>h>0).map(([type,hours])=>{
+    const days=parseFloat(hours.toFixed(1)); // leaveBreakdown 已儲存天數
+    const lim=LEAVE_LIMITS[type];
+    let tag='';
+    if(lim?.max&&days>=lim.max) tag=`<span style="color:var(--danger);font-weight:700;">⚠️ 已達上限</span>`;
+    else if(lim?.warn&&days>=lim.warn) tag=`<span style="color:var(--warning);font-weight:600;">接近上限</span>`;
+    const maxStr=lim?.max?`/ ${lim.max} 天`:'';
+    const noteStr=lim?.note?`<span style="color:var(--gray-400);font-size:10px;"> ${lim.note}</span>`:'';
+    return `<tr>
+      <td><span class="badge badge-leave">${esc(type)}</span></td>
+      <td style="font-weight:600;">${days} 天 ${maxStr}</td>
+      <td>${tag}${noteStr}</td>
+    </tr>`;
+  }).join('');
+  if(!rows) return '';
+  return `<details style="margin-top:8px;">
+    <summary style="font-size:12px;font-weight:600;cursor:pointer;color:var(--gray-600);">📋 ${title}（點擊展開）</summary>
+    <table style="margin-top:8px;font-size:12px;width:100%;">
+      <thead><tr><th>假別</th><th>已用</th><th>狀態</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </details>`;
+}
+
 // ══ ANOMALY ENGINE ══
 function analyzeEmployee(empId, month){
   const emp=getEmpById(empId); if(!emp) return null;
-  const md=db.monthlyData[month]||{records:[],leaves:[],overtimes:[],shiftChanges:[],ptSchedule:[]};
+  const md=db.monthlyData[month]||{records:[],leaves:[],overtimes:[],shiftChanges:[],ptSchedule:[],overrides:{}};
   const isPT=emp.type==='part-time';
+  const workdays=emp.weekdays||[1,2,3,4,5];
 
-  // expected dates
   let expected=isPT
     ?(md.ptSchedule||[]).filter(s=>s.employeeId===empId).map(s=>s.date)
-    :monthDays(month).filter(d=>(emp.weekdays||[1,2,3,4,5]).includes(dow(d)));
+    :monthDays(month).filter(d=>workdays.includes(dow(d))&&!isHoliday(d));
 
-  // apply shift changes
   (md.shiftChanges||[]).filter(s=>s.employeeId===empId).forEach(s=>{
     expected=expected.filter(d=>d!==s.from);
-    if(!expected.includes(s.to)) expected.push(s.to);
+    if(!isPT&&!expected.includes(s.to)) expected.push(s.to);
   });
 
-  const leaveDates=(md.leaves||[]).filter(l=>l.employeeId===empId).map(l=>l.date);
+  const empLeaves=(md.leaves||[]).filter(l=>l.employeeId===empId);
+  const leaveDates=empLeaves.map(l=>l.date);
+  const publicLeaveDates=empLeaves.filter(l=>l.type==='公假').map(l=>l.date);
+  const otherLeaveDates=empLeaves.filter(l=>l.type!=='公假').map(l=>l.date);
   const recMap=Object.fromEntries((md.records||[]).filter(r=>r.employeeId===empId).map(r=>[r.date,r]));
   const otMap=Object.fromEntries((md.overtimes||[]).filter(o=>o.employeeId===empId).map(o=>[o.date,o]));
   const schMap=Object.fromEntries((md.ptSchedule||[]).filter(s=>s.employeeId===empId).map(s=>[s.date,s]));
+  const overrideMap=md.overrides||{};
+  // 排除被標記為非工作日的 override（彈性假期、補假等）
+  const NON_WORK_OVERRIDES=['彈性假期','補假','國定假日','假日'];
+  expected=expected.filter(d=>!NON_WORK_OVERRIDES.includes(overrideMap[empId+'|'+d]));
 
   const rows=[];
   let totalDays=0, totalHours=0, lateCount=0, earlyCount=0, missingCount=0, absentCount=0;
   const leaveBreakdown={};
-  (md.leaves||[]).filter(l=>l.employeeId===empId).forEach(l=>{ leaveBreakdown[l.type]=(leaveBreakdown[l.type]||0)+l.hours; });
+  const NO_DEDUCT_LEAVES=['公假','生理假','特休','排班調整'];
+  empLeaves.filter(l=>!NO_DEDUCT_LEAVES.includes(l.type)).forEach(l=>{
+    const lr=recMap[l.date];
+    const hasActualPunch=lr&&lr.clockIn&&lr.clockOut;
+    const days=hasActualPunch ? l.hours/8 : 1; // 當天有打卡才用小時換算，否則算整天
+    leaveBreakdown[l.type]=(leaveBreakdown[l.type]||0)+days;
+  });
   const totalOT=(md.overtimes||[]).filter(o=>o.employeeId===empId).reduce((s,o)=>s+o.hours,0);
 
-  const allDates=[...new Set([...expected,...Object.keys(recMap)])].sort();
+  // FT 顯示整月所有日期；PT 只顯示排班+打卡日；加入有 override 的日期
+  const overrideDates=Object.keys(overrideMap).filter(k=>k.startsWith(empId+'|')).map(k=>k.split('|')[1]);
+  const baseDates=isPT
+    ?[...new Set([...expected,...Object.keys(recMap)])]
+    :monthDays(month);
+  const allDates=[...new Set([...baseDates,...overrideDates])].filter(d=>d.startsWith(month)).sort();
 
   allDates.forEach(date=>{
     const rec=recMap[date];
     const isExpected=expected.includes(date);
     const isLeave=leaveDates.includes(date);
+    const isPublicLeave=publicLeaveDates.includes(date);
     const ot=otMap[date];
     const sch=schMap[date];
+    const override=overrideMap[empId+'|'+date];
+    const isWeekend=!workdays.includes(dow(date)); // 不分正職工讀，六日都是假日
+    const isNatHol=isHoliday(date);
+    const isNonWorkday=isPT?(isWeekend&&!expected.includes(date))||isNatHol:isWeekend||isNatHol;
 
-    const sStart=isPT?(sch?.scheduledStart||emp.startTime):emp.startTime;
-    const sEnd=isPT?(sch?.scheduledEnd||emp.endTime):emp.endTime;
+    const sStart=isPT?(sch?.scheduledStart||''):emp.startTime; // 工讀無排班留空
+    const sEnd=isPT?(sch?.scheduledEnd||''):emp.endTime;
+
+    // 工讀生：沒有排班且沒有加班申請的日子，完全跳過不顯示也不計算
+    if(isPT&&!sch&&!ot) return;
 
     let status=[], rowClass='', hours=0, lateMin=0, earlyMin=0;
+    const LEAVE_TYPES=['特休','病假','事假','婚假','喪假','公假','補休','產假','陪產假','育嬰留停','生理假','排班調整','其他'];
+    const NON_WORK_STATUSES=['假日','國定假日','彈性假期','補假','請假',...LEAVE_TYPES];
 
-    if(isLeave&&!rec){
-      status=['請假'];
-      const lv=(md.leaves||[]).find(l=>l.employeeId===empId&&l.date===date);
-      hours=(lv?.hours||8)/8; // treat as day fraction for display
+    if(override && override!=='免早退'){
+      status=[override];
+      if(override==='公假'){
+        rowClass='row-ok'; totalDays++;
+        if(rec&&rec.clockIn&&rec.clockOut){ hours=calcWorkHours(rec.clockIn,rec.clockOut,emp); totalHours+=hours; }
+      } else {
+        rowClass=override==='曠職'?'row-absent':NON_WORK_STATUSES.includes(override)?'':'row-ok';
+        if(rec&&rec.clockIn&&rec.clockOut){ hours=calcWorkHours(rec.clockIn,rec.clockOut,emp); totalHours+=hours; }
+        if(!NON_WORK_STATUSES.includes(override)) totalDays++;
+      }
+    } else if(isNonWorkday){
+      status=[isNatHol&&!isWeekend?'國定假日':'假日']; rowClass='';
+    } else if(isPublicLeave&&(!rec||(!rec.clockIn&&!rec.clockOut))){
+      status=['公假']; rowClass='row-ok'; totalDays++; hours=8; totalHours+=hours;
+    } else if(isLeave&&(!rec||(!rec.clockIn&&!rec.clockOut))){
+      const lv=empLeaves.find(l=>l.date===date);
+      status=[lv?.type||'請假'];
     } else if(!rec&&isExpected){
       status=['缺勤']; rowClass='row-absent'; absentCount++;
     } else if(rec){
+      // 工讀生：有排班但沒有打卡時間不算出勤日
+      if(isPT&&!rec.clockIn&&!rec.clockOut){ return; }
       totalDays++;
       if(!rec.clockIn&&!rec.clockOut){ status=['未打卡']; rowClass='row-missing'; missingCount++; }
       else if(!rec.clockIn){ status=['未打上班卡']; rowClass='row-missing'; missingCount++; }
@@ -840,21 +1098,52 @@ function analyzeEmployee(empId, month){
       else {
         const inM=toMins(rec.clockIn), outM=toMins(rec.clockOut);
         const sInM=toMins(sStart), sOutM=toMins(sEnd);
-        if(sInM!==null&&inM>sInM+(emp.lateGrace||5)){ lateMin=inM-sInM; status.push('遲到 '+lateMin+' 分'); rowClass='row-late'; lateCount++; }
-        if(sOutM!==null&&outM<sOutM-(emp.earlyGrace||5)){ earlyMin=sOutM-outM; status.push('早退 '+earlyMin+' 分'); if(!rowClass||rowClass==='row-ok') rowClass='row-early'; earlyCount++; }
+        const lateDeadline=sInM+(emp.lateGrace??30);
+        if(sInM!==null&&inM>lateDeadline){ lateMin=inM-lateDeadline; status.push('遲到 '+lateMin+' 分'); rowClass='row-late'; lateCount++; }
+        if((!isPT||sch)&&sOutM!==null&&outM<sOutM-(emp.earlyGrace??0)&&override!=='免早退'){ earlyMin=sOutM-outM; status.push('早退 '+earlyMin+' 分'); if(!rowClass||rowClass==='row-ok') rowClass='row-early'; earlyCount++; }
         if(!status.length){ status=['正常']; rowClass='row-ok'; }
         hours=calcWorkHours(rec.clockIn,rec.clockOut,emp);
         totalHours+=hours;
       }
-    } else { return; } // not expected, no record → skip
+    } else { return; }
 
-    rows.push({date,emp,rec,sStart,sEnd,status,rowClass,hours,lateMin,earlyMin,isLeave,ot,isExpected});
+    rows.push({date,emp,rec,sStart,sEnd,status,rowClass,hours,lateMin,earlyMin,isLeave,isPublicLeave,ot,isExpected,isNonWorkday,override});
   });
 
-  const expectedWork=expected.filter(d=>!leaveDates.includes(d)).length;
+  const expectedWork=expected.length; // 應出勤 = 工作日總數，不扣請假
   return {emp,rows,totalDays,totalHours:fmt(totalHours),lateCount,earlyCount,missingCount,absentCount,
     totalOT,leaveBreakdown,expectedWork,
-    leaveTotal:fmt(Object.values(leaveBreakdown).reduce((a,b)=>a+b,0)/8,1)};
+    leaveTotal:fmt(Object.values(leaveBreakdown).reduce((a,b)=>a+b,0),1)};
+}
+
+function editPunchCell(el,m,empId,date,field){
+  const cur=el.querySelector('input')?el.querySelector('input').value:(el.textContent.trim()==='—'?'':el.textContent.trim());
+  const inp=document.createElement('input');
+  inp.type='time'; inp.value=cur;
+  inp.style.cssText='padding:2px 4px;font-size:12px;border:1px solid var(--primary);border-radius:4px;width:82px;';
+  el.innerHTML=''; el.appendChild(inp); inp.focus();
+  let saved=false;
+  const save=()=>{ if(saved) return; saved=true; savePunchEdit(m,empId,date,field,inp.value); };
+  inp.addEventListener('blur',save);
+  inp.addEventListener('keydown',e=>{ if(e.key==='Enter'){inp.blur();} if(e.key==='Escape'){saved=true; renderVerify();} });
+}
+function savePunchEdit(m,empId,date,field,val){
+  const md=ensureMonth(m);
+  let rec=md.records.find(r=>r.employeeId===empId&&r.date===date);
+  if(!rec){ rec={date,employeeId:empId,clockIn:'',clockOut:''}; md.records.push(rec); }
+  if(field==='in') rec.clockIn=val; else rec.clockOut=val;
+  saveDB(); renderVerify();
+}
+
+function setOverride(m,empId,date,val){
+  const md=ensureMonth(m);
+  const key=empId+'|'+date;
+  if(val) md.overrides[key]=val; else delete md.overrides[key];
+  // 設為國定假日時自動加入假日清單
+  if(val==='國定假日'){
+    if(!db.holidays.includes(date)){ db.holidays.push(date); db.holidays.sort(); renderHolidays(); }
+  }
+  saveDB(); renderVerify();
 }
 
 function calcScore(empId, month){
@@ -864,7 +1153,36 @@ function calcScore(empId, month){
   s-=r.earlyCount*3;
   s-=r.missingCount*5;
   s-=r.absentCount*10;
-  return Math.max(0,Math.min(100,s));
+  const leaveTotal=Object.values(r.leaveBreakdown||{}).reduce((a,b)=>a+b,0);
+  s-=leaveTotal; // 每請假1天扣1分，公假不計（公假不進leaveBreakdown）
+  return Math.max(0,Math.min(100,Math.round(s*10)/10));
+}
+
+// 依年資計算本年度特休額度（勞基法第38條）
+function calcAnnualLeaveDays(hireDate, asOfDate){
+  if(!hireDate) return null;
+  const diffMs=new Date(asOfDate)-new Date(hireDate);
+  if(diffMs<0) return 0;
+  const months=diffMs/(30.4375*24*3600*1000);
+  if(months<6) return 0;
+  const yrs=diffMs/(365.25*24*3600*1000);
+  if(yrs<1) return 3;
+  if(yrs<2) return 7;
+  if(yrs<3) return 10;
+  if(yrs<5) return 14;
+  if(yrs<10) return 15;
+  return Math.min(30,15+Math.floor(yrs)-9);
+}
+// 計算某員工某年度已用特休天數（跨所有月份）
+function calcUsedAnnualLeave(empId, year){
+  const y=String(year);
+  return Object.keys(db.monthlyData).filter(m=>m.startsWith(y+'-')).reduce((sum,m)=>{
+    const leaves=(db.monthlyData[m]?.leaves||[]).filter(l=>l.employeeId===empId&&l.type==='特休');
+    return sum+leaves.reduce((s,l)=>{
+      const lr=(db.monthlyData[m]?.records||[]).find(r=>r.date===l.date&&r.employeeId===empId);
+      return s+(lr?.clockIn&&lr?.clockOut?l.hours/8:1);
+    },0);
+  },0);
 }
 
 // ══ VERIFY ══
@@ -891,6 +1209,10 @@ function renderVerify(){
 
   const analyses=emps.map(e=>analyzeEmployee(e.id,month)).filter(Boolean);
 
+  // 本月曆法工作日（Mon-Fri，只排除 db.holidays 公司假日；個人 override 只影響個人應出勤）
+  const calWeekdays=monthDays(month).filter(d=>[1,2,3,4,5].includes(dow(d))).length;
+  const calWorkdays=monthDays(month).filter(d=>[1,2,3,4,5].includes(dow(d))&&!isHoliday(d)).length;
+
   // stats summary
   const totDays=analyses.reduce((s,a)=>s+a.totalDays,0);
   const totLate=analyses.reduce((s,a)=>s+a.lateCount,0);
@@ -898,14 +1220,21 @@ function renderVerify(){
   const totMissing=analyses.reduce((s,a)=>s+a.missingCount,0);
   const totAbsent=analyses.reduce((s,a)=>s+a.absentCount,0);
   const totOT=analyses.reduce((s,a)=>s+a.totalOT,0);
+  const totLeave=fmt(analyses.reduce((s,a)=>s+Object.values(a.leaveBreakdown).reduce((x,y)=>x+y,0),0),1);
 
   document.getElementById('vfy-stats').innerHTML=`
+    <div class="stat-box" style="border:1.5px solid var(--gray-200);">
+      <div class="num" style="font-size:18px;">${calWorkdays}</div>
+      <div class="lbl">本月工作日</div>
+      ${calWeekdays!==calWorkdays?`<div style="font-size:10px;color:var(--gray-400);margin-top:2px;">平日${calWeekdays}天，排除假日${calWeekdays-calWorkdays}天</div>`:'<div style="font-size:10px;color:var(--gray-400);margin-top:2px;">（未設定假日）</div>'}
+    </div>
     <div class="stat-box good"><div class="num">${totDays}</div><div class="lbl">出勤人日</div></div>
     <div class="stat-box ${totLate?'warn':''}"><div class="num">${totLate}</div><div class="lbl">遲到次數</div></div>
     <div class="stat-box ${totEarly?'warn':''}"><div class="num">${totEarly}</div><div class="lbl">早退次數</div></div>
     <div class="stat-box ${totMissing?'danger':''}"><div class="num">${totMissing}</div><div class="lbl">未打卡</div></div>
     <div class="stat-box ${totAbsent?'danger':''}"><div class="num">${totAbsent}</div><div class="lbl">缺勤天數</div></div>
     <div class="stat-box"><div class="num">${totOT}</div><div class="lbl">加班時數</div></div>
+    <div class="stat-box"><div class="num">${totLeave}</div><div class="lbl">請假天數</div></div>
   `;
 
   // merge all rows for table
@@ -915,21 +1244,30 @@ function renderVerify(){
     document.getElementById('vfy-table').innerHTML='<div class="empty-state"><div class="ei">🔍</div><div>無考勤資料，請先匯入打卡紀錄</div></div>';
   } else {
     document.getElementById('vfy-table').innerHTML=`<table>
-      <thead><tr><th>日期</th><th>員工</th><th>類型</th><th>排班</th><th>上班打卡</th><th>下班打卡</th><th>時數</th><th>狀態</th></tr></thead>
+      <thead><tr><th>日期</th><th>員工</th><th>類型</th><th>排班</th><th>上班打卡</th><th>下班打卡</th><th>時數</th><th>狀態</th><th>調整</th></tr></thead>
       <tbody>
-      ${allRows.map(r=>`<tr class="${r.rowClass}">
-        <td>${r.date} <span style="font-size:10px;color:var(--gray-400);">${WD_LABEL[dow(r.date)]}</span></td>
-        <td>${esc(r.emp.name)}</td>
-        <td><span class="badge ${r.emp.type==='full-time'?'badge-ft':'badge-pt'}" style="font-size:10px;">${r.emp.type==='full-time'?'正':'讀'}</span></td>
-        <td style="font-size:11px;color:var(--gray-500);">${r.sStart||'-'}～${r.sEnd||'-'}</td>
-        <td>${r.rec?.clockIn||'<span style="color:var(--gray-400)">—</span>'}</td>
-        <td>${r.rec?.clockOut||'<span style="color:var(--gray-400)">—</span>'}</td>
-        <td>${r.hours?fmt(r.hours)+' h':r.isLeave?'<span style="color:var(--primary)">請假</span>':'-'}</td>
-        <td>${r.status.map(s=>{
-          const c=s.includes('正常')?'badge-ok':s.includes('遲到')?'badge-late':s.includes('早退')?'badge-early':s.includes('未打')?'badge-missing':s.includes('缺勤')?'badge-absent':'badge-leave';
+      ${allRows.map(r=>{
+        const statusHtml=r.status.map(s=>{
+          const LEAVE_T=['特休','病假','事假','婚假','喪假','公假','生理假','排班調整','補休','產假','陪產假','育嬰留停','其他','請假'];
+          const c=s==='正常'?'badge-ok':s==='公假'?'badge-ok':s.includes('遲到')?'badge-late':s.includes('早退')?'badge-early':s.includes('未打')?'badge-missing':s==='缺勤'||s==='曠職'?'badge-absent':s==='國定假日'?'badge-missing':s==='彈性假期'?'badge-ot':s==='假日'||s==='補假'||s==='補班'?'badge-leave':LEAVE_T.includes(s)?'badge-leave':'badge-ok';
           return `<span class="badge ${c}">${esc(s)}</span>`;
-        }).join(' ')}${r.ot?` <span class="badge badge-ot">+${r.ot.hours}h加班</span>`:''}</td>
-      </tr>`).join('')}
+        }).join(' ')+(r.ot?` <span class="badge badge-ot">+${r.ot.hours}h加班</span>`:'');
+        const overrideSel=`<select class="inline-sel" style="padding:2px 5px;font-size:11px;min-width:68px;" onchange="setOverride('${month}','${r.emp.id}','${r.date}',this.value)">
+          <option value="">— 自動 —</option>
+          ${['正常','公假','免早退','假日','國定假日','彈性假期','補假','補班','請假','曠職','未打卡'].map(v=>`<option value="${v}"${r.override===v?' selected':''}>${v}</option>`).join('')}
+        </select>`;
+        return `<tr class="${r.rowClass}">
+          <td>${r.date} <span style="font-size:10px;color:var(--gray-400);">${WD_LABEL[dow(r.date)]}</span></td>
+          <td>${esc(r.emp.name)}</td>
+          <td><span class="badge ${r.emp.type==='full-time'?'badge-ft':'badge-pt'}" style="font-size:10px;">${r.emp.type==='full-time'?'正':'讀'}</span></td>
+          <td style="font-size:11px;color:var(--gray-500);">${r.isNonWorkday&&!r.override?'—':r.sStart+'～'+r.sEnd}</td>
+          <td style="cursor:pointer;" onclick="editPunchCell(this,'${month}','${r.emp.id}','${r.date}','in')" title="點擊編輯">${r.rec?.clockIn||'<span style="color:var(--gray-400)">—</span>'}</td>
+          <td style="cursor:pointer;" onclick="editPunchCell(this,'${month}','${r.emp.id}','${r.date}','out')" title="點擊編輯">${r.rec?.clockOut||'<span style="color:var(--gray-400)">—</span>'}</td>
+          <td>${r.isLeave&&!r.isPublicLeave&&!r.rec?`<span style="color:var(--primary);font-size:11px;">${esc(r.status[0]||'請假')}</span>`:r.hours?fmt(r.hours)+' h':'-'}</td>
+          <td>${statusHtml}</td>
+          <td>${overrideSel}</td>
+        </tr>`;
+      }).join('')}
       </tbody></table>`;
   }
 
@@ -937,7 +1275,6 @@ function renderVerify(){
   document.getElementById('vfy-summary').innerHTML=analyses.map(a=>{
     const score=calcScore(a.emp.id,month);
     const barClass=score>=90?'bar-hi':score>=75?'bar-md':'bar-lo';
-    const leaveParts=Object.entries(a.leaveBreakdown).map(([t,h])=>`${t} ${fmt(h/8,1)}天`).join('、')||'無';
     return `<div class="card">
       <div class="card-header" style="margin-bottom:10px;">
         <div style="display:flex;align-items:center;gap:8px;">
@@ -951,6 +1288,8 @@ function renderVerify(){
         </div>
       </div>
       <div class="stats-row" style="grid-template-columns:repeat(auto-fill,minmax(90px,1fr));">
+        <div class="stat-box" style="border:1.5px solid var(--gray-200);"><div class="num" style="font-size:18px;">${calWorkdays}</div><div class="lbl">本月工作日</div></div>
+        <div class="stat-box"><div class="num" style="font-size:18px;">${a.expectedWork}</div><div class="lbl">應出勤</div></div>
         <div class="stat-box"><div class="num" style="font-size:18px;">${a.totalDays}</div><div class="lbl">出勤天數</div></div>
         <div class="stat-box"><div class="num" style="font-size:18px;">${a.totalHours}</div><div class="lbl">出勤時數</div></div>
         <div class="stat-box ${a.lateCount?'warn':''}"><div class="num" style="font-size:18px;">${a.lateCount}</div><div class="lbl">遲到</div></div>
@@ -960,7 +1299,23 @@ function renderVerify(){
         <div class="stat-box ${a.totalOT?'good':''}"><div class="num" style="font-size:18px;">${a.totalOT}</div><div class="lbl">加班時數</div></div>
         <div class="stat-box"><div class="num" style="font-size:18px;">${a.leaveTotal}</div><div class="lbl">請假天數</div></div>
       </div>
-      <div style="font-size:12px;color:var(--gray-500);margin-top:4px;">假別：${leaveParts}</div>
+      ${renderLeaveBalance(a.leaveBreakdown,'本月假別明細')}
+      ${(()=>{
+        const emp=a.emp; const yr=month.substring(0,4);
+        const entitled=calcAnnualLeaveDays(emp.hireDate, month+'-01');
+        if(entitled===null) return '';
+        const used=calcUsedAnnualLeave(emp.id, yr);
+        const remain=Math.max(0,entitled-used);
+        const yrs=(( new Date(month+'-01')-new Date(emp.hireDate))/(365.25*24*3600*1000));
+        const yrLabel=yrs>=1?`${Math.floor(yrs)}年${Math.floor((yrs%1)*12)}個月`:'未滿1年';
+        const cls=remain===0?'danger':remain<=3?'warn':'good';
+        return `<div style="margin-top:8px;padding:8px 12px;background:#f8fafc;border-radius:6px;font-size:12px;color:var(--gray-700);display:flex;gap:16px;flex-wrap:wrap;">
+          <span>📅 年資：${yrLabel}</span>
+          <span>🎯 ${yr}年度特休額度：<strong>${entitled}</strong> 天</span>
+          <span>✅ 已用：<strong>${fmt(used,1)}</strong> 天</span>
+          <span class="${cls}" style="font-weight:700;">剩餘：${fmt(remain,1)} 天</span>
+        </div>`;
+      })()}
     </div>`;
   }).join('');
 }
@@ -979,7 +1334,10 @@ function renderAnnual(){
   const year=document.getElementById('ann-year').value;
   const filterEmp=document.getElementById('ann-emp').value;
   const emps=filterEmp?db.employees.filter(e=>e.id===filterEmp):db.employees;
-  const months=Object.keys(db.monthlyData).filter(m=>m.startsWith(year+'-')).sort();
+  const months=Object.keys(db.monthlyData).filter(m=>{
+    if(!m.startsWith(year+'-')) return false;
+    return (db.monthlyData[m].records?.length||0)>0;
+  }).sort();
   const content=document.getElementById('ann-content');
 
   if(!emps.length){ content.innerHTML='<div class="empty-state"><div class="ei">👥</div><div>請先新增員工</div></div>'; return; }
@@ -996,12 +1354,14 @@ function renderAnnual(){
       earlyCount+=a.earlyCount; missingCount+=a.missingCount; absentCount+=a.absentCount;
       totalOT+=a.totalOT; expectedDays+=a.expectedWork;
       Object.entries(a.leaveBreakdown).forEach(([t,h])=>{ leaveBreakdown[t]=(leaveBreakdown[t]||0)+h; });
-      monthScores.push({month,score:calcScore(emp.id,month)});
+      // 工讀生：沒有排班的月份不納入評分（避免被計為100）
+      const isPT=emp.type==='part-time';
+      if(!isPT||a.expectedWork>0||a.totalDays>0) monthScores.push({month,score:calcScore(emp.id,month)});
     });
 
     const rate=expectedDays?Math.round(totalDays/expectedDays*100):0;
-    const avgScore=monthScores.length?Math.round(monthScores.reduce((s,m)=>s+m.score,0)/monthScores.length):100;
-    const leaveTotal=fmt(Object.values(leaveBreakdown).reduce((a,b)=>a+b,0)/8,1);
+    const avgScore=monthScores.length?Math.round(monthScores.reduce((s,m)=>s+m.score,0)/monthScores.length):0;
+    const leaveTotal=fmt(Object.values(leaveBreakdown).reduce((a,b)=>a+b,0),1);
 
     return {emp,totalDays,totalHours:fmt(totalHours),lateCount,earlyCount,missingCount,absentCount,
       totalOT,leaveBreakdown,expectedDays,rate,avgScore,leaveTotal,monthScores};
@@ -1009,7 +1369,7 @@ function renderAnnual(){
 
   content.innerHTML=`
     <div class="card">
-      <div class="card-header"><span class="card-title">${year} 年度考勤總覽</span></div>
+      <div class="card-header"><span class="card-title">${year} 年度考勤總覽</span><span style="font-size:11px;color:var(--gray-400);">共 ${months.length} 個月資料</span></div>
       <div class="tbl-wrap"><table>
         <thead><tr>
           <th>員工</th><th>類型</th><th>應出勤</th><th>實出勤</th><th>出勤率</th>
@@ -1031,7 +1391,7 @@ function renderAnnual(){
             <td>${s.absentCount?`<span style="color:var(--danger);font-weight:600;">${s.absentCount}</span>`:0}</td>
             <td>${s.totalHours} h</td>
             <td>${s.totalOT?`<span class="badge badge-ot">${s.totalOT}h</span>`:'-'}</td>
-            <td>${s.leaveTotal>0?s.leaveTotal+' 天':'-'}</td>
+            <td style="white-space:normal;min-width:80px;">${s.leaveTotal>0?`${s.leaveTotal}天${Object.entries(s.leaveBreakdown).length?`<div style="font-size:10px;color:var(--gray-500);margin-top:2px;">${Object.entries(s.leaveBreakdown).map(([t,h])=>`${t}:${fmt(h,1)}天`).join(' ')}</div>`:''}`:'-'}</td>
             <td>
               <div style="display:flex;align-items:center;gap:6px;">
                 <div class="score-wrap" style="width:50px;"><div class="score-bar ${barClass}" style="width:${s.avgScore}%;"></div></div>
@@ -1048,10 +1408,10 @@ function renderAnnual(){
           <div style="display:flex;align-items:center;gap:8px;">
             <strong>${esc(s.emp.name)}</strong>
             <span class="badge ${s.emp.type==='full-time'?'badge-ft':'badge-pt'}">${s.emp.type==='full-time'?'正職':'工讀'}</span>
-            <span style="font-size:12px;color:var(--gray-500);">假別：${Object.entries(s.leaveBreakdown).map(([t,h])=>`${t} ${fmt(h/8,1)}天`).join('、')||'無'}</span>
-          </div>
+            </div>
         </div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+        ${renderLeaveBalance(s.leaveBreakdown,`${year} 年假別累計與勞基法對照`)}
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:12px;">
           ${s.monthScores.map(ms=>{
             const sc=ms.score;
             const bc=sc>=90?'bar-hi':sc>=75?'bar-md':'bar-lo';
@@ -1078,8 +1438,11 @@ function loadRagicConfig(){
 function saveRagicConfig(){
   const url=document.getElementById('ragic-url').value.trim();
   const key=document.getElementById('ragic-key').value.trim();
-  if(!url||!key){ alert('請填寫 URL 與 API Key'); return; }
-  localStorage.setItem(RAGIC_CFG_KEY,JSON.stringify({url,key}));
+  const schUrl=document.getElementById('ragic-sch-url').value.trim();
+  const lvUrl=document.getElementById('ragic-lv-url').value.trim();
+  const otUrl=document.getElementById('ragic-ot-url').value.trim();
+  if(!url||!key){ alert('請填寫員工 URL 與 API Key'); return; }
+  localStorage.setItem(RAGIC_CFG_KEY,JSON.stringify({url,key,schUrl,lvUrl,otUrl}));
   document.getElementById('ragic-msg').innerHTML='<span style="color:var(--success);">✅ 設定已儲存</span>';
   setTimeout(()=>{ document.getElementById('ragic-msg').innerHTML=''; },2000);
 }
@@ -1088,6 +1451,16 @@ function initRagicFields(){
   const cfg=loadRagicConfig();
   if(cfg.url) document.getElementById('ragic-url').value=cfg.url;
   if(cfg.key) document.getElementById('ragic-key').value=cfg.key;
+  if(cfg.schUrl) document.getElementById('ragic-sch-url').value=cfg.schUrl;
+  if(cfg.lvUrl) document.getElementById('ragic-lv-url').value=cfg.lvUrl;
+  if(cfg.otUrl) document.getElementById('ragic-ot-url').value=cfg.otUrl;
+}
+
+function getRagicSheetUrl(type){
+  const cfg=loadRagicConfig();
+  const url=cfg[type+'Url']||document.getElementById('ragic-'+type+'-url')?.value?.trim()||'';
+  if(!url) alert('請先到「員工設定」頁面填寫「'+({sch:'排班表',lv:'請假單',ot:'加班申請'}[type])+'」的 Ragic URL 並儲存');
+  return url;
 }
 
 // 聘雇類別 → tool type
@@ -1098,8 +1471,9 @@ function mapEmpType(ragicType){
 async function syncFromRagic(){
   const cfg=loadRagicConfig();
   const url=cfg.url||document.getElementById('ragic-url').value.trim();
-  const key=cfg.key||document.getElementById('ragic-key').value.trim();
-  if(!url||!key){ alert('請先填寫並儲存 Ragic URL 與 API Key'); return; }
+  if(!url){ alert('請先填寫並儲存 Ragic URL 與 API Key'); return; }
+  const key=getRagicKey();
+  if(!key) return;
 
   const btn=document.getElementById('ragic-sync-btn');
   const msg=document.getElementById('ragic-msg');
@@ -1111,15 +1485,34 @@ async function syncFromRagic(){
 
   try{
     const res=await fetch(apiUrl,{
-      headers:{'Authorization':'Basic '+key.replace(/^Basic\s*/i,'')}
+      headers:{'Authorization':key}
     });
     if(!res.ok){ throw new Error('HTTP '+res.status+' - '+await res.text()); }
     const data=await res.json();
-    const records=Object.values(data).filter(r=>typeof r==='object'&&r._ragicId);
+    if(data.status==='ERROR'){
+      msg.innerHTML=`<span style="color:var(--danger);">❌ Ragic 回傳錯誤：${esc(data.errMsg||data.error||JSON.stringify(data).slice(0,200))}</span>`;
+      btn.disabled=false; btn.textContent='🔄 立即同步'; return;
+    }
+    const records=ragicRecords(data);
+    if(!records.length){
+      const rawKeys=Object.keys(data||{});
+      msg.innerHTML=`<span style="color:var(--warning);">⚠️ Ragic 無資料（共 ${rawKeys.length} 個 key：${rawKeys.slice(0,5).join('、')}）</span>`;
+      btn.disabled=false; btn.textContent='🔄 立即同步'; return;
+    }
 
-    // filter 在職狀態 === '在職'
-    const active=records.filter(r=>r['在職狀態']==='在職');
-    if(!active.length){ msg.innerHTML='<span style="color:var(--warning);">⚠️ 沒有找到在職員工（在職狀態 = 在職）</span>'; btn.disabled=false; btn.textContent='🔄 立即同步'; return; }
+    // filter 在職狀態（相容不同欄位名稱與值）
+    const STATUS_FIELDS=['在職狀態','*在職狀態','員工狀態','狀態','在職'];
+    const ACTIVE_VALS=['在職','在職中','active','Active','Y','是','1'];
+    const fStatus=STATUS_FIELDS.find(f=>records.some(r=>r[f]!=null&&String(r[f]).trim()!==''));
+    const active=fStatus
+      ?records.filter(r=>ACTIVE_VALS.includes(String(r[fStatus]||'').trim()))
+      :records; // 找不到狀態欄位就全部匯入
+    if(!active.length){
+      const sample=records[0]||{};
+      const availFields=Object.keys(sample).filter(k=>!k.startsWith('_')).join('、');
+      msg.innerHTML=`<span style="color:var(--warning);">⚠️ 沒有找到在職員工${fStatus?`（${fStatus} 的值不在白名單）`:'（找不到狀態欄位）'}，Ragic 可用欄位：${availFields||'無'}</span>`;
+      btn.disabled=false; btn.textContent='🔄 立即同步'; return;
+    }
 
     let added=0, updated=0;
     active.forEach(r=>{
@@ -1131,15 +1524,18 @@ async function syncFromRagic(){
       // find existing by ragicId or name
       let existing=db.employees.find(e=>e.ragicId&&e.ragicId===ragicId)||db.employees.find(e=>e.name===name);
 
+      const hireDateRaw=r['到職日期']||r['*到職日期']||r['到職日']||r['*到職日']||'';
+      const hireDate=hireDateRaw?ragicDate(hireDateRaw):'';
       if(existing){
         // update name & type; keep manual settings (hours, grace, weekdays)
         existing.name=name;
         existing.type=type;
         existing.ragicId=ragicId;
+        if(hireDate) existing.hireDate=hireDate;
         // set defaults if missing
-        if(!existing.startTime) existing.startTime='09:00';
-        if(!existing.endTime) existing.endTime='17:30';
-        if(existing.lateGrace===undefined) existing.lateGrace=0;
+        if(!existing.startTime) existing.startTime='08:30';
+        if(!existing.endTime) existing.endTime='18:00';
+        if(existing.lateGrace===undefined) existing.lateGrace=30;
         if(existing.earlyGrace===undefined) existing.earlyGrace=0;
         if(!existing.lunchStart) existing.lunchStart='12:00';
         if(!existing.lunchEnd) existing.lunchEnd='13:00';
@@ -1148,9 +1544,9 @@ async function syncFromRagic(){
         updated++;
       } else {
         db.employees.push({
-          id:uid(), ragicId, name, type,
-          startTime:'09:00', endTime:'17:30',
-          lateGrace:0, earlyGrace:0,
+          id:uid(), ragicId, name, type, hireDate,
+          startTime:'08:30', endTime:'18:00',
+          lateGrace:30, earlyGrace:0,
           lunchStart:'12:00', lunchEnd:'13:00',
           lunchDeduct:true,
           weekdays:[1,2,3,4,5]
@@ -1169,11 +1565,299 @@ async function syncFromRagic(){
   btn.disabled=false; btn.textContent='🔄 立即同步';
 }
 
+// ─ Ragic 共用：取 API Key ─
+function getRagicKey(){
+  const cfg=loadRagicConfig();
+  const k=cfg.key||document.getElementById('ragic-key')?.value?.trim()||'';
+  if(!k){ alert('請先到「員工設定」頁面設定並儲存 Ragic API Key'); return ''; }
+  // 統一格式：永遠回傳 "Basic <base64>"
+  return 'Basic '+k.replace(/^Basic\s*/i,'');
+}
+
+// ─ 解析時間字串 "2026/05/04 11:00:00" → "11:00" ─
+function extractHHMM(s){ if(!s) return ''; const p=s.trim().split(' '); return p.length>=2?p[1].substring(0,5):s.substring(0,5); }
+
+// ─ YYYY/MM/DD → YYYY-MM-DD ─
+function ragicDate(s){ if(!s) return ''; return s.replace(/\//g,'-').substring(0,10); }
+
+// ─ 擴展多日請假為每日一筆 ─
+function expandLeaveDays(startD,endD,type,hours,note,empId){
+  const results=[];
+  const sd=new Date(ragicDate(startD)); const ed=new Date(ragicDate(endD));
+  const days=Math.max(1,Math.round((ed-sd)/(86400000))+1);
+  const hPerDay=parseFloat((hours/days).toFixed(2));
+  for(let i=0;i<days;i++){
+    const d=new Date(sd); d.setDate(d.getDate()+i);
+    const date=d.toISOString().substring(0,10);
+    results.push({id:uid(),employeeId:empId,date,type,hours:hPerDay,note});
+  }
+  return results;
+}
+
+// ─ 同步排班表 ─
+async function syncSchFromRagic(){
+  const key=getRagicKey(); if(!key) return;
+  const m=document.getElementById('import-month').value;
+  const [yr,mo]=m.split('-');
+  const btn=document.getElementById('ragic-sch-btn');
+  const msg=document.getElementById('sch-msg');
+  btn.disabled=true; btn.textContent='同步中...';
+  msg.innerHTML='<span style="color:var(--gray-400);">⏳ 從 Ragic 拉取排班資料...</span>';
+  try{
+    const schUrl=getRagicSheetUrl('sch'); if(!schUrl){ btn.disabled=false; btn.textContent='🔗 從 Ragic 同步排班'; return; }
+    const res=await fetch(schUrl+'?api&limit=500',{headers:{'Authorization':key}});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const data=await res.json();
+    const records=ragicRecords(data);
+    const monthRecs=records.filter(r=>String(r['年份'])===yr&&String(r['月份'])===String(parseInt(mo)));
+    const md=ensureMonth(m);
+    let ok=0, skip=0;
+    monthRecs.forEach(r=>{
+      const name=String(r['員工姓名']||'').trim();
+      const emp=db.employees.find(e=>e.name===name);
+      if(!emp){ skip++; return; }
+      for(let d=1;d<=31;d++){
+        const sfx=d===1?'':String(d);
+        const startRaw=r[`上班時間${sfx}`];
+        const endRaw=r[`下班時間${sfx}`];
+        if(!startRaw&&!endRaw) continue;
+        const startTime=extractHHMM(startRaw);
+        const endTime=extractHHMM(endRaw);
+        if(!startTime&&!endTime) continue;
+        const date=`${yr}-${mo}-${String(d).padStart(2,'0')}`;
+        const idx=md.ptSchedule.findIndex(x=>x.date===date&&x.employeeId===emp.id);
+        if(idx>=0) md.ptSchedule.splice(idx,1);
+        md.ptSchedule.push({date,employeeId:emp.id,scheduledStart:startTime,scheduledEnd:endTime});
+        ok++;
+      }
+    });
+    saveDB(); renderSchTable(m);
+    msg.innerHTML=`<div style="padding:8px 12px;background:#dcfce7;border-radius:6px;font-size:13px;margin-bottom:10px;">✅ 排班同步完成：${ok} 筆${skip?`，${skip} 位員工不在本地名單（請先同步員工資料）`:''}</div>`;
+  }catch(e){
+    msg.innerHTML=`<span style="color:var(--danger);">❌ 失敗：${esc(e.message)}</span>`;
+  }
+  btn.disabled=false; btn.textContent='🔗 從 Ragic 同步排班';
+}
+
+// ─ 同步請假單 ─
+async function syncLeavesFromRagic(){
+  const key=getRagicKey(); if(!key) return;
+  const m=document.getElementById('import-month').value;
+  const [yr,mo]=m.split('-');
+  const btn=document.getElementById('ragic-lv-btn');
+  const msg=document.getElementById('lv-msg');
+  btn.disabled=true; btn.textContent='同步中...';
+  msg.innerHTML='<span style="color:var(--gray-400);">⏳ 從 Ragic 拉取請假資料...</span>';
+  try{
+    const lvUrl=getRagicSheetUrl('lv'); if(!lvUrl){ btn.disabled=false; btn.textContent='🔗 從 Ragic 同步請假'; return; }
+    const res=await fetch(lvUrl+'?api&limit=500',{headers:{'Authorization':key}});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const data=await res.json();
+    const records=ragicRecords(data);
+    const md=ensureMonth(m);
+    let ok=0, skip=0;
+    records.forEach(r=>{
+      const startD=ragicDate(r['起始日期']);
+      if(!startD||!startD.startsWith(m)) return; // 只取當月起始日
+      const name=String(r['員工姓名']||'').trim();
+      const emp=db.employees.find(e=>e.name===name);
+      if(!emp){ skip++; return; }
+      const type=r['假別']||'其他';
+      const hours=parseFloat(r['總時數'])||0;
+      const endD=ragicDate(r['結束日期'])||startD;
+      const note=r['事由/說明']||'';
+      const entries=expandLeaveDays(startD,endD,type,hours,note,emp.id);
+      entries.forEach(lv=>{
+        // 去重：同員工同日同假別
+        md.leaves=md.leaves.filter(l=>!(l.employeeId===emp.id&&l.date===lv.date&&l.type===type));
+        md.leaves.push(lv);
+        ok++;
+      });
+    });
+    saveDB(); renderLvTable(m);
+    msg.innerHTML=`<div style="padding:8px 12px;background:#dcfce7;border-radius:6px;font-size:13px;margin-bottom:10px;">✅ 請假同步完成：${ok} 筆${skip?`，${skip} 筆找不到對應員工`:''}</div>`;
+  }catch(e){
+    msg.innerHTML=`<span style="color:var(--danger);">❌ 失敗：${esc(e.message)}</span>`;
+  }
+  btn.disabled=false; btn.textContent='🔗 從 Ragic 同步請假';
+}
+
+// ─ 同步加班申請 ─
+async function syncOTFromRagic(){
+  const key=getRagicKey(); if(!key) return;
+  const m=document.getElementById('import-month').value;
+  const btn=document.getElementById('ragic-ot-btn');
+  const msg=document.getElementById('ot-msg');
+  btn.disabled=true; btn.textContent='同步中...';
+  msg.innerHTML='<span style="color:var(--gray-400);">⏳ 從 Ragic 拉取加班資料...</span>';
+  try{
+    const otUrl=getRagicSheetUrl('ot'); if(!otUrl){ btn.disabled=false; btn.textContent='🔗 從 Ragic 同步加班'; return; }
+    const res=await fetch(otUrl+'?api&limit=500',{headers:{'Authorization':key}});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const data=await res.json();
+    const records=ragicRecords(data);
+    const md=ensureMonth(m);
+    let ok=0, skipEmp=0, skipStatus=0, skipDate=0, skipHours=0;
+    const missingEmpNames=new Set();
+
+    // 偵測欄位名稱（相容不同 Ragic 表單設計，含星號必填標記）
+    const sample=records[0]||{};
+    const hasVal=f=>f in sample&&sample[f]!=null&&String(sample[f]).trim()!=='';
+    const isDateLike=v=>v!=null&&/^\d{4}[\/\-]/.test(String(v));
+    const fName=  ['員工姓名','*員工姓名','姓名','*姓名','人員'].find(hasVal)||'員工姓名';
+    const fDate=  ['起始日期','*起始日期','加班日期','*加班日期','日期','申請日期'].find(hasVal)
+      ||Object.keys(sample).find(k=>isDateLike(sample[k]))
+      ||'起始日期';
+    const fHours= ['總時數','*總時數','加班時數','時數','申請時數'].find(hasVal)||'總時數';
+    const fStatus=['簽核狀態','狀態','審核狀態','核准狀態'].find(f=>f in sample)||'簽核狀態';
+    const fNote=  ['備註','事由','加班事由','說明'].find(f=>f in sample)||'備註';
+
+    // 偵測「已核准」的狀態值（第一筆有資料的就當作樣本）
+    const statusValues=[...new Set(records.map(r=>String(r[fStatus]||'')).filter(Boolean))];
+    const APPROVED_VALS=['簽核完成','已核准','核准','同意','通過','approved','完成'];
+    // 若偵測到的狀態值都不在白名單內，就不過濾（全部匯入）
+    const hasKnownApproved=statusValues.some(v=>APPROVED_VALS.includes(v));
+
+    records.forEach(r=>{
+      const status=String(r[fStatus]||'');
+      if(hasKnownApproved && !APPROVED_VALS.includes(status)){ skipStatus++; return; }
+
+      const name=String(r[fName]||'').trim();
+      const emp=db.employees.find(e=>e.name===name);
+      if(!emp){ skipEmp++; missingEmpNames.add(name); return; }
+
+      const date=ragicDate(r[fDate]);
+      if(!date){ skipDate++; return; }
+
+      const hours=parseFloat(String(r[fHours]||'').replace(/[^0-9.]/g,''))||0;
+      if(!hours){ skipHours++; return; }
+      const note=String(r[fNote]||'');
+      // 依照紀錄本身的日期放進對應月份（不限於目前選取月份）
+      const recMonth=date.substring(0,7);
+      const recMd=ensureMonth(recMonth);
+      recMd.overtimes=recMd.overtimes.filter(o=>!(o.employeeId===emp.id&&o.date===date));
+      recMd.overtimes.push({id:uid(),employeeId:emp.id,date,hours,note});
+      ok++;
+    });
+
+    saveDB(); renderOTTable(m); // 顯示目前選取月份的結果
+
+    const diagParts=[];
+    if(skipStatus) diagParts.push(`${skipStatus} 筆簽核狀態未通過（偵測到：${statusValues.slice(0,5).join('、')||'無'}）`);
+    if(skipEmp)    diagParts.push(`${skipEmp} 筆找不到員工（Ragic 名稱：${[...missingEmpNames].slice(0,5).join('、')}）`);
+    if(skipDate){const availKeys=Object.keys(sample).filter(k=>!k.startsWith('_')).join('、');diagParts.push(`${skipDate} 筆日期為空（Ragic 可用欄位：${availKeys||'無'}）`);}
+    if(skipHours)  diagParts.push(`${skipHours} 筆時數為 0 或無法解析`);
+    // 顯示第一筆原始值供對照
+    const s0=records[0]||{};
+    const rawSample=`姓名="${s0[fName]}"｜日期="${s0[fDate]}"｜時數="${s0[fHours]}"｜狀態="${s0[fStatus]}"`;
+    diagParts.push(`第1筆原始值：${rawSample}`);
+    const diagStr=diagParts.length?`<br><span style="font-size:11px;color:var(--gray-500);">${diagParts.join('；')}</span>`:'';
+    const statusNote=!hasKnownApproved&&statusValues.length?`<br><span style="font-size:11px;color:var(--warning);">⚠️ 無法識別簽核狀態（${statusValues.slice(0,3).join('、')}），已全部匯入</span>`:'';
+    msg.innerHTML=`<div style="padding:8px 12px;background:${ok?'#dcfce7':'#fef9c3'};border-radius:6px;font-size:13px;margin-bottom:10px;">${ok?'✅':'⚠️'} 加班同步完成：${ok} 筆 / 共 ${records.length} 筆原始資料${diagStr}${statusNote}<br><span style="font-size:11px;color:var(--gray-400);">欄位對應：姓名=${fName}｜日期=${fDate}｜時數=${fHours}｜狀態=${fStatus}</span></div>`;
+  }catch(e){
+    msg.innerHTML=`<span style="color:var(--danger);">❌ 失敗：${esc(e.message)}</span>`;
+  }
+  btn.disabled=false; btn.textContent='🔗 從 Ragic 同步加班';
+}
+
+// ══ Ragic record 過濾（row ID 為數字的 key）══
+function ragicRecords(data){
+  return Object.entries(data)
+    .filter(([k,v])=>!isNaN(parseInt(k))&&typeof v==='object'&&v!==null)
+    .map(([,v])=>v);
+}
+
+// ══ Ragic 原始資料偵錯 ══
+async function debugRagic(type){
+  const key=getRagicKey(); if(!key) return;
+  const msgIds={sch:'sch-msg',lv:'lv-msg',ot:'ot-msg'};
+  const msgId=msgIds[type];
+  const msg=document.getElementById(msgId);
+  const url=getRagicSheetUrl(type); if(!url) return;
+  msg.innerHTML='<span style="color:var(--gray-400);">⏳ 讀取中...</span>';
+  try{
+    const res=await fetch(url+'?api&limit=3',{headers:{'Authorization':key}});
+    if(!res.ok) throw new Error('HTTP '+res.status+' '+await res.text());
+    const data=await res.json();
+    const keys=Object.keys(data);
+    const records=ragicRecords(data);
+    if(!records.length){
+      // 顯示所有 key 讓我們診斷格式
+      const keyList=keys.map(k=>`<b>${esc(k)}</b>: ${esc(typeof data[k]==='object'?JSON.stringify(data[k]).slice(0,80):String(data[k]))}`).join('<br>');
+      msg.innerHTML=`<div style="padding:8px;background:#fef9c3;border-radius:6px;font-size:12px;">⚠️ 找不到數字型 row ID（共 ${keys.length} 個 key）<br><br>${keyList}</div>`;
+      return;
+    }
+    const first=records[0];
+    const fields=Object.keys(first).filter(k=>!k.startsWith('_')).slice(0,35);
+    const sample=records.slice(0,2).map(r=>{
+      const row=fields.map(f=>`<tr><td style="font-weight:600;padding:2px 8px;white-space:nowrap;">${esc(f)}</td><td style="padding:2px 8px;color:var(--gray-600);">${esc(String(r[f]??''))}</td></tr>`).join('');
+      return `<table style="font-size:11px;font-family:monospace;margin-bottom:8px;border:1px solid var(--gray-200);border-radius:4px;">${row}</table>`;
+    }).join('<hr style="margin:8px 0;">');
+    msg.innerHTML=`<details open><summary style="font-size:12px;font-weight:600;cursor:pointer;margin-bottom:8px;">🔎 原始欄位（共 ${records.length} 筆，顯示前 2 筆）</summary>${sample}</details>`;
+  }catch(e){
+    msg.innerHTML=`<span style="color:var(--danger);">❌ ${esc(e.message)}</span>`;
+  }
+}
+
+// ══ 一鍵同步全部 ══
+async function syncAllData(){
+  const btn=document.getElementById('ragic-all-btn');
+  const msg=document.getElementById('ragic-msg');
+  btn.disabled=true; btn.textContent='同步中...';
+  msg.innerHTML='<span style="color:var(--gray-400);">⏳ 同步員工資料...</span>';
+  try{
+    await syncFromRagic();
+    // 同步當月排班/請假/加班
+    const today=new Date();
+    const m=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0');
+    const sel=document.getElementById('import-month');
+    if(sel) sel.value=m;
+    msg.innerHTML='<span style="color:var(--gray-400);">⏳ 同步排班表...</span>';
+    await syncSchFromRagic();
+    msg.innerHTML='<span style="color:var(--gray-400);">⏳ 同步請假資料...</span>';
+    await syncLeavesFromRagic();
+    msg.innerHTML='<span style="color:var(--gray-400);">⏳ 同步加班資料...</span>';
+    await syncOTFromRagic();
+    msg.innerHTML='<span style="color:var(--success);">✅ 全部同步完成（員工 + '+ m +' 月排班/請假/加班）</span>';
+  }catch(e){
+    msg.innerHTML=`<span style="color:var(--danger);">❌ 同步失敗：${esc(e.message)}</span>`;
+  }
+  btn.disabled=false; btn.textContent='⚡ 一鍵同步全部';
+}
+
+// ══ 每月1號自動同步 ══
+const ATT_SYNC_KEY='feebit_att_sync_month';
+
+async function autoSyncIfFirstOfMonth(){
+  const today=new Date();
+  if(today.getDate()!==1) return; // 非1號不執行
+  const m=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0');
+  const lastSync=localStorage.getItem(ATT_SYNC_KEY);
+  if(lastSync===m) return; // 本月已同步過
+  const key=loadRagicConfig().key;
+  if(!key) return; // 未設定 API Key 就靜默跳過
+  console.log('[Feebit] 每月1號自動同步 Ragic 排班/請假/加班...');
+  // 設定當月為選中月份
+  const sel=document.getElementById('import-month');
+  if(sel) sel.value=m;
+  try{
+    await syncSchFromRagic();
+    await syncLeavesFromRagic();
+    await syncOTFromRagic();
+    localStorage.setItem(ATT_SYNC_KEY,m);
+    console.log('[Feebit] 自動同步完成');
+  }catch(e){
+    console.warn('[Feebit] 自動同步失敗',e);
+  }
+}
+
 // ══ INIT ══
 loadDB();
 renderEmployees();
+renderHolidays();
 genMonthOpts('import-month');
 initRagicFields();
+autoSyncIfFirstOfMonth();
 </script>
 </body>
 </html>

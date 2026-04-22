@@ -77,7 +77,8 @@ tr.total-row td{font-weight:700;background:var(--gray-100)!important;border-top:
     <a class="nav-item" href="coupang-invoice.html"><span class="icon">🧾</span> 酷澎發票轉檔</a>
     <a class="nav-item" href="coupang-reconcile.html"><span class="icon">🔍</span> 酷澎商城對帳</a>
     <a class="nav-item" href="shopee-converter.html"><span class="icon">🛒</span> 蝦皮撥款轉換</a>
-    <div class="nav-item soon"><span class="icon">💰</span> 定價試算<span class="soon-tag">即將推出</span></div>
+    <a class="nav-item" href="profit-calculator.html"><span class="icon">💰</span> 毛利試算機</a>
+    <a class="nav-item" href="brand-sales.html"><span class="icon">📈</span> 品牌銷售分析</a>
   </div>
   <div class="sidebar-section">
     <div class="sidebar-label">行銷</div>
@@ -98,6 +99,7 @@ tr.total-row td{font-weight:700;background:var(--gray-100)!important;border-top:
   <div class="sidebar-section">
     <div class="sidebar-label">庫存</div>
     <a class="nav-item" href="stock-analysis.html"><span class="icon">📦</span> 庫存訂貨分析</a>
+    <a class="nav-item" href="slow-mover-alert.html"><span class="icon">🔴</span> 滯銷品警示</a>
     <a class="nav-item" href="feebit-inventory-filter.html"><span class="icon">🏪</span> 商品篩選工具</a>
   </div>
   <div class="sidebar-section">
@@ -112,7 +114,7 @@ tr.total-row td{font-weight:700;background:var(--gray-100)!important;border-top:
     <div class="sidebar-label">系統</div>
     <a class="nav-item" href="tools.html"><span class="icon">🔧</span> 使用工具</a>
   </div>
-  <div class="sidebar-footer">v1.0 · Feebit © 2026</div>
+  <div class="sidebar-footer">v1.1 · Feebit © 2026</div>
 </div>
 <div id="sidebar-overlay" onclick="closeSidebar()"></div>
 
@@ -120,14 +122,16 @@ tr.total-row td{font-weight:700;background:var(--gray-100)!important;border-top:
 <div id="main">
   <div class="topbar">
     <div style="display:flex;align-items:center;gap:10px">
-      <button class="hamburger" onclick="toggleSidebar()">☰</button>
+      <button class="btn-hamburger" onclick="toggleSidebar()">☰</button>
       <span class="topbar-title">帳務分析</span>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
       <button class="btn btn-outline" onclick="openDbModal()" style="font-size:12px;padding:4px 10px">⚙️ 初始化DB</button>
+      <button class="btn btn-outline" onclick="openRagicModal()" style="font-size:12px;padding:4px 10px">🔗 Ragic 設定</button>
+      <button id="sync-btn" class="btn btn-outline" onclick="syncFromRagic()" style="font-size:12px;padding:4px 12px">↻ 從 Ragic 同步</button>
       <button class="btn btn-primary" onclick="document.getElementById('csv-input').click()" style="font-size:12px;padding:4px 12px">⬆ 上傳CSV</button>
       <input type="file" id="csv-input" accept=".csv" style="display:none">
-      <span class="topbar-badge">v1.0</span>
+      <span class="topbar-badge">v1.1</span>
     </div>
   </div>
 
@@ -207,6 +211,27 @@ tr.total-row td{font-weight:700;background:var(--gray-100)!important;border-top:
     </div><!-- /dashboard -->
   </div><!-- /page -->
 </div><!-- /main -->
+
+<!-- Ragic Config Modal -->
+<div class="modal-overlay" id="ragic-modal">
+  <div class="modal-box" style="width:420px">
+    <h3 style="margin-bottom:8px">🔗 Ragic API 設定</h3>
+    <p style="font-size:12px;color:var(--gray-600);margin-bottom:16px">設定儲存於瀏覽器本機，不會出現在程式碼或 GitHub 上</p>
+    <div style="margin-bottom:12px">
+      <div style="font-size:11px;color:var(--gray-600);margin-bottom:4px">Ragic 表格網址</div>
+      <input type="text" id="ragic-sheet-url" placeholder="https://ap13.ragic.com/..." style="width:100%;padding:8px 10px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:13px;box-sizing:border-box">
+    </div>
+    <div style="margin-bottom:12px">
+      <div style="font-size:11px;color:var(--gray-600);margin-bottom:4px">Ragic API Key</div>
+      <input type="password" id="ragic-api-key" placeholder="Basic xxxxxxxx" style="width:100%;padding:8px 10px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:13px;box-sizing:border-box">
+    </div>
+    <p style="font-size:11px;color:var(--gray-500);margin-bottom:16px">API Key 取得：Ragic → 右上角頭像 → API Key，複製整串（含 Basic）貼上</p>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-outline" onclick="closeRagicModal()">取消</button>
+      <button class="btn btn-primary" onclick="saveRagicModal()">儲存</button>
+    </div>
+  </div>
+</div>
 
 <!-- DB Setup Modal -->
 <div class="modal-overlay" id="db-modal">
@@ -533,9 +558,78 @@ function copySql(){
 }
 document.getElementById('db-modal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeDbModal();});
 
+// ── RAGIC CONFIG ──
+const RAGIC_CFG_KEY = 'feebit_finance_ragic';
+const RAGIC_URL = 'https://ap13.ragic.com/feebit50968407/ragicpersonal-finance/20002';
+
+function loadRagicCfg(){ try{return JSON.parse(localStorage.getItem(RAGIC_CFG_KEY))||{};}catch{return{};} }
+function saveRagicCfg(cfg){ localStorage.setItem(RAGIC_CFG_KEY, JSON.stringify(cfg)); }
+
+function openRagicModal(){
+  const cfg = loadRagicCfg();
+  document.getElementById('ragic-sheet-url').value = cfg.sheetUrl || '';
+  document.getElementById('ragic-api-key').value = cfg.apiKey || '';
+  document.getElementById('ragic-modal').classList.add('open');
+}
+function closeRagicModal(){ document.getElementById('ragic-modal').classList.remove('open'); }
+function saveRagicModal(){
+  const sheetUrl = document.getElementById('ragic-sheet-url').value.trim();
+  const key = document.getElementById('ragic-api-key').value.trim();
+  if(!sheetUrl){ alert('請填入表格網址'); return; }
+  if(!key){ alert('請填入 API Key'); return; }
+  saveRagicCfg({ sheetUrl, apiKey: key });
+  closeRagicModal();
+  alert('✅ 已儲存，可以點「從 Ragic 同步」');
+}
+document.getElementById('ragic-modal').addEventListener('click', e=>{ if(e.target===e.currentTarget) closeRagicModal(); });
+
+async function syncFromRagic(){
+  const cfg = loadRagicCfg();
+  if(!cfg.apiKey){ alert('請先設定 Ragic API Key'); openRagicModal(); return; }
+  const btn = document.getElementById('sync-btn');
+  btn.textContent='⏳ 同步中...'; btn.disabled=true;
+  try{
+    let all=[], offset=0, limit=1000;
+    const baseUrl = cfg.sheetUrl.split('?')[0];
+    while(true){
+      const url=`${baseUrl}?api&limit=${limit}&offset=${offset}`;
+      const res=await fetch(url,{headers:{'Authorization':cfg.apiKey}});
+      if(!res.ok) throw new Error(`Ragic 回應 ${res.status}，請確認 API Key 格式是否正確`);
+      const json=await res.json();
+      const entries=Object.entries(json).filter(([k])=>!k.startsWith('_'));
+      if(!entries.length) break;
+      entries.forEach(([,r])=>{
+        const mainCat=r['主分類']||'', subCat=r['子分類']||'';
+        const typeRaw=r['交易類別']||'';
+        const type=typeRaw.includes('收入')?'收入':typeRaw.includes('支出')?'支出':typeRaw;
+        const txnDate=fmtDate(r['交易日期']);
+        const amount=parseFloat(r['原幣金額'])||0;
+        if(txnDate&&amount) all.push({
+          txn_date:txnDate, type,
+          currency:r['帳戶幣別']||'TWD',
+          amount, main_cat:mainCat, sub_cat:subCat,
+          gs_cat:mapCat(mainCat,subCat),
+          payee:r['自帳戶']||'',
+          description:r['描述']||'',
+          file_name:'ragic_sync',
+        });
+      });
+      if(entries.length<limit) break;
+      offset+=limit;
+    }
+    if(!all.length){ alert('Ragic 沒有回傳資料，請確認 API Key 與表格路徑是否正確'); return; }
+    const{error}=await db.from('finance_transactions')
+      .upsert(all,{onConflict:'txn_date,type,amount,payee,description',ignoreDuplicates:true});
+    if(error) throw error;
+    alert(`✅ 從 Ragic 同步 ${all.length} 筆完成`);
+    loadData();
+  }catch(e){ alert('同步失敗：'+e.message); }
+  finally{ btn.textContent='↻ 從 Ragic 同步'; btn.disabled=false; }
+}
+
 // ── SIDEBAR ──
-function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('sidebar-overlay').classList.toggle('active');}
-function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sidebar-overlay').classList.remove('active');}
+function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('sidebar-overlay').classList.toggle('show');}
+function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sidebar-overlay').classList.remove('show');}
 
 // ── INIT ──
 loadData();

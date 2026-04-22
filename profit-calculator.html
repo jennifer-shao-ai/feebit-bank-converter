@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>毛利試算機 — 飛比特</title>
+<link rel="icon" href="favicon.svg">
+<style>
+:root{
+  --primary:#2563eb;--primary-light:#dbeafe;--primary-dark:#1d4ed8;
+  --success:#16a34a;--success-light:#dcfce7;
+  --warning:#d97706;--warning-light:#fef9c3;
+  --danger:#dc2626;--danger-light:#fee2e2;
+  --gray-50:#f9fafb;--gray-100:#f3f4f6;--gray-200:#e5e7eb;
+  --gray-400:#9ca3af;--gray-600:#4b5563;--gray-800:#1f2937;
+  --sidebar-bg:#0f172a;--sidebar-w:220px;--radius:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'PingFang TC','Microsoft JhengHei',sans-serif;background:var(--gray-100);color:var(--gray-800);min-height:100vh;display:flex}
+
+/* sidebar */
+#sidebar{width:var(--sidebar-w);min-height:100vh;background:var(--sidebar-bg);display:flex;flex-direction:column;flex-shrink:0;position:fixed;top:0;left:0;bottom:0;z-index:100;overflow-y:auto;overflow-x:hidden}
+.sb-logo{padding:20px 16px 16px;border-bottom:1px solid rgba(255,255,255,.08)}
+.sb-logo .brand{color:#fff;font-size:16px;font-weight:700}
+.sb-logo .sub{color:rgba(255,255,255,.4);font-size:11px;margin-top:2px}
+.sb-sec{padding:16px 8px 4px}
+.sb-lbl{color:rgba(255,255,255,.3);font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;padding:0 8px;margin-bottom:4px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;cursor:pointer;color:rgba(255,255,255,.55);font-size:13px;font-weight:500;transition:all .15s;margin-bottom:2px;text-decoration:none}
+.nav-item:hover{background:rgba(255,255,255,.07);color:rgba(255,255,255,.9)}
+.nav-item.active{background:var(--primary);color:#fff}
+.nav-item .icon{font-size:15px;width:20px;text-align:center;flex-shrink:0}
+.nav-item.soon{opacity:.4;cursor:default;pointer-events:none}
+.nav-item .soon-tag{margin-left:auto;font-size:9px;background:rgba(255,255,255,.15);padding:1px 5px;border-radius:3px;letter-spacing:.5px}
+.sb-footer{margin-top:auto;padding:16px;border-top:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.25);font-size:11px}
+
+/* main */
+#main{margin-left:var(--sidebar-w);flex:1;display:flex;flex-direction:column;min-height:100vh}
+.topbar{background:#fff;border-bottom:1px solid var(--gray-200);padding:0 24px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.topbar-title{font-size:15px;font-weight:600}
+.topbar-badge{background:var(--primary);color:#fff;padding:2px 8px;border-radius:12px;font-size:11px}
+.hamburger{display:none;background:none;border:none;cursor:pointer;padding:6px;border-radius:6px;color:var(--gray-800);font-size:20px;line-height:1}
+#overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:99}
+#overlay.active{display:block}
+.page{padding:24px;flex:1}
+
+/* tabs */
+.tab-bar{display:flex;gap:2px;border-bottom:2px solid var(--gray-200);margin-bottom:20px}
+.tab-btn{padding:10px 18px;border:none;background:none;font-size:13px;font-weight:600;color:var(--gray-600);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;font-family:inherit;border-radius:6px 6px 0 0}
+.tab-btn:hover{color:var(--gray-800);background:var(--gray-50)}
+.tab-btn.active{color:var(--primary);border-bottom-color:var(--primary);background:none}
+.tab-pane{display:none}
+.tab-pane.active{display:block}
+
+/* cards */
+.card{background:#fff;border-radius:var(--radius);padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.07);margin-bottom:16px}
+.card-title{font-size:14px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+
+/* two-col layout */
+.calc-layout{display:grid;grid-template-columns:340px 1fr;gap:20px;align-items:start}
+
+/* form */
+.fg{display:flex;flex-direction:column;gap:4px}
+.fg label{font-size:12px;font-weight:600;color:var(--gray-600)}
+.fg input,.fg select{border:1.5px solid var(--gray-200);border-radius:6px;padding:8px 10px;font-size:14px;font-family:inherit;outline:none;transition:border-color .15s;background:#fff;width:100%}
+.fg input:focus,.fg select:focus{border-color:var(--primary)}
+.fg input[type=number]{-moz-appearance:textfield}
+.fg input[type=number]::-webkit-inner-spin-button,.fg input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.pfx{position:relative}
+.pfx span{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--gray-400);font-size:13px;pointer-events:none}
+.pfx input{padding-left:22px}
+
+/* cost total */
+.cost-total{background:var(--gray-50);border:1.5px solid var(--gray-200);border-radius:var(--radius);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;margin-top:4px}
+.cost-total .lbl{font-size:13px;color:var(--gray-600);font-weight:600}
+.cost-total .amt{font-size:20px;font-weight:800}
+
+/* chips */
+.chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px}
+.chip{border:1.5px solid var(--gray-200);border-radius:20px;padding:5px 12px;font-size:12px;cursor:pointer;transition:all .15s;font-weight:600;background:#fff;font-family:inherit}
+.chip:hover{border-color:var(--primary);color:var(--primary)}
+.chip.active{background:var(--primary);border-color:var(--primary);color:#fff}
+.chip-num{position:relative;width:72px}
+.chip-num input{width:72px;border:1.5px solid var(--gray-200);border-radius:6px;padding:5px 22px 5px 8px;font-size:13px;font-family:inherit;outline:none;-moz-appearance:textfield}
+.chip-num input::-webkit-inner-spin-button,.chip-num input::-webkit-outer-spin-button{-webkit-appearance:none}
+.chip-num span{position:absolute;right:8px;top:50%;transform:translateY(-50%);color:var(--gray-400);font-size:12px;pointer-events:none}
+
+/* table */
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{background:var(--gray-50);color:var(--gray-600);font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.5px;padding:9px 12px;text-align:left;border-bottom:2px solid var(--gray-200);white-space:nowrap}
+thead th:not(:first-child){text-align:right}
+tbody td{padding:11px 12px;border-bottom:1px solid var(--gray-100);vertical-align:middle}
+tbody td:not(:first-child){text-align:right}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:var(--gray-50)}
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-weight:700;font-size:12px}
+.bg{background:var(--success-light);color:var(--success)}
+.bw{background:var(--warning-light);color:var(--warning)}
+.bb{background:var(--danger-light);color:var(--danger)}
+.suggested{font-weight:700;color:var(--primary)}
+
+/* bundle components */
+.comp-hdr{display:grid;grid-template-columns:1fr 120px 70px 90px 32px;gap:8px;padding-bottom:6px;border-bottom:1px solid var(--gray-100);margin-bottom:4px}
+.comp-hdr span{font-size:11px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.5px}
+.comp-row{display:grid;grid-template-columns:1fr 120px 70px 90px 32px;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--gray-100)}
+.comp-row:last-child{border-bottom:none}
+.comp-row input{border:1.5px solid var(--gray-200);border-radius:6px;padding:6px 8px;font-size:13px;font-family:inherit;outline:none;width:100%;transition:border-color .15s;-moz-appearance:textfield}
+.comp-row input::-webkit-inner-spin-button,.comp-row input::-webkit-outer-spin-button{-webkit-appearance:none}
+.comp-row input:focus{border-color:var(--primary)}
+.comp-sub{font-size:13px;font-weight:700;text-align:right;color:var(--gray-800)}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit;border:none}
+.btn-p{background:var(--primary);color:#fff}
+.btn-p:hover{background:var(--primary-dark)}
+.btn-ghost{background:none;border:1.5px dashed var(--primary);color:var(--primary)}
+.btn-ghost:hover{background:var(--primary-light)}
+.btn-sm{padding:5px 10px;font-size:12px}
+.btn-icon{width:32px;height:32px;padding:0;display:inline-flex;align-items:center;justify-content:center;font-size:16px;border:1.5px solid var(--gray-200);background:none;color:var(--gray-400);cursor:pointer;border-radius:6px;transition:all .15s;line-height:1}
+.btn-icon:hover{border-color:var(--danger);color:var(--danger);background:var(--danger-light)}
+.btn-danger{background:none;color:var(--danger);border:1.5px solid var(--gray-200);border-radius:6px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit}
+.btn-danger:hover{background:var(--danger-light);border-color:var(--danger)}
+
+/* history */
+.hist-list{display:flex;flex-direction:column;gap:8px}
+.hist-item{background:#fff;border-radius:var(--radius);padding:14px 16px;border:1.5px solid var(--gray-200);cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:12px}
+.hist-item:hover{border-color:var(--primary);box-shadow:0 2px 8px rgba(37,99,235,.1)}
+.hist-info{flex:1;min-width:0}
+.hist-name{font-weight:700;font-size:14px;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hist-meta{font-size:12px;color:var(--gray-400);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.type-badge{font-size:11px;padding:1px 7px;border-radius:20px;font-weight:700}
+.tb-s{background:#e0f2fe;color:#0369a1}
+.tb-b{background:#f3e8ff;color:#7e22ce}
+.hist-cost{font-size:15px;font-weight:800;white-space:nowrap}
+
+/* platform mgmt */
+.plat-hdr{display:grid;grid-template-columns:1fr 100px 32px;gap:8px;padding-bottom:6px;border-bottom:1px solid var(--gray-100);margin-bottom:4px}
+.plat-hdr span{font-size:11px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.5px}
+.plat-row{display:grid;grid-template-columns:1fr 100px 32px;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--gray-100)}
+.plat-row:last-child{border-bottom:none}
+.plat-row input{border:1.5px solid var(--gray-200);border-radius:6px;padding:6px 8px;font-size:13px;font-family:inherit;outline:none;width:100%;transition:border-color .15s;-moz-appearance:textfield}
+.plat-row input::-webkit-inner-spin-button,.plat-row input::-webkit-outer-spin-button{-webkit-appearance:none}
+.plat-row input:focus{border-color:var(--primary)}
+.pfx-sm{position:relative}
+.pfx-sm input{padding-right:22px}
+.pfx-sm span{position:absolute;right:8px;top:50%;transform:translateY(-50%);color:var(--gray-400);font-size:12px;pointer-events:none}
+
+/* empty / loading */
+.empty{text-align:center;padding:48px;color:var(--gray-400);font-size:14px}
+.note{font-size:12px;color:var(--gray-400);line-height:1.8;margin-top:4px}
+
+/* toast */
+#toast{position:fixed;bottom:24px;right:24px;background:#1f2937;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;opacity:0;transform:translateY(8px);transition:all .25s;z-index:999;pointer-events:none}
+#toast.show{opacity:1;transform:translateY(0)}
+
+/* mobile */
+@media(max-width:900px){
+  .calc-layout{grid-template-columns:1fr}
+}
+@media(max-width:768px){
+  #sidebar{transform:translateX(-100%);transition:transform .25s ease}
+  #sidebar.open{transform:translateX(0)}
+  #main{margin-left:0}
+  .hamburger{display:flex;align-items:center;justify-content:center}
+  .page{padding:16px}
+  .topbar{padding:0 16px}
+  .g2{grid-template-columns:1fr 1fr}
+  .comp-hdr,.comp-row{grid-template-columns:1fr 100px 60px 80px 28px;gap:6px}
+}
+</style>
+</head>
+<body>
+
+<div id="sidebar">
+  <div class="sb-logo">
+    <div class="brand">飛比特 Feebit</div>
+    <div class="sub">營運工具箱</div>
+  </div>
+  <div class="sb-sec">
+    <div class="sb-lbl">總覽</div>
+    <a class="nav-item" href="index.html"><span class="icon">🏠</span>首頁</a>
+  </div>
+  <div class="sb-sec">
+    <div class="sb-lbl">財務</div>
+    <a class="nav-item" href="bank-converter.html"><span class="icon">🏦</span>帳務轉換</a>
+    <a class="nav-item" href="accounting-ops.html"><span class="icon">📅</span>例行帳務作業</a>
+    <a class="nav-item" href="finance-dashboard.html"><span class="icon">📊</span>帳務分析</a>
+    <a class="nav-item" href="coupang-invoice.html"><span class="icon">🧾</span>酷澎發票轉檔</a>
+    <a class="nav-item" href="coupang-reconcile.html"><span class="icon">🔍</span>酷澎商城對帳</a>
+    <a class="nav-item" href="shopee-converter.html"><span class="icon">🛒</span>蝦皮撥款轉換</a>
+    <a class="nav-item active" href="profit-calculator.html"><span class="icon">💰</span>毛利試算機</a>
+    <a class="nav-item" href="brand-sales.html"><span class="icon">📈</span> 品牌銷售分析</a>
+  </div>
+  <div class="sb-sec">
+    <div class="sb-lbl">行銷</div>
+    <div class="nav-item soon"><span class="icon">📢</span>廣告文案<span class="soon-tag">即將推出</span></div>
+  </div>
+  <div class="sb-sec">
+    <div class="sb-lbl">客服</div>
+    <div class="nav-item soon"><span class="icon">💬</span>客服回覆<span class="soon-tag">即將推出</span></div>
+  </div>
+  <div class="sb-sec">
+    <div class="sb-lbl">業務</div>
+    <div class="nav-item soon"><span class="icon">🤝</span>廠商談判<span class="soon-tag">即將推出</span></div>
+  </div>
+  <div class="sb-sec">
+    <div class="sb-lbl">人事</div>
+    <a class="nav-item" href="attendance.html"><span class="icon">🗓️</span>考勤查驗</a>
+  </div>
+  <div class="sb-sec">
+    <div class="sb-lbl">庫存</div>
+    <a class="nav-item" href="stock-analysis.html"><span class="icon">📦</span>庫存訂貨分析</a>
+    <a class="nav-item" href="slow-mover-alert.html"><span class="icon">🔴</span>滯銷品警示</a>
+    <a class="nav-item" href="feebit-inventory-filter.html"><span class="icon">🏪</span>商品篩選工具</a>
+  </div>
+  <div class="sb-sec">
+    <div class="sb-lbl">研發</div>
+    <a class="nav-item" href="research-notes.html"><span class="icon">📚</span>研發筆記</a>
+  </div>
+  <div class="sb-sec">
+    <div class="sb-lbl">生活</div>
+    <a class="nav-item" href="travel-planner.html"><span class="icon">✈️</span>旅行規劃</a>
+  </div>
+  <div class="sb-sec">
+    <div class="sb-lbl">系統</div>
+    <a class="nav-item" href="tools.html"><span class="icon">🔧</span>使用工具</a>
+  </div>
+  <div class="sb-footer">v1.9 · Feebit © 2026</div>
+</div>
+<div id="overlay" onclick="closeSidebar()"></div>
+
+<div id="main">
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:10px">
+      <button class="hamburger" onclick="toggleSidebar()">☰</button>
+      <span class="topbar-title">毛利試算機</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button id="share-btn" style="padding:4px 12px;font-size:12px;cursor:pointer;border:1px solid var(--gray-200);border-radius:var(--radius);background:white" onclick="shareLink()">🔗 分享連結</button>
+      <span class="topbar-badge">💰 即時試算</span>
+    </div>
+  </div>
+
+  <div class="page">
+    <div class="tab-bar">
+      <button class="tab-btn active" data-tab="single" onclick="switchTab('single')">📦 單品試算</button>
+      <button class="tab-btn" data-tab="bundle" onclick="switchTab('bundle')">🎁 套組試算</button>
+      <button class="tab-btn" data-tab="history" onclick="switchTab('history')">🗂 計算紀錄</button>
+      <button class="tab-btn" data-tab="platforms" onclick="switchTab('platforms')">🏪 平台管理</button>
+    </div>
+
+    <!-- ── 單品試算 ── -->
+    <div class="tab-pane active" id="pane-single">
+      <div class="calc-layout">
+        <div>
+          <div class="card">
+            <div class="card-title">📦 商品資訊</div>
+            <div class="fg">
+              <label>商品名稱（用於儲存紀錄）</label>
+              <input type="text" id="s-name" placeholder="例：防曬乳 SPF50">
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">💵 成本明細</div>
+            <div class="g2" style="margin-bottom:12px">
+              <div class="fg">
+                <label>進貨成本（含關稅）</label>
+                <div class="pfx"><span>$</span><input type="number" id="s-purchase" placeholder="0" min="0" oninput="recalcSingle()"></div>
+              </div>
+              <div class="fg">
+                <label>每單運費</label>
+                <div class="pfx"><span>$</span><input type="number" id="s-shipping" placeholder="0" min="0" oninput="recalcSingle()"></div>
+              </div>
+              <div class="fg">
+                <label>包材成本</label>
+                <div class="pfx"><span>$</span><input type="number" id="s-packaging" placeholder="0" min="0" oninput="recalcSingle()"></div>
+              </div>
+              <div class="fg">
+                <label>贈品／附件成本</label>
+                <div class="pfx"><span>$</span><input type="number" id="s-gift" placeholder="0" min="0" oninput="recalcSingle()"></div>
+              </div>
+              <div class="fg" style="grid-column:1/-1">
+                <label>其他費用</label>
+                <div class="pfx"><span>$</span><input type="number" id="s-other" placeholder="0" min="0" oninput="recalcSingle()"></div>
+              </div>
+            </div>
+            <div class="cost-total">
+              <span class="lbl">總成本</span>
+              <span class="amt" id="s-total">$0</span>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">🏷️ 售價與目標毛利率</div>
+            <div class="fg" style="margin-bottom:14px">
+              <label>目前售價</label>
+              <div class="pfx"><span>$</span><input type="number" id="s-price" placeholder="0" min="0" oninput="recalcSingle()"></div>
+            </div>
+            <div class="fg">
+              <label>目標毛利率（建議售價參考用）</label>
+              <div class="chips">
+                <button class="chip" onclick="setTarget('s',15)">15%</button>
+                <button class="chip active" onclick="setTarget('s',20)">20%</button>
+                <button class="chip" onclick="setTarget('s',25)">25%</button>
+                <button class="chip" onclick="setTarget('s',30)">30%</button>
+                <button class="chip" onclick="setTarget('s',35)">35%</button>
+                <div class="chip-num"><input type="number" id="s-target" value="20" min="1" max="99" oninput="syncChips('s');recalcSingle()"><span>%</span></div>
+              </div>
+            </div>
+          </div>
+          <button class="btn btn-p" style="width:100%" onclick="saveSingle()">💾 儲存計算紀錄</button>
+        </div>
+        <div>
+          <div class="card" style="padding:0">
+            <div style="padding:16px 20px 12px;border-bottom:1px solid var(--gray-100)">
+              <div class="card-title" style="margin:0">📊 各平台毛利試算</div>
+            </div>
+            <div class="tbl-wrap" id="s-results"><div class="empty">請先輸入成本與售價</div></div>
+          </div>
+          <p class="note">毛利 = 售價 − 總成本 − 平台抽成（%×售價）<br>建議售價 = 總成本 ÷ (1 − 平台手續費% − 目標毛利率%)</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── 套組試算 ── -->
+    <div class="tab-pane" id="pane-bundle">
+      <div class="calc-layout">
+        <div>
+          <div class="card">
+            <div class="card-title">🎁 套組資訊</div>
+            <div class="fg">
+              <label>套組名稱（用於儲存紀錄）</label>
+              <input type="text" id="b-name" placeholder="例：保濕三件組">
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">🧩 組件清單</div>
+            <div class="comp-hdr">
+              <span>品名</span><span>單品成本</span><span>數量</span><span style="text-align:right">小計</span><span></span>
+            </div>
+            <div id="b-components"></div>
+            <button class="btn btn-ghost btn-sm" style="margin-top:10px" onclick="addComp()">＋ 新增組件</button>
+          </div>
+          <div class="card">
+            <div class="card-title">➕ 套組額外成本</div>
+            <div class="g2">
+              <div class="fg">
+                <label>套組包材</label>
+                <div class="pfx"><span>$</span><input type="number" id="b-packaging" placeholder="0" min="0" oninput="recalcBundle()"></div>
+              </div>
+              <div class="fg">
+                <label>其他費用</label>
+                <div class="pfx"><span>$</span><input type="number" id="b-other" placeholder="0" min="0" oninput="recalcBundle()"></div>
+              </div>
+            </div>
+            <div class="cost-total" style="margin-top:12px">
+              <span class="lbl">套組總成本</span>
+              <span class="amt" id="b-total">$0</span>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">🏷️ 售價與目標毛利率</div>
+            <div class="fg" style="margin-bottom:14px">
+              <label>目前售價</label>
+              <div class="pfx"><span>$</span><input type="number" id="b-price" placeholder="0" min="0" oninput="recalcBundle()"></div>
+            </div>
+            <div class="fg">
+              <label>目標毛利率</label>
+              <div class="chips">
+                <button class="chip" onclick="setTarget('b',15)">15%</button>
+                <button class="chip active" onclick="setTarget('b',20)">20%</button>
+                <button class="chip" onclick="setTarget('b',25)">25%</button>
+                <button class="chip" onclick="setTarget('b',30)">30%</button>
+                <button class="chip" onclick="setTarget('b',35)">35%</button>
+                <div class="chip-num"><input type="number" id="b-target" value="20" min="1" max="99" oninput="syncChips('b');recalcBundle()"><span>%</span></div>
+              </div>
+            </div>
+          </div>
+          <button class="btn btn-p" style="width:100%" onclick="saveBundle()">💾 儲存計算紀錄</button>
+        </div>
+        <div>
+          <div class="card" style="padding:0">
+            <div style="padding:16px 20px 12px;border-bottom:1px solid var(--gray-100)">
+              <div class="card-title" style="margin:0">📊 各平台毛利試算</div>
+            </div>
+            <div class="tbl-wrap" id="b-results"><div class="empty">請先新增組件並輸入售價</div></div>
+          </div>
+          <p class="note">套組總成本 = Σ(組件成本 × 數量) + 包材 + 其他</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── 計算紀錄 ── -->
+    <div class="tab-pane" id="pane-history">
+      <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
+        <input type="text" id="h-search" placeholder="搜尋商品名稱…" style="flex:1;min-width:200px;border:1.5px solid var(--gray-200);border-radius:6px;padding:8px 12px;font-size:13px;font-family:inherit;outline:none" oninput="renderHistory()" onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='var(--gray-200)'">
+        <select id="h-filter" style="border:1.5px solid var(--gray-200);border-radius:6px;padding:8px 10px;font-size:13px;font-family:inherit;outline:none;background:#fff" onchange="renderHistory()">
+          <option value="all">全部類型</option>
+          <option value="single">單品</option>
+          <option value="bundle">套組</option>
+        </select>
+        <button class="btn-danger" onclick="clearAllHistory()">清除全部</button>
+      </div>
+      <div id="h-list" class="hist-list"><div class="empty">載入中…</div></div>
+    </div>
+
+    <!-- ── 平台管理 ── -->
+    <div class="tab-pane" id="pane-platforms">
+      <div style="max-width:520px">
+        <div class="card">
+          <div class="card-title" style="justify-content:space-between">
+            <span>🏪 平台清單</span>
+            <span id="sync-status" style="font-size:11px;font-weight:400;color:var(--gray-400)"></span>
+          </div>
+          <div class="plat-hdr"><span>平台名稱</span><span>手續費</span><span></span></div>
+          <div id="plat-list"></div>
+          <div class="plat-row" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--gray-100);border-bottom:none">
+            <input type="text" id="np-name" placeholder="新平台名稱">
+            <div class="pfx-sm"><input type="number" id="np-fee" placeholder="0" min="0" max="100" step="0.1"><span>%</span></div>
+            <button class="btn btn-p btn-sm" onclick="addPlatform()">新增</button>
+          </div>
+        </div>
+        <p class="note">平台資料儲存於 Supabase，所有同仁開啟工具即可看到最新設定。修改後自動儲存。</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+<div id="toast"></div>
+
+<script>
+const SB = 'https://tokhhoyzztaynppcatci.supabase.co';
+const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRva2hob3l6enRheW5wcGNhdGNpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMDAyODMsImV4cCI6MjA5MDg3NjI4M30.PQB4lJGF3OMatv5wIedCu3zIWq0urrFbniBRYTbNtUU';
+const H = {'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=representation'};
+
+let platforms = [];
+let history = [];
+let cidx = 0;
+
+// ── Supabase ──────────────────────────────────────────────
+async function sb(path, opts={}) {
+  const r = await fetch(SB+path, {headers:H,...opts});
+  if(!r.ok) throw new Error(await r.text());
+  return r.status===204?null:r.json();
+}
+
+// ── Platform CRUD ─────────────────────────────────────────
+async function loadPlatforms() {
+  try {
+    platforms = await sb('/rest/v1/platforms?order=sort_order,created_at');
+    renderPlatList();
+    recalcSingle(); recalcBundle();
+  } catch(e){ toast('⚠️ 平台資料載入失敗'); }
+}
+
+function renderPlatList() {
+  const el = document.getElementById('plat-list');
+  if(!platforms.length){ el.innerHTML='<div style="color:var(--gray-400);font-size:13px;padding:8px 0">尚未新增平台</div>'; return; }
+  el.innerHTML = platforms.map(p=>`
+    <div class="plat-row" data-id="${p.id}">
+      <input class="pn" type="text" value="${esc(p.name)}" onblur="updatePlat('${p.id}')">
+      <div class="pfx-sm"><input class="pf" type="number" value="${p.fee}" min="0" max="100" step="0.1" onblur="updatePlat('${p.id}')"><span>%</span></div>
+      <button class="btn-icon" onclick="deletePlat('${p.id}')">×</button>
+    </div>`).join('');
+}
+
+async function addPlatform() {
+  const name = document.getElementById('np-name').value.trim();
+  const fee = parseFloat(document.getElementById('np-fee').value)||0;
+  if(!name){ toast('請輸入平台名稱'); return; }
+  try {
+    const [p] = await sb('/rest/v1/platforms',{method:'POST',body:JSON.stringify({name,fee,sort_order:platforms.length})});
+    platforms.push(p); renderPlatList(); recalcSingle(); recalcBundle();
+    document.getElementById('np-name').value=''; document.getElementById('np-fee').value='';
+    setSyncStatus('已儲存'); toast('✅ 新增成功');
+  } catch(e){ toast('❌ 新增失敗'); }
+}
+
+async function updatePlat(id) {
+  const row = document.querySelector(`.plat-row[data-id="${id}"]`);
+  const name = row.querySelector('.pn').value.trim();
+  const fee = parseFloat(row.querySelector('.pf').value)||0;
+  if(!name) return;
+  try {
+    await sb(`/rest/v1/platforms?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({name,fee})});
+    const i = platforms.findIndex(p=>p.id===id);
+    if(i>=0){platforms[i].name=name; platforms[i].fee=fee;}
+    recalcSingle(); recalcBundle(); setSyncStatus('已儲存');
+  } catch(e){ toast('❌ 儲存失敗'); }
+}
+
+async function deletePlat(id) {
+  if(!confirm('確定刪除此平台？')) return;
+  try {
+    await sb(`/rest/v1/platforms?id=eq.${id}`,{method:'DELETE'});
+    platforms = platforms.filter(p=>p.id!==id);
+    renderPlatList(); recalcSingle(); recalcBundle();
+    setSyncStatus('已儲存'); toast('已刪除');
+  } catch(e){ toast('❌ 刪除失敗'); }
+}
+
+function setSyncStatus(msg){ document.getElementById('sync-status').textContent = msg+'　'+new Date().toLocaleTimeString('zh-TW'); }
+
+// ── Calculation core ──────────────────────────────────────
+function n(id){ return parseFloat(document.getElementById(id).value)||0; }
+
+function buildTable(totalCost, price, targetPct) {
+  if(!platforms.length) return '<div class="empty">請先到「平台管理」新增平台</div>';
+  const tm = targetPct/100;
+  let rows = platforms.map(p=>{
+    const fr = p.fee/100;
+    const feeAmt = price>0 ? price*fr : null;
+    const profit = price>0 ? price-totalCost-price*fr : null;
+    const margin = price>0 ? profit/price*100 : null;
+    const den = 1-fr-tm;
+    const sug = den>0&&totalCost>0 ? Math.ceil(totalCost/den) : null;
+    const mb = margin!==null ? `<span class="badge ${margin>=30?'bg':margin>=20?'bw':'bb'}">${margin.toFixed(1)}%</span>` : '—';
+    const pb = profit!==null ? `<span style="color:${profit>=0?'var(--success)':'var(--danger)'}">$${fmt(profit)}</span>` : '—';
+    const sb2 = sug ? `<span class="suggested">$${fmt(sug)}</span>` : totalCost>0?'<span style="color:var(--gray-400)">目標過高</span>':'—';
+    return `<tr>
+      <td style="font-weight:600">${esc(p.name)}</td>
+      <td style="color:var(--gray-600)">${p.fee}%</td>
+      <td style="color:var(--gray-600)">${feeAmt!==null?'$'+fmt(feeAmt):'—'}</td>
+      <td>${pb}</td><td>${mb}</td><td>${sb2}</td>
+    </tr>`;
+  }).join('');
+  return `<table><thead><tr>
+    <th>平台</th><th>手續費%</th><th>抽成金額</th><th>毛利</th><th>毛利率</th><th>建議售價（目標${targetPct}%）</th>
+  </tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+// ── Single ────────────────────────────────────────────────
+function recalcSingle() {
+  const total = n('s-purchase')+n('s-shipping')+n('s-packaging')+n('s-gift')+n('s-other');
+  document.getElementById('s-total').textContent = '$'+fmt(total);
+  document.getElementById('s-results').innerHTML = buildTable(total, n('s-price'), n('s-target')||20);
+}
+
+async function saveSingle() {
+  const name = document.getElementById('s-name').value.trim()||'單品（未命名）';
+  const total = n('s-purchase')+n('s-shipping')+n('s-packaging')+n('s-gift')+n('s-other');
+  try {
+    const [rec] = await sb('/rest/v1/calc_history',{method:'POST',body:JSON.stringify({
+      type:'single', name, total_cost:total, target_margin:n('s-target')||20,
+      data:{purchase:n('s-purchase'),shipping:n('s-shipping'),packaging:n('s-packaging'),gift:n('s-gift'),other:n('s-other'),price:n('s-price')}
+    })});
+    history.unshift(rec); toast('✅ 已儲存');
+  } catch(e){ toast('❌ 儲存失敗'); }
+}
+
+// ── Bundle ────────────────────────────────────────────────
+function addComp(c={}) {
+  const id='c'+(++cidx);
+  const div=document.createElement('div');
+  div.className='comp-row'; div.dataset.cid=id;
+  div.innerHTML=`
+    <input class="cn" type="text" placeholder="品名" value="${esc(c.name||'')}" oninput="recalcBundle()">
+    <div class="pfx"><span>$</span><input class="cc" type="number" placeholder="0" min="0" value="${c.cost||''}" oninput="recalcBundle()"></div>
+    <input class="cq" type="number" placeholder="1" min="1" value="${c.qty||1}" oninput="recalcBundle()" style="text-align:center">
+    <span class="comp-sub cs">$0</span>
+    <button class="btn-icon" onclick="this.closest('.comp-row').remove();recalcBundle()">×</button>`;
+  document.getElementById('b-components').appendChild(div);
+  recalcBundle();
+}
+
+function recalcBundle() {
+  let total=0;
+  document.querySelectorAll('.comp-row').forEach(r=>{
+    const c=parseFloat(r.querySelector('.cc').value)||0;
+    const q=parseFloat(r.querySelector('.cq').value)||1;
+    const sub=c*q; r.querySelector('.cs').textContent='$'+fmt(sub); total+=sub;
+  });
+  total += n('b-packaging')+n('b-other');
+  document.getElementById('b-total').textContent='$'+fmt(total);
+  document.getElementById('b-results').innerHTML=buildTable(total,n('b-price'),n('b-target')||20);
+}
+
+async function saveBundle() {
+  const name=document.getElementById('b-name').value.trim()||'套組（未命名）';
+  const comps=[...document.querySelectorAll('.comp-row')].map(r=>({
+    name:r.querySelector('.cn').value,
+    cost:parseFloat(r.querySelector('.cc').value)||0,
+    qty:parseFloat(r.querySelector('.cq').value)||1
+  }));
+  const pkg=n('b-packaging'),oth=n('b-other');
+  const total=comps.reduce((s,c)=>s+c.cost*c.qty,0)+pkg+oth;
+  try {
+    const [rec]=await sb('/rest/v1/calc_history',{method:'POST',body:JSON.stringify({
+      type:'bundle',name,total_cost:total,target_margin:n('b-target')||20,
+      data:{components:comps,packaging:pkg,other:oth,price:n('b-price')}
+    })});
+    history.unshift(rec); toast('✅ 已儲存');
+  } catch(e){ toast('❌ 儲存失敗'); }
+}
+
+// ── History ───────────────────────────────────────────────
+async function loadHistory() {
+  try {
+    history=await sb('/rest/v1/calc_history?order=created_at.desc');
+    renderHistory();
+  } catch(e){ document.getElementById('h-list').innerHTML='<div class="empty">載入失敗</div>'; }
+}
+
+function renderHistory() {
+  const q=document.getElementById('h-search').value.toLowerCase();
+  const f=document.getElementById('h-filter').value;
+  const items=history.filter(h=>(f==='all'||h.type===f)&&(!q||h.name.toLowerCase().includes(q)));
+  const el=document.getElementById('h-list');
+  if(!items.length){el.innerHTML='<div class="empty">沒有符合的紀錄</div>';return;}
+  el.innerHTML=items.map(h=>`
+    <div class="hist-item" onclick="loadRec('${h.id}')">
+      <div class="hist-info">
+        <div class="hist-name">${esc(h.name)}</div>
+        <div class="hist-meta">
+          <span class="type-badge ${h.type==='single'?'tb-s':'tb-b'}">${h.type==='single'?'單品':'套組'}</span>
+          ${new Date(h.created_at).toLocaleString('zh-TW',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}
+          · 目標毛利 ${h.target_margin}%
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="hist-cost">$${fmt(h.total_cost)}</span>
+        <button class="btn-icon" onclick="event.stopPropagation();delRec('${h.id}')">×</button>
+      </div>
+    </div>`).join('');
+}
+
+function loadRec(id) {
+  const rec=history.find(h=>h.id===id); if(!rec) return;
+  const d=rec.data;
+  if(rec.type==='single'){
+    document.getElementById('s-name').value=rec.name;
+    ['purchase','shipping','packaging','gift','other','price'].forEach(k=>{
+      document.getElementById('s-'+k).value=d[k]||'';
+    });
+    document.getElementById('s-target').value=rec.target_margin;
+    syncChips('s'); recalcSingle(); switchTab('single');
+  } else {
+    document.getElementById('b-name').value=rec.name;
+    document.getElementById('b-components').innerHTML=''; cidx=0;
+    (d.components||[]).forEach(c=>addComp(c));
+    document.getElementById('b-packaging').value=d.packaging||'';
+    document.getElementById('b-other').value=d.other||'';
+    document.getElementById('b-price').value=d.price||'';
+    document.getElementById('b-target').value=rec.target_margin;
+    syncChips('b'); recalcBundle(); switchTab('bundle');
+  }
+  toast('📂 已載入');
+}
+
+async function delRec(id) {
+  if(!confirm('刪除此紀錄？')) return;
+  try {
+    await sb(`/rest/v1/calc_history?id=eq.${id}`,{method:'DELETE'});
+    history=history.filter(h=>h.id!==id); renderHistory(); toast('已刪除');
+  } catch(e){ toast('❌ 刪除失敗'); }
+}
+
+async function clearAllHistory() {
+  if(!confirm('確定清除所有計算紀錄？此操作無法復原。')) return;
+  try {
+    await sb('/rest/v1/calc_history?id=neq.00000000-0000-0000-0000-000000000000',{method:'DELETE'});
+    history=[]; renderHistory(); toast('已清除全部');
+  } catch(e){ toast('❌ 清除失敗'); }
+}
+
+// ── Tabs ──────────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('pane-'+name).classList.add('active');
+  document.querySelector(`.tab-btn[data-tab="${name}"]`).classList.add('active');
+  if(name==='history') renderHistory();
+}
+
+// ── Target chips ──────────────────────────────────────────
+function setTarget(px,val){
+  document.getElementById(px+'-target').value=val;
+  syncChips(px);
+  px==='s'?recalcSingle():recalcBundle();
+}
+function syncChips(px){
+  const v=parseFloat(document.getElementById(px+'-target').value);
+  document.getElementById('pane-'+(px==='s'?'single':'bundle')).querySelectorAll('.chip').forEach(c=>c.classList.toggle('active',parseFloat(c.textContent)===v));
+}
+
+// ── Utils ─────────────────────────────────────────────────
+function fmt(n){ return Math.round(n).toLocaleString('zh-TW'); }
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+let _tt;
+function toast(msg){ const e=document.getElementById('toast'); e.textContent=msg; e.classList.add('show'); clearTimeout(_tt); _tt=setTimeout(()=>e.classList.remove('show'),2500); }
+function toggleSidebar(){ document.getElementById('sidebar').classList.toggle('open'); document.getElementById('overlay').classList.toggle('active'); }
+function closeSidebar(){ document.getElementById('sidebar').classList.remove('open'); document.getElementById('overlay').classList.remove('active'); }
+
+// ── Init ──────────────────────────────────────────────────
+(async()=>{
+  addComp();
+  await Promise.all([loadPlatforms(), loadHistory()]);
+})();
+</script>
+</body>
+</html>
+

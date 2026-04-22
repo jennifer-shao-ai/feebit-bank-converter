@@ -113,7 +113,9 @@ td.muted { color:var(--gray-400); font-size:12px; }
     <a class="nav-item" href="finance-dashboard.html"><span class="icon">📊</span> 帳務分析</a>
     <a class="nav-item" href="coupang-invoice.html"><span class="icon">🧾</span> 酷澎發票轉檔</a>
     <a class="nav-item" href="coupang-reconcile.html"><span class="icon">🔍</span> 酷澎商城對帳</a>
-    <div class="nav-item soon"><span class="icon">💰</span> 定價試算<span class="soon-tag">即將推出</span></div>
+    <a class="nav-item" href="shopee-converter.html"><span class="icon">🛒</span> 蝦皮撥款轉換</a>
+    <a class="nav-item" href="profit-calculator.html"><span class="icon">💰</span> 毛利試算機</a>
+    <a class="nav-item" href="brand-sales.html"><span class="icon">📈</span> 品牌銷售分析</a>
   </div>
   <div class="sidebar-section">
     <div class="sidebar-label">行銷</div>
@@ -128,14 +130,14 @@ td.muted { color:var(--gray-400); font-size:12px; }
     <div class="nav-item soon"><span class="icon">🤝</span> 廠商談判<span class="soon-tag">即將推出</span></div>
   </div>
   <div class="sidebar-section">
+    <div class="sidebar-label">人事</div>
+    <a class="nav-item" href="attendance.html"><span class="icon">🗓️</span> 考勤查驗</a>
+  </div>
+  <div class="sidebar-section">
     <div class="sidebar-label">庫存</div>
     <a class="nav-item" href="stock-analysis.html"><span class="icon">📦</span> 庫存訂貨分析</a>
     <a class="nav-item active" href="slow-mover-alert.html"><span class="icon">🔴</span> 滯銷品警示</a>
     <a class="nav-item" href="feebit-inventory-filter.html"><span class="icon">🏪</span> 商品篩選工具</a>
-  </div>
-  <div class="sidebar-section">
-    <div class="sidebar-label">人事</div>
-    <a class="nav-item" href="attendance.html"><span class="icon">🗓️</span> 考勤查驗</a>
   </div>
   <div class="sidebar-section">
     <div class="sidebar-label">研發</div>
@@ -153,7 +155,7 @@ td.muted { color:var(--gray-400); font-size:12px; }
 
 <!-- TOPBAR -->
 <div id="topbar">
-  <button class="hamburger" onclick="openSidebar()">☰</button>
+  <button class="btn-hamburger" onclick="openSidebar()">☰</button>
   <span class="topbar-title">滯銷品警示</span>
 </div>
 
@@ -648,9 +650,12 @@ function enc(s)  { return encodeURIComponent(s); }
 function showLoading(msg) { document.getElementById('loading-msg').textContent = msg; document.getElementById('loading-overlay').classList.add('show'); }
 function hideLoading()    { document.getElementById('loading-overlay').classList.remove('show'); }
 
+// ── SIDEBAR ──
+function openSidebar()  { document.getElementById('sidebar').classList.add('open');    document.getElementById('sidebar-overlay').classList.add('show'); }
+function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebar-overlay').classList.remove('show'); }
+
 // 啟動
 init();
 </script>
-<script src="sidebar.js" defer></script>
 </body>
 </html>
