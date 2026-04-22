@@ -221,7 +221,7 @@ tr.total-row td{font-weight:700;background:var(--gray-100)!important;border-top:
       <div style="font-size:11px;color:var(--gray-600);margin-bottom:4px">Ragic API Key</div>
       <input type="password" id="ragic-api-key" placeholder="貼上你的 Ragic API Key" style="width:100%;padding:8px 10px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:13px;box-sizing:border-box">
     </div>
-    <p style="font-size:11px;color:var(--gray-500);margin-bottom:16px">取得方式：Ragic → 右上角頭像 → API Key</p>
+    <p style="font-size:11px;color:var(--gray-500);margin-bottom:16px">格式：<code>Basic xxxxxxxx</code>（Ragic → 右上角頭像 → API Key，複製整串貼上）</p>
     <div style="display:flex;gap:8px;justify-content:flex-end">
       <button class="btn btn-outline" onclick="closeRagicModal()">取消</button>
       <button class="btn btn-primary" onclick="saveRagicModal()">儲存</button>
@@ -583,9 +583,9 @@ async function syncFromRagic(){
   try{
     let all=[], offset=0, limit=1000;
     while(true){
-      const url=`${RAGIC_URL}?api_key=${encodeURIComponent(cfg.apiKey)}&limit=${limit}&offset=${offset}&ignoreMask=true`;
-      const res=await fetch(url);
-      if(!res.ok) throw new Error(`Ragic 回應 ${res.status}，請確認 API Key 是否正確`);
+      const url=`${RAGIC_URL}?api&limit=${limit}&offset=${offset}`;
+      const res=await fetch(url,{headers:{'Authorization':cfg.apiKey}});
+      if(!res.ok) throw new Error(`Ragic 回應 ${res.status}，請確認 API Key 格式是否正確`);
       const json=await res.json();
       const entries=Object.entries(json).filter(([k])=>!k.startsWith('_'));
       if(!entries.length) break;
