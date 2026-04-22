@@ -226,7 +226,10 @@ tr.total-row td{font-weight:700;background:var(--gray-100)!important;border-top:
       <div style="font-size:11px;color:var(--gray-600);margin-bottom:4px">Ragic API Key</div>
       <input type="password" id="ragic-api-key" placeholder="貼上 API Key" style="width:100%;padding:8px 10px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:13px;box-sizing:border-box">
     </div>
-    <p style="font-size:11px;color:var(--gray-500);margin-bottom:16px">取得：Ragic → 右上角頭像 → API Key → 複製那串 key</p>
+    <p style="font-size:11px;color:var(--gray-500);margin-bottom:16px">
+      取得步驟：Ragic → 右上角頭像 → <b>API Key</b><br>
+      複製 <b>HTTP Authorization Header</b> 那一行（含 Basic 開頭的完整字串）
+    </p>
     <div style="display:flex;gap:8px;justify-content:flex-end">
       <button class="btn btn-outline" onclick="closeRagicModal()">取消</button>
       <button class="btn btn-primary" onclick="saveRagicModal()">儲存</button>
