@@ -561,7 +561,7 @@ async function loadData(){
   const {from,to}=getRangeDates(curRange);
   curFromDate=from; curToDate=to;
   const {data,error}=await db.from('finance_transactions')
-    .select('txn_date,type,amount,gs_cat').gte('txn_date',from).lte('txn_date',to).order('txn_date');
+    .select('txn_date,type,amount,gs_cat').gte('txn_date',from).lte('txn_date',to).order('txn_date').limit(50000);
   if(error){console.error(error);return;}
   curData=data||[];
   if(curData.length){
@@ -1055,10 +1055,11 @@ async function syncFromRagic(){
   try{
     let totalAll=0;
     for(const src of sources){
-      let all=[], offset=0, limit=1000;
+      let all=[], pageNo=1, limit=1000;
       const baseUrl=src.url.split('?')[0];
       while(true){
-        const res=await fetch(`${baseUrl}?api&limit=${limit}&offset=${offset}`,{headers:{'Authorization':cfg.apiKey}});
+        // Ragic 用 PAGENO 分頁（非 offset），limit 最大建議 1000
+        const res=await fetch(`${baseUrl}?api&limit=${limit}&PAGENO=${pageNo}`,{headers:{'Authorization':cfg.apiKey}});
         if(!res.ok) throw new Error(`[${src.label}] HTTP ${res.status}`);
         const json=await res.json();
         const entries=Object.entries(json).filter(([k,v])=>!isNaN(parseInt(k))&&typeof v==='object'&&v!==null);
@@ -1080,7 +1081,7 @@ async function syncFromRagic(){
           });
         });
         if(entries.length<limit) break;
-        offset+=limit;
+        pageNo++;
       }
       if(all.length){
         const{error}=await db.from('finance_transactions')
