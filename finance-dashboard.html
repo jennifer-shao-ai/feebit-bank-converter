@@ -148,7 +148,7 @@ tr.total-row td:first-child{background:var(--gray-100)!important}
     <div class="sidebar-label">系統</div>
     <a class="nav-item" href="tools.html"><span class="icon">🔧</span> 使用工具</a>
   </div>
-  <div class="sidebar-footer">v1.4 · Feebit © 2026</div>
+  <div class="sidebar-footer">v1.5 · Feebit © 2026</div>
 </div>
 <div id="sidebar-overlay" onclick="closeSidebar()"></div>
 
@@ -157,7 +157,7 @@ tr.total-row td:first-child{background:var(--gray-100)!important}
   <div class="topbar">
     <div style="display:flex;align-items:center;gap:10px">
       <button class="btn-hamburger" onclick="toggleSidebar()">☰</button>
-      <span class="topbar-title">帳務分析 <span style="font-size:11px;font-weight:400;color:var(--gray-500);">v1.4</span></span>
+      <span class="topbar-title">帳務分析 <span style="font-size:11px;font-weight:400;color:var(--gray-500);">v1.5</span></span>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
       <button class="btn btn-outline" onclick="openDbModal()" style="font-size:12px;padding:4px 10px">⚙️ 初始化DB</button>
@@ -166,7 +166,7 @@ tr.total-row td:first-child{background:var(--gray-100)!important}
       <button class="btn btn-outline" onclick="debugRagic()" style="font-size:12px;padding:4px 10px">🔎 Debug</button>
       <button class="btn btn-primary" onclick="document.getElementById('csv-input').click()" style="font-size:12px;padding:4px 12px">⬆ 上傳CSV</button>
       <input type="file" id="csv-input" accept=".csv" style="display:none">
-      <span class="topbar-badge">v1.4</span>
+      <span class="topbar-badge">v1.5</span>
     </div>
   </div>
 
@@ -329,6 +329,14 @@ tr.total-row td:first-child{background:var(--gray-100)!important}
     <h3 style="margin-bottom:8px">🔗 Ragic API 設定</h3>
     <p style="font-size:12px;color:var(--gray-600);margin-bottom:14px">設定儲存於瀏覽器本機，不會出現在程式碼或 GitHub 上</p>
 
+    <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:var(--radius);padding:10px 12px;margin-bottom:14px;font-size:12px;color:#1e40af">
+      <b>增量同步說明：</b>留空「已結案截止日」時，系統自動從資料庫最新日期往前 7 天開始抓，避免重複掃描全部資料。首次同步建議清空此欄做一次全量同步。
+    </div>
+    <div style="margin-bottom:12px">
+      <div style="font-size:11px;color:var(--gray-600);margin-bottom:4px">已結案截止日（選填）</div>
+      <input type="date" id="ragic-closed-date" style="width:100%;padding:8px 10px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:13px;box-sizing:border-box">
+      <div style="font-size:10px;color:var(--gray-500);margin-top:3px">設定後永久跳過此日期以前的資料，留空則自動增量（最新日期 -7 天）</div>
+    </div>
     <div style="font-size:12px;font-weight:600;color:var(--gray-700);margin-bottom:8px">主帳務（台幣）</div>
     <div style="margin-bottom:10px">
       <div style="font-size:11px;color:var(--gray-600);margin-bottom:4px">Ragic 主帳務表格網址</div>
@@ -1018,6 +1026,7 @@ function openRagicModal(){
   document.getElementById('ragic-sheet-url').value  = cfg.sheetUrl    || '';
   document.getElementById('ragic-url-balance').value= cfg.urlBalance  || DEFAULT_BALANCE_URL;
   document.getElementById('ragic-api-key').value    = cfg.rawKey      || '';
+  document.getElementById('ragic-closed-date').value= cfg.closedDate  || '';
   document.getElementById('ragic-url-coupang').value= cfg.urlCoupang  || '';
   document.getElementById('ragic-url-usd').value    = cfg.urlUsd      || '';
   document.getElementById('ragic-url-petty').value  = cfg.urlPetty    || '';
@@ -1028,13 +1037,14 @@ function saveRagicModal(){
   const sheetUrl   = document.getElementById('ragic-sheet-url').value.trim();
   const rawKey     = document.getElementById('ragic-api-key').value.trim();
   const urlBalance = document.getElementById('ragic-url-balance').value.trim();
+  const closedDate = document.getElementById('ragic-closed-date').value.trim();
   const urlCoupang = document.getElementById('ragic-url-coupang').value.trim();
   const urlUsd     = document.getElementById('ragic-url-usd').value.trim();
   const urlPetty   = document.getElementById('ragic-url-petty').value.trim();
   if(!sheetUrl){alert('請填入主帳務表格網址');return;}
   if(!rawKey){alert('請填入 API Key');return;}
   const apiKey=rawKey.startsWith('Basic ')?rawKey:'Basic '+rawKey;
-  saveRagicCfg({sheetUrl,rawKey,apiKey,urlBalance,urlCoupang,urlUsd,urlPetty});
+  saveRagicCfg({sheetUrl,rawKey,apiKey,urlBalance,closedDate,urlCoupang,urlUsd,urlPetty});
   closeRagicModal();
   alert('✅ 已儲存，可以點「從 Ragic 同步」');
 }
@@ -1045,7 +1055,24 @@ async function syncFromRagic(){
   const cfg=loadRagicCfg();
   if(!cfg.apiKey){alert('請先設定 Ragic API Key');openRagicModal();return;}
   const btn=document.getElementById('sync-btn');
-  btn.textContent='⏳ 同步中...'; btn.disabled=true;
+  btn.textContent='⏳ 準備同步...'; btn.disabled=true;
+
+  // ── 決定增量起始日 ──
+  let syncFrom = cfg.closedDate || null;
+  if(!syncFrom){
+    try{
+      const {data:mx}=await db.from('finance_transactions')
+        .select('txn_date').order('txn_date',{ascending:false}).limit(1);
+      if(mx?.length){
+        const d=new Date(mx[0].txn_date);
+        d.setDate(d.getDate()-7);
+        syncFrom=d.toISOString().slice(0,10);
+      }
+    }catch(_){}
+  }
+  const syncLabel=syncFrom?`增量同步（${syncFrom} 起）`:'全量同步';
+  btn.textContent=`⏳ ${syncLabel}...`;
+
   const sources=[
     {url:cfg.sheetUrl,   label:'主帳務'},
     {url:cfg.urlCoupang, label:'桑爹/酷澎'},
@@ -1070,7 +1097,7 @@ async function syncFromRagic(){
           const type=typeRaw.includes('收入')?'收入':typeRaw.includes('支出')?'支出':typeRaw;
           const txnDate=fmtDate(r['交易日期']);
           const amount=parseFloat(r['原幣金額'])||0;
-          if(txnDate&&amount) all.push({
+          if(txnDate&&amount&&(!syncFrom||txnDate>=syncFrom)) all.push({
             txn_date:txnDate, type,
             currency:r['帳戶幣別']||r['幣別']||'TWD',
             amount, main_cat:mainCat, sub_cat:subCat,
@@ -1090,7 +1117,7 @@ async function syncFromRagic(){
         totalAll+=all.length;
       }
     }
-    alert(`✅ 從 Ragic 同步完成，共 ${totalAll} 筆`);
+    alert(`✅ ${syncLabel}完成，本次新增 ${totalAll} 筆`);
     loadData();
   }catch(e){alert('同步失敗：'+e.message);}
   finally{btn.textContent='↻ 從 Ragic 同步';btn.disabled=false;}
