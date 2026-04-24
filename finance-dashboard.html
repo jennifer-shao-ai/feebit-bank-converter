@@ -13,9 +13,14 @@
 .fd-upload{border:2px dashed var(--gray-300);border-radius:var(--radius);padding:48px 24px;text-align:center;cursor:pointer;transition:all 0.2s;background:white;margin-bottom:24px}
 .fd-upload:hover,.fd-upload.drag-over{border-color:var(--primary);background:var(--primary-light)}
 /* ── range tabs ── */
-.range-tabs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+.range-tabs{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center}
 .range-tab{padding:6px 18px;border-radius:20px;border:1px solid var(--gray-300);background:white;cursor:pointer;font-size:13px;transition:all 0.15s}
 .range-tab.active{background:var(--primary);color:white;border-color:var(--primary)}
+/* ── custom date filter ── */
+.custom-filter{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:20px;padding:10px 14px;background:white;border-radius:var(--radius);border:1px solid var(--gray-200);font-size:13px}
+.custom-filter label{color:var(--gray-600);font-size:12px}
+.custom-filter select,.custom-filter input[type=number]{padding:5px 8px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:13px;background:white}
+.custom-filter.active-filter{border-color:var(--primary);background:var(--primary-light)}
 /* ── summary cards ── */
 .summary-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px}
 .sc{background:white;border-radius:var(--radius);padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
@@ -26,6 +31,12 @@
 .chart-card{background:white;border-radius:var(--radius);padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
 .chart-card.full{grid-column:1/-1}
 .chart-card h3{font-size:13px;font-weight:600;margin-bottom:14px;color:var(--gray-700)}
+.chart-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.chart-header h3{margin:0}
+/* ── pie toggle ── */
+.pie-toggle-group{display:flex;border:1px solid var(--gray-200);border-radius:20px;overflow:hidden}
+.pie-toggle{padding:4px 12px;font-size:12px;border:none;background:white;cursor:pointer;transition:all 0.15s;color:var(--gray-600)}
+.pie-toggle.active{background:var(--primary);color:white}
 /* ── validate ── */
 .validate-section{background:white;border-radius:var(--radius);padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.08);margin-bottom:24px}
 .vrow{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-top:12px}
@@ -36,19 +47,29 @@
 .table-card{background:white;border-radius:var(--radius);padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.08);overflow-x:auto;margin-bottom:24px}
 .table-card table{width:100%;border-collapse:collapse;font-size:12px}
 .table-card th{background:var(--gray-50);padding:8px 10px;text-align:right;border-bottom:2px solid var(--gray-200);font-weight:600;white-space:nowrap}
-.table-card th:first-child{text-align:left}
+.table-card th:first-child{text-align:left;position:sticky;left:0;z-index:1;background:var(--gray-50)}
 .table-card td{padding:7px 10px;border-bottom:1px solid var(--gray-100);text-align:right;white-space:nowrap}
-.table-card td:first-child{text-align:left;font-size:12px;color:var(--gray-700)}
+.table-card td:first-child{text-align:left;font-size:12px;color:var(--gray-700);position:sticky;left:0;z-index:1;background:white}
 .table-card tr:hover td{background:var(--gray-50)}
+.table-card tr:hover td:first-child{background:var(--gray-50)}
 td.c-income{color:var(--success);font-weight:600}
 td.c-expense{color:var(--danger);font-weight:600}
 tr.total-row td{font-weight:700;background:var(--gray-100)!important;border-top:2px solid var(--gray-300)}
+tr.total-row td:first-child{background:var(--gray-100)!important}
 /* ── modal ── */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center}
 .modal-overlay.open{display:flex}
 .modal-box{background:white;border-radius:12px;padding:24px;width:600px;max-width:90vw;max-height:90vh;overflow-y:auto}
 /* ── unmapped warning ── */
-.unmapped-warn{background:#fef3c7;border:1px solid #d97706;border-radius:var(--radius);padding:12px 16px;font-size:12px;margin-bottom:16px;display:none}
+.unmapped-warn{background:#fef3c7;border:1px solid #d97706;border-radius:var(--radius);padding:12px 16px;font-size:12px;margin-bottom:16px;display:none;line-height:1.7}
+.unmapped-warn-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.unmapped-warn-header strong{font-size:13px}
+/* ── cat map modal ── */
+.catmap-table{width:100%;border-collapse:collapse;font-size:13px}
+.catmap-table th{background:var(--gray-50);padding:8px 10px;text-align:left;border-bottom:2px solid var(--gray-200);font-size:12px;font-weight:600}
+.catmap-table td{padding:8px 10px;border-bottom:1px solid var(--gray-100);vertical-align:middle}
+.catmap-table input{width:100%;padding:6px 8px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:13px;box-sizing:border-box}
+.catmap-table input:focus{outline:none;border-color:var(--primary)}
 /* ── responsive ── */
 @media(max-width:768px){
   .summary-cards{grid-template-columns:1fr 1fr}
@@ -114,7 +135,7 @@ tr.total-row td{font-weight:700;background:var(--gray-100)!important;border-top:
     <div class="sidebar-label">系統</div>
     <a class="nav-item" href="tools.html"><span class="icon">🔧</span> 使用工具</a>
   </div>
-  <div class="sidebar-footer">v1.2 · Feebit © 2026</div>
+  <div class="sidebar-footer">v1.3 · Feebit © 2026</div>
 </div>
 <div id="sidebar-overlay" onclick="closeSidebar()"></div>
 
@@ -123,7 +144,7 @@ tr.total-row td{font-weight:700;background:var(--gray-100)!important;border-top:
   <div class="topbar">
     <div style="display:flex;align-items:center;gap:10px">
       <button class="btn-hamburger" onclick="toggleSidebar()">☰</button>
-      <span class="topbar-title">帳務分析 <span style="font-size:11px;font-weight:400;color:var(--gray-500);">v1.2</span></span>
+      <span class="topbar-title">帳務分析 <span style="font-size:11px;font-weight:400;color:var(--gray-500);">v1.3</span></span>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
       <button class="btn btn-outline" onclick="openDbModal()" style="font-size:12px;padding:4px 10px">⚙️ 初始化DB</button>
@@ -132,19 +153,38 @@ tr.total-row td{font-weight:700;background:var(--gray-100)!important;border-top:
       <button class="btn btn-outline" onclick="debugRagic()" style="font-size:12px;padding:4px 10px">🔎 Debug</button>
       <button class="btn btn-primary" onclick="document.getElementById('csv-input').click()" style="font-size:12px;padding:4px 12px">⬆ 上傳CSV</button>
       <input type="file" id="csv-input" accept=".csv" style="display:none">
-      <span class="topbar-badge">v1.2</span>
+      <span class="topbar-badge">v1.3</span>
     </div>
   </div>
 
   <div class="page">
 
-    <!-- range tabs (always visible) -->
+    <!-- range tabs -->
     <div class="range-tabs">
-      <button class="range-tab active" data-range="month"  onclick="setRange(this,'month')">本月</button>
+      <button class="range-tab active" data-range="month"   onclick="setRange(this,'month')">本月</button>
       <button class="range-tab"        data-range="quarter" onclick="setRange(this,'quarter')">本季</button>
       <button class="range-tab"        data-range="half"    onclick="setRange(this,'half')">半年</button>
       <button class="range-tab"        data-range="year"    onclick="setRange(this,'year')">本年</button>
       <button class="range-tab"        data-range="all"     onclick="setRange(this,'all')">全部</button>
+    </div>
+
+    <!-- custom date filter -->
+    <div class="custom-filter" id="custom-filter">
+      <label>指定篩選：</label>
+      <select id="filter-year" onchange="onFilterChange()">
+        <option value="">選擇年份</option>
+        <option>2022</option><option>2023</option><option>2024</option>
+        <option>2025</option><option>2026</option>
+      </select>
+      <select id="filter-month" onchange="onFilterChange()">
+        <option value="">全年</option>
+        <option value="1">1月</option><option value="2">2月</option><option value="3">3月</option>
+        <option value="4">4月</option><option value="5">5月</option><option value="6">6月</option>
+        <option value="7">7月</option><option value="8">8月</option><option value="9">9月</option>
+        <option value="10">10月</option><option value="11">11月</option><option value="12">12月</option>
+      </select>
+      <button class="btn btn-outline" id="filter-clear-btn" onclick="clearCustomFilter()" style="font-size:12px;padding:4px 10px;display:none">✕ 清除</button>
+      <span id="filter-active-label" style="font-size:12px;color:var(--primary);font-weight:600;display:none"></span>
     </div>
 
     <!-- upload zone -->
@@ -158,7 +198,13 @@ tr.total-row td{font-weight:700;background:var(--gray-100)!important;border-top:
     <div id="dashboard" style="display:none">
 
       <!-- unmapped warning -->
-      <div id="unmapped-warn" class="unmapped-warn"></div>
+      <div id="unmapped-warn" class="unmapped-warn">
+        <div class="unmapped-warn-header">
+          <strong>⚠️ 以下類別未對應，請確認 CSV 格式或更新對應設定</strong>
+          <button class="btn btn-outline" onclick="openCatMapModal()" style="font-size:12px;padding:3px 10px;white-space:nowrap">⚙️ 設定對應</button>
+        </div>
+        <div id="unmapped-list"></div>
+      </div>
 
       <!-- summary cards -->
       <div class="summary-cards">
@@ -170,7 +216,13 @@ tr.total-row td{font-weight:700;background:var(--gray-100)!important;border-top:
       <!-- charts -->
       <div class="charts-grid">
         <div class="chart-card">
-          <h3>支出類別佔比</h3>
+          <div class="chart-header">
+            <h3 id="pie-title">支出類別佔比</h3>
+            <div class="pie-toggle-group">
+              <button class="pie-toggle active" id="pie-btn-exp" onclick="setPieMode('expense')">支出</button>
+              <button class="pie-toggle"        id="pie-btn-inc" onclick="setPieMode('income')">收入</button>
+            </div>
+          </div>
           <div style="height:280px;position:relative"><canvas id="pie-chart"></canvas></div>
         </div>
         <div class="chart-card">
@@ -178,7 +230,7 @@ tr.total-row td{font-weight:700;background:var(--gray-100)!important;border-top:
           <div style="height:280px;position:relative"><canvas id="line-chart"></canvas></div>
         </div>
         <div class="chart-card full">
-          <h3>年度淨利</h3>
+          <h3>每月淨利趨勢</h3>
           <div style="height:180px;position:relative"><canvas id="bar-chart"></canvas></div>
         </div>
       </div>
@@ -203,7 +255,7 @@ tr.total-row td{font-weight:700;background:var(--gray-100)!important;border-top:
       <!-- monthly summary table -->
       <div class="table-card">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-          <div style="font-size:14px;font-weight:600">月度類別彙總</div>
+          <div style="font-size:14px;font-weight:600">月度類別彙總（所有月份橫向展開）</div>
           <button class="btn btn-outline" onclick="exportCSV()" style="font-size:12px;padding:4px 12px">⬇ 匯出 Google 表單格式</button>
         </div>
         <div id="summary-table"></div>
@@ -213,22 +265,53 @@ tr.total-row td{font-weight:700;background:var(--gray-100)!important;border-top:
   </div><!-- /page -->
 </div><!-- /main -->
 
+<!-- Cat Map Modal -->
+<div class="modal-overlay" id="catmap-modal">
+  <div class="modal-box" style="width:720px">
+    <h3 style="margin-bottom:6px">⚙️ 未對應類別設定</h3>
+    <p style="font-size:12px;color:var(--gray-600);margin-bottom:16px">為以下未對應類別填入對應的標準名稱，儲存後立即套用並重新計算</p>
+    <div id="catmap-list"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+      <button class="btn btn-outline" onclick="closeCatMapModal()">取消</button>
+      <button class="btn btn-primary" onclick="saveCatMapModal()">儲存並套用</button>
+    </div>
+  </div>
+</div>
+
 <!-- Ragic Config Modal -->
 <div class="modal-overlay" id="ragic-modal">
-  <div class="modal-box" style="width:420px">
+  <div class="modal-box" style="width:480px">
     <h3 style="margin-bottom:8px">🔗 Ragic API 設定</h3>
     <p style="font-size:12px;color:var(--gray-600);margin-bottom:16px">設定儲存於瀏覽器本機，不會出現在程式碼或 GitHub 上</p>
-    <div style="margin-bottom:12px">
+
+    <div style="font-size:12px;font-weight:600;color:var(--gray-700);margin-bottom:8px">主帳務（台幣）</div>
+    <div style="margin-bottom:10px">
       <div style="font-size:11px;color:var(--gray-600);margin-bottom:4px">Ragic 表格網址</div>
       <input type="text" id="ragic-sheet-url" placeholder="https://ap13.ragic.com/..." style="width:100%;padding:8px 10px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:13px;box-sizing:border-box">
     </div>
-    <div style="margin-bottom:12px">
+    <div style="margin-bottom:16px">
       <div style="font-size:11px;color:var(--gray-600);margin-bottom:4px">Ragic API Key</div>
-      <input type="password" id="ragic-api-key" placeholder="貼上 API Key" style="width:100%;padding:8px 10px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:13px;box-sizing:border-box">
+      <input type="password" id="ragic-api-key" placeholder="貼上 API Key（含 Basic 開頭）" style="width:100%;padding:8px 10px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:13px;box-sizing:border-box">
     </div>
+
+    <div style="border-top:1px solid var(--gray-200);padding-top:14px;margin-bottom:10px">
+      <div style="font-size:12px;font-weight:600;color:var(--gray-700);margin-bottom:8px">額外帳務來源（選填）</div>
+      <div style="margin-bottom:8px">
+        <div style="font-size:11px;color:var(--gray-600);margin-bottom:4px">桑爹賣場／酷澎 表格網址</div>
+        <input type="text" id="ragic-url-coupang" placeholder="https://ap13.ragic.com/..." style="width:100%;padding:7px 10px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:13px;box-sizing:border-box">
+      </div>
+      <div style="margin-bottom:8px">
+        <div style="font-size:11px;color:var(--gray-600);margin-bottom:4px">美金帳務 表格網址</div>
+        <input type="text" id="ragic-url-usd" placeholder="https://ap13.ragic.com/..." style="width:100%;padding:7px 10px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:13px;box-sizing:border-box">
+      </div>
+      <div style="margin-bottom:8px">
+        <div style="font-size:11px;color:var(--gray-600);margin-bottom:4px">零用金 表格網址</div>
+        <input type="text" id="ragic-url-petty" placeholder="https://ap13.ragic.com/..." style="width:100%;padding:7px 10px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:13px;box-sizing:border-box">
+      </div>
+    </div>
+
     <p style="font-size:11px;color:var(--gray-500);margin-bottom:16px">
-      取得步驟：Ragic → 右上角頭像 → <b>API Key</b><br>
-      複製 <b>HTTP Authorization Header</b> 那一行（含 Basic 開頭的完整字串）
+      API Key 取得：Ragic → 右上角頭像 → <b>API Key</b> → 複製 HTTP Authorization Header 完整字串
     </p>
     <div style="display:flex;gap:8px;justify-content:flex-end">
       <button class="btn btn-outline" onclick="closeRagicModal()">取消</button>
@@ -256,52 +339,184 @@ const SB_URL  = 'https://tokhhoyzztaynppcatci.supabase.co';
 const SB_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRva2hob3l6enRheW5wcGNhdGNpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMDAyODMsImV4cCI6MjA5MDg3NjI4M30.PQB4lJGF3OMatv5wIedCu3zIWq0urrFbniBRYTbNtUU';
 const db = supabase.createClient(SB_URL, SB_KEY);
 
-// ── CATEGORY MAP: [主kw, 子kw, label] ──
+// ── CATEGORY MAP: [主kw, 子kw, label]  (specific → catch-all 順序不可反) ──
 const CAT_MAP = [
-  ['銷售','蝦皮','銷售場/渠道-蝦皮'],['銷售','SHOPEE','銷售場/渠道-蝦皮'],
-  ['銷售','松果','銷售場/渠道-官網'],['銷售','泰好玩','銷售場/渠道-官網'],
-  ['銷售','iPASS','銷售場/渠道-官網'],['銷售','8160','銷售場/渠道-官網'],
+  // 銷售渠道
+  ['銷售','蝦皮','銷售場/渠道-蝦皮'],   ['銷售','SHOPEE','銷售場/渠道-蝦皮'],
+  ['銷售','松果','銷售場/渠道-官網'],    ['銷售','泰好玩','銷售場/渠道-官網'],
+  ['銷售','iPASS','銷售場/渠道-官網'],   ['銷售','8160','銷售場/渠道-官網'],
   ['銷售','官網','銷售場/渠道-官網'],
-  ['銷售','露天','銷售場/渠道-露天/露天商城'],
-  ['銷售','MOMO','銷售場/渠道-MOMO / MO商+'],['銷售','富邦','銷售場/渠道-MOMO / MO商+'],
+  ['銷售','露天','銷售場/渠道-露天'],
+  ['銷售','MOMO','銷售場/渠道-MOMO'],   ['銷售','富邦','銷售場/渠道-MOMO'],
   ['銷售','寶雅','銷售場/渠道-寶雅'],
-  ['銷售','家樂福','銷售場/渠道-其他'],['銷售','公館','銷售場/渠道-其他'],
-  ['薪資','正職','薪資-正職&工讀'],['薪資','工讀','薪資-正職&工讀'],
-  ['薪資','外包費','薪資-外包'],
-  ['薪資','年終','年終'],['薪資','犒賞','犒賞'],
-  ['外包','廣告','外包-廣告'],['外包','美編','外包-美編'],['外包','社群','外包-社群'],
-  ['廣告','FB','FB廣告費'],['廣告','Google','Google廣告費'],['廣告','Line','Line中台費'],
-  ['貨運','新竹','新竹貨運'],['貨運','豪美','豪美貨運（加拿大貨運）'],['貨運','東風','東風'],
+  ['銷售','酷澎','銷售場/渠道-酷澎'],   ['銷售','coupang','銷售場/渠道-酷澎'],
+  ['銷售','桑爹','銷售場/渠道-酷澎'],
+  ['銷售','子丑','銷售場/渠道-實體活動'],
+  ['銷售','員購','銷售場/渠道-員購'],
+  ['銷售','家樂福','銷售場/渠道-其他'], ['銷售','公館','銷售場/渠道-其他'],
+  ['銷售','','銷售場/渠道-其他'],        // 銷售 catch-all
+  // 賣場/通路（main_cat 含「銷售」也會在上方規則命中，此段補漏）
+  ['賣場','酷澎','銷售場/渠道-酷澎'],   ['賣場','桑爹','銷售場/渠道-酷澎'],
+  ['賣場','蝦皮','銷售場/渠道-蝦皮'],
+  ['賣場','子丑','銷售場/渠道-實體活動'],
+  ['賣場','員購','銷售場/渠道-員購'],
+  ['賣場','','銷售場/渠道-其他'],        // 賣場 catch-all
+
+  // 薪資
+  ['薪資','正職','薪資-正職&工讀'],  ['薪資','工讀','薪資-正職&工讀'],
+  ['薪資','獎金','犒賞/獎金'],
+  ['薪資','年終','年終'],             ['薪資','犒賞','犒賞'],
+  ['薪資','外包','薪資-外包'],        // covers 外包費/外包/勞務報酬/人力外包
+  ['薪資','勞務','薪資-外包'],
+  ['薪資','','薪資-其他'],            // 薪資 catch-all
+
+  // 廣告/外包
+  ['外包','廣告','外包-廣告'],  ['外包','美編','外包-美編'],  ['外包','社群','外包-社群'],
+  ['廣告','FB','FB廣告費'],     ['廣告','Google','Google廣告費'], ['廣告','Line','Line中台費'],
+  ['廣告','蝦皮','廣告費-蝦皮聯盟行銷'],
+  ['廣告','團購','廣告費-團購/推廣'],
+  ['廣告','','廣告費-其他'],   // 廣告 catch-all
+
+  // 貨運
+  ['貨運','新竹','新竹貨運'],   ['貨運','豪美','豪美貨運'],
+  ['貨運','東風','東風貨運'],   ['貨運','黑貓','黑貓貨運'],
+  ['貨運','加禾','加禾貨運'],   ['貨運','酷澎','貨運-酷澎退貨'],
+  ['貨運','','貨運運費'],       // 貨運 catch-all
+
+  // 進口
+  ['進口','東風','進口-東風'],  ['進口','同光昇','進口-同光昇'],
+  ['進口','兆太','進口-兆太'],  ['進口','關稅','關稅'],
+  ['進口','商港','商港服務費'],
+  ['進口','','進口費用'],       // 進口 catch-all
+
+  // 進貨/商品貨款
   ['進貨','','進貨貨款'],
-  ['保費','勞保','勞保'],['保費','健保','健保'],['保費','代繳','代繳勞保'],
-  ['勞保','','勞保'],['健保','','健保'],
-  ['軟體','SHOPLINE','SHOPLINE加值/續約/費用'],['系統','SHOPLINE','SHOPLINE加值/續約/費用'],
-  ['軟體','ERP','ERP系統-數碼回饋'],
-  ['會計師','','會計師-正式'],
+  ['商品','','進貨貨款'],       // 商品貨款 catch-all
+
+  // 保費/社保
+  ['保費','勞保','勞保'],  ['保費','健保','健保'],  ['保費','代繳','代繳勞保'],
+  ['勞保','','勞保'],      ['健保','','健保'],       ['勞退','','勞退'],
+  ['保險','產品責任','產品責任險'],
+  ['保險','','保險費用'],  // 保險 catch-all
+
+  // 軟體/系統
+  ['軟體','SHOPLINE','SHOPLINE費用'],  ['系統','SHOPLINE','SHOPLINE費用'],
+  ['軟體','ERP','ERP系統'],
+  ['軟體','Ragic','軟體-Ragic'],       ['軟體','ragic','軟體-Ragic'],
+  ['軟體','Google','軟體-Google'],
+  ['軟體','ChatGPT','軟體-ChatGPT'],   ['軟體','GPT','軟體-ChatGPT'],
+  ['軟體','','軟體費用'],              // 軟體 catch-all
+  ['系統','','軟體/系統費用'],
+
+  // 耗材
+  ['耗材','','耗材相關'],  // catch-all
+
+  // 印刷
+  ['印刷','','印刷費用'],
+
+  // 政府/法規
+  ['政府','環保','政府-環保署'],
+  ['政府','國稅','政府-國稅局'],
+  ['政府','','政府相關'],
+
+  // 其他費用（先列具體子項）
+  ['會計師','','會計師費用'],
   ['實體','帶貨','實體-帶貨'],
-  ['其他','加工','人事/加工'],['其他','現金匯款','現金匯款手續費'],
-  ['其他','環保','環保署申報'],['其他','責任險','產品責任險'],
+  ['其他','加工','人事/加工'],
+  ['其他','匯款','匯款手續費'],
+  ['其他','環保','環保署申報'],
+  ['其他','責任險','產品責任險'],
+  ['其他','停車','停車費'],
+  ['其他','簡訊','簡訊費'],
+  ['其他','流量','系統流量費'],
+  ['其他','年節','年節禮品'],
+  ['其他','零食','員工零食'],
+  ['其他','郵資','郵資'],
+  ['其他','課程','課程費用'],
+  ['其他','認證','認證/簽署費'],
+  ['其他','週轉金','週轉金'],
+  ['其他費用','','其他費用'],  // 以主項目完整匹配
+  ['其他','','其他費用'],      // 其他 catch-all
+
+  // 利息/外幣/零用金
+  ['活息','','利息收入'],
+  ['利息','','利息收入'],
+  ['外幣','','外幣兌換'],
+  ['零用金','','零用金'],
 ];
-function mapCat(m,s){
+
+// ── CUSTOM CAT MAP (localStorage) ──
+const CUSTOM_CAT_KEY = 'feebit_custom_cat';
+function getCustomCat(){ try{return JSON.parse(localStorage.getItem(CUSTOM_CAT_KEY))||{};}catch{return{};} }
+function setCustomCat(m){ localStorage.setItem(CUSTOM_CAT_KEY, JSON.stringify(m)); }
+
+function mapCat(m, s){
+  const rawKey = `${m}${s?'/'+s:''}`;
+  const custom = getCustomCat();
+  if(custom[rawKey]) return custom[rawKey];
+
   const ml=(m||'').toLowerCase(), sl=(s||'').toLowerCase();
   for(const [mk,sk,cat] of CAT_MAP){
     if(mk && ml.includes(mk.toLowerCase()))
-      if(!sk||sl.includes(sk.toLowerCase())) return cat;
+      if(!sk || sl.includes(sk.toLowerCase())) return cat;
   }
-  return `【未對應】${m}${s?'/'+s:''}`;
+  return `【未對應】${rawKey}`;
 }
 
 // ── STATE ──
-let curRange='month', curData=[], pieC, lineC, barC;
+let curRange='month', curYear=null, curMonth=null, curData=[], curPieMode='expense';
+let pieC, lineC, barC;
 
 // ── RANGE ──
 function setRange(el, r){
   curRange=r;
+  curYear=null; curMonth=null;
+  document.getElementById('filter-year').value='';
+  document.getElementById('filter-month').value='';
+  document.getElementById('filter-clear-btn').style.display='none';
+  document.getElementById('filter-active-label').style.display='none';
+  document.getElementById('custom-filter').classList.remove('active-filter');
   document.querySelectorAll('.range-tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
   loadData();
 }
+
+function onFilterChange(){
+  const y = parseInt(document.getElementById('filter-year').value)||null;
+  const m = parseInt(document.getElementById('filter-month').value)||null;
+  if(!y) return;
+  curYear=y; curMonth=m;
+  document.querySelectorAll('.range-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('custom-filter').classList.add('active-filter');
+  document.getElementById('filter-clear-btn').style.display='';
+  const label = m ? `${y}年${m}月` : `${y}年全年`;
+  const lel = document.getElementById('filter-active-label');
+  lel.textContent = `目前篩選：${label}`;
+  lel.style.display='';
+  loadData();
+}
+
+function clearCustomFilter(){
+  curYear=null; curMonth=null;
+  document.getElementById('filter-year').value='';
+  document.getElementById('filter-month').value='';
+  document.getElementById('filter-clear-btn').style.display='none';
+  document.getElementById('filter-active-label').style.display='none';
+  document.getElementById('custom-filter').classList.remove('active-filter');
+  const activeTab = document.querySelector(`.range-tab[data-range="${curRange}"]`);
+  if(activeTab) activeTab.classList.add('active');
+  loadData();
+}
+
 function getRangeDates(r){
+  if(curYear && curMonth){
+    const y=curYear, mp=String(curMonth).padStart(2,'0');
+    const lastDay=new Date(y,curMonth,0).getDate();
+    return {from:`${y}-${mp}-01`, to:`${y}-${mp}-${lastDay}`};
+  }
+  if(curYear){
+    return {from:`${curYear}-01-01`, to:`${curYear}-12-31`};
+  }
   const now=new Date(), today=now.toISOString().slice(0,10);
   if(r==='month') return {from:new Date(now.getFullYear(),now.getMonth(),1).toISOString().slice(0,10),to:today};
   if(r==='quarter'){const q=Math.floor(now.getMonth()/3);return{from:new Date(now.getFullYear(),q*3,1).toISOString().slice(0,10),to:today};}
@@ -317,19 +532,19 @@ async function loadData(){
     .select('txn_date,type,amount,gs_cat').gte('txn_date',from).lte('txn_date',to).order('txn_date');
   if(error){console.error(error);return;}
   curData=data||[];
-  const hasDash=document.getElementById('dashboard');
   if(curData.length){
     document.getElementById('upload-zone').style.display='none';
-    hasDash.style.display='block';
+    document.getElementById('dashboard').style.display='block';
     renderAll();
   } else {
     document.getElementById('upload-zone').style.display='block';
-    hasDash.style.display='none';
+    document.getElementById('dashboard').style.display='none';
   }
 }
 
 // ── RENDER ──
 function fmt(n){return'NT$ '+Math.round(n).toLocaleString('zh-TW');}
+
 function renderAll(){
   const inc=curData.filter(r=>r.type==='收入'), exp=curData.filter(r=>r.type==='支出');
   const tInc=inc.reduce((s,r)=>s+Number(r.amount),0);
@@ -340,19 +555,36 @@ function renderAll(){
   const vp=document.getElementById('v-profit');
   vp.textContent=(net>=0?'+':'')+fmt(net);
   vp.style.color=net>=0?'var(--success)':'var(--danger)';
-  renderPie(exp); renderLine(); renderBar(); renderTable();
+  setPieMode(curPieMode, true);
+  renderLine(); renderBar(); renderTable();
   showUnmapped();
 }
+
 function showUnmapped(){
   const un=[...new Set(curData.filter(r=>r.gs_cat?.startsWith('【未對應】')).map(r=>r.gs_cat))];
   const el=document.getElementById('unmapped-warn');
-  if(un.length){el.style.display='block';el.innerHTML='⚠️ 以下類別未對應，請確認 CSV 格式或更新 CAT_MAP：<br>'+un.join(' / ');}
-  else el.style.display='none';
+  const listEl=document.getElementById('unmapped-list');
+  if(un.length){
+    el.style.display='block';
+    listEl.textContent=un.join(' / ');
+  } else {
+    el.style.display='none';
+  }
 }
 
-function renderPie(expenses){
+// ── PIE CHART ──
+function setPieMode(mode, skipReactivate){
+  curPieMode=mode;
+  document.getElementById('pie-btn-exp').classList.toggle('active', mode==='expense');
+  document.getElementById('pie-btn-inc').classList.toggle('active', mode==='income');
+  document.getElementById('pie-title').textContent = mode==='expense' ? '支出類別佔比' : '收入類別佔比';
+  const items = curData.filter(r=>r.type===(mode==='expense'?'支出':'收入'));
+  renderPie(items);
+}
+
+function renderPie(items){
   const bycat={};
-  expenses.forEach(r=>{bycat[r.gs_cat]=(bycat[r.gs_cat]||0)+Number(r.amount);});
+  items.forEach(r=>{bycat[r.gs_cat]=(bycat[r.gs_cat]||0)+Number(r.amount);});
   const sorted=Object.entries(bycat).sort((a,b)=>b[1]-a[1]).slice(0,14);
   const COLORS=['#2563eb','#16a34a','#d97706','#dc2626','#7c3aed','#0891b2','#be185d','#065f46','#92400e','#0369a1','#15803d','#b45309','#6d28d9','#9f1239'];
   if(pieC)pieC.destroy();
@@ -364,6 +596,8 @@ function renderPie(expenses){
       tooltip:{callbacks:{label:c=>` ${c.label}: NT$${Math.round(c.raw).toLocaleString()}`}}}}
   });
 }
+
+// ── LINE CHART ──
 function renderLine(){
   const mo={};
   curData.forEach(r=>{
@@ -381,27 +615,53 @@ function renderLine(){
     ]},
     options:{responsive:true,maintainAspectRatio:false,
       plugins:{legend:{position:'top',labels:{font:{size:11}}}},
-      scales:{y:{ticks:{callback:v=>'NT$'+(v/10000).toFixed(0)+'萬'}}}}
+      scales:{y:{ticks:{callback:v=>'NT$'+(v/10000).toFixed(0)+'萬'}},
+              x:{ticks:{maxRotation:45,minRotation:0}}}}
   });
 }
+
+// ── BAR CHART → 每月淨利線圖 ──
 function renderBar(){
-  const yr={};
+  const mo={};
   curData.forEach(r=>{
-    const y=r.txn_date.slice(0,4);
-    if(!yr[y])yr[y]={i:0,e:0};
-    if(r.type==='收入')yr[y].i+=Number(r.amount); else yr[y].e+=Number(r.amount);
+    const ym=r.txn_date.slice(0,7);
+    if(!mo[ym])mo[ym]={i:0,e:0};
+    if(r.type==='收入')mo[ym].i+=Number(r.amount); else mo[ym].e+=Number(r.amount);
   });
-  const years=Object.keys(yr).sort();
-  const nets=years.map(y=>yr[y].i-yr[y].e);
+  const months=Object.keys(mo).sort();
+  const nets=months.map(m=>mo[m].i-mo[m].e);
   if(barC)barC.destroy();
   barC=new Chart(document.getElementById('bar-chart'),{
-    type:'bar',
-    data:{labels:years.map(y=>y+'年'),datasets:[{label:'年度淨利',data:nets,backgroundColor:nets.map(v=>v>=0?'#16a34a':'#dc2626'),borderRadius:6}]},
+    type:'line',
+    data:{labels:months,datasets:[{
+      label:'月淨利',
+      data:nets,
+      borderColor:'#2563eb',
+      backgroundColor:function(ctx){
+        const chart=ctx.chart, {ctx:c,chartArea}=chart;
+        if(!chartArea) return 'transparent';
+        const g=c.createLinearGradient(0,chartArea.top,0,chartArea.bottom);
+        g.addColorStop(0,'rgba(37,99,235,.2)'); g.addColorStop(1,'rgba(37,99,235,.02)');
+        return g;
+      },
+      pointBackgroundColor:nets.map(v=>v>=0?'#16a34a':'#dc2626'),
+      pointRadius:5,
+      tension:.3,
+      fill:true
+    }]},
     options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>'NT$'+Math.round(c.raw).toLocaleString()}}},
-      scales:{y:{ticks:{callback:v=>'NT$'+(v/10000).toFixed(0)+'萬'}}}}
+      plugins:{legend:{display:false},
+               tooltip:{callbacks:{label:c=>'淨利：NT$'+Math.round(c.raw).toLocaleString()}}},
+      scales:{
+        y:{ticks:{callback:v=>'NT$'+(v/10000).toFixed(0)+'萬'},
+           grid:{color:(ctx)=>ctx.tick.value===0?'rgba(0,0,0,.25)':'rgba(0,0,0,.05)',
+                 lineWidth:(ctx)=>ctx.tick.value===0?2:1}},
+        x:{ticks:{maxRotation:45,minRotation:0}}
+      }}
   });
 }
+
+// ── TABLE (橫向所有月份) ──
 function renderTable(){
   const mo={}, cats=new Set();
   curData.forEach(r=>{
@@ -412,29 +672,78 @@ function renderTable(){
     cats.add(r.gs_cat);
   });
   const months=Object.keys(mo).sort(), catList=[...cats].sort();
+  if(!months.length){document.getElementById('summary-table').innerHTML='';return;}
   let h='<table><thead><tr><th>類別</th>';
   months.forEach(m=>h+=`<th colspan="2" style="text-align:center">${m}</th>`);
+  h+='<th colspan="2" style="text-align:center">合計</th>';
   h+='</tr><tr><th></th>';
   months.forEach(()=>h+='<th style="color:var(--success);font-size:10px">收入</th><th style="color:var(--danger);font-size:10px">支出</th>');
+  h+='<th style="color:var(--success);font-size:10px">收入</th><th style="color:var(--danger);font-size:10px">支出</th>';
   h+='</tr></thead><tbody>';
   catList.forEach(cat=>{
-    h+=`<tr><td>${cat}</td>`;
+    let rowTotalI=0, rowTotalE=0;
+    let cells='';
     months.forEach(m=>{
       const i=mo[m]?.[cat+'__收入']||0, e=mo[m]?.[cat+'__支出']||0;
-      h+=`<td class="c-income">${i?i.toLocaleString():'-'}</td><td class="c-expense">${e?e.toLocaleString():'-'}</td>`;
+      rowTotalI+=i; rowTotalE+=e;
+      cells+=`<td class="c-income">${i?i.toLocaleString():'-'}</td><td class="c-expense">${e?e.toLocaleString():'-'}</td>`;
     });
+    h+=`<tr><td>${cat}</td>${cells}`;
+    h+=`<td class="c-income" style="font-weight:700">${rowTotalI?rowTotalI.toLocaleString():'-'}</td>`;
+    h+=`<td class="c-expense" style="font-weight:700">${rowTotalE?rowTotalE.toLocaleString():'-'}</td>`;
     h+='</tr>';
   });
+  // total row
   h+='<tr class="total-row"><td>合計</td>';
+  let grandI=0, grandE=0;
   months.forEach(m=>{
     const entries=Object.entries(mo[m]||{});
     const ti=entries.filter(([k])=>k.endsWith('__收入')).reduce((s,[,v])=>s+v,0);
     const te=entries.filter(([k])=>k.endsWith('__支出')).reduce((s,[,v])=>s+v,0);
+    grandI+=ti; grandE+=te;
     h+=`<td class="c-income">${ti.toLocaleString()}</td><td class="c-expense">${te.toLocaleString()}</td>`;
   });
+  h+=`<td class="c-income">${grandI.toLocaleString()}</td><td class="c-expense">${grandE.toLocaleString()}</td>`;
   h+='</tr></tbody></table>';
   document.getElementById('summary-table').innerHTML=h;
 }
+
+// ── CAT MAP MODAL ──
+function openCatMapModal(){
+  const custom=getCustomCat();
+  const un=[...new Set(curData.filter(r=>r.gs_cat?.startsWith('【未對應】')).map(r=>r.gs_cat))];
+  let html;
+  if(!un.length){
+    html='<p style="color:var(--gray-600);text-align:center;padding:24px 0">目前沒有未對應的類別 ✅</p>';
+  } else {
+    html='<div style="max-height:55vh;overflow-y:auto"><table class="catmap-table">';
+    html+='<thead><tr><th>Ragic 原始類別（主/子）</th><th>對應標準類別名稱</th></tr></thead><tbody>';
+    un.forEach(gs=>{
+      const rawKey=gs.replace('【未對應】','');
+      const existing=custom[rawKey]||'';
+      html+=`<tr>
+        <td style="color:var(--danger);font-weight:600;width:45%">${gs}</td>
+        <td><input type="text" data-key="${rawKey}" value="${existing}" placeholder="例：進貨貨款 / 銷售場/渠道-蝦皮"></td>
+      </tr>`;
+    });
+    html+='</tbody></table></div>';
+    html+='<p style="font-size:11px;color:var(--gray-500);margin-top:10px">填入後儲存，下次同步自動套用。也可直接更新程式碼中的 CAT_MAP 做永久對應。</p>';
+  }
+  document.getElementById('catmap-list').innerHTML=html;
+  document.getElementById('catmap-modal').classList.add('open');
+}
+function closeCatMapModal(){ document.getElementById('catmap-modal').classList.remove('open'); }
+function saveCatMapModal(){
+  const custom=getCustomCat();
+  document.querySelectorAll('#catmap-list input[data-key]').forEach(inp=>{
+    const key=inp.getAttribute('data-key'), val=inp.value.trim();
+    if(val) custom[key]=val; else delete custom[key];
+  });
+  setCustomCat(custom);
+  closeCatMapModal();
+  loadData();
+}
+document.getElementById('catmap-modal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeCatMapModal();});
 
 // ── VALIDATE ──
 function doValidate(){
@@ -514,10 +823,8 @@ async function handleFile(file){
 function fmtDate(d){
   if(!d)return null;
   const s=String(d).trim();
-  // 20260102 → 2026-01-02
   const digits=s.replace(/\D/g,'');
   if(digits.length===8) return `${digits.slice(0,4)}-${digits.slice(4,6)}-${digits.slice(6,8)}`;
-  // 2026/3/31 or 2026-3-31 → 2026-03-31
   const m=s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
   if(m) return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
   return null;
@@ -579,9 +886,9 @@ async function debugRagic(){
     const text=await res.text();
     if(!res.ok){alert(`HTTP ${res.status}\n${text.slice(0,300)}`);return;}
     const json=JSON.parse(text);
-    const keys=Object.keys(json);
     const rows=Object.entries(json).filter(([k,v])=>!isNaN(parseInt(k))&&typeof v==='object'&&v!==null);
     if(!rows.length){
+      const keys=Object.keys(json);
       alert(`Ragic 回傳 ${keys.length} 個 key，但找不到數字 row ID\n\nKeys: ${keys.slice(0,10).join(', ')}\n\n前100字: ${text.slice(0,200)}`);
       return;
     }
@@ -594,69 +901,88 @@ async function debugRagic(){
 
 // ── RAGIC CONFIG ──
 const RAGIC_CFG_KEY = 'feebit_finance_ragic';
-const RAGIC_URL = 'https://ap13.ragic.com/feebit50968407/ragicpersonal-finance/20002';
 
 function loadRagicCfg(){ try{return JSON.parse(localStorage.getItem(RAGIC_CFG_KEY))||{};}catch{return{};} }
 function saveRagicCfg(cfg){ localStorage.setItem(RAGIC_CFG_KEY, JSON.stringify(cfg)); }
 
 function openRagicModal(){
   const cfg = loadRagicCfg();
-  document.getElementById('ragic-sheet-url').value = cfg.sheetUrl || '';
-  document.getElementById('ragic-api-key').value = cfg.rawKey || '';
+  document.getElementById('ragic-sheet-url').value   = cfg.sheetUrl     || '';
+  document.getElementById('ragic-api-key').value      = cfg.rawKey       || '';
+  document.getElementById('ragic-url-coupang').value  = cfg.urlCoupang   || '';
+  document.getElementById('ragic-url-usd').value      = cfg.urlUsd       || '';
+  document.getElementById('ragic-url-petty').value    = cfg.urlPetty     || '';
   document.getElementById('ragic-modal').classList.add('open');
 }
 function closeRagicModal(){ document.getElementById('ragic-modal').classList.remove('open'); }
 function saveRagicModal(){
-  const sheetUrl = document.getElementById('ragic-sheet-url').value.trim();
-  const rawKey = document.getElementById('ragic-api-key').value.trim();
-  if(!sheetUrl){ alert('請填入表格網址'); return; }
+  const sheetUrl   = document.getElementById('ragic-sheet-url').value.trim();
+  const rawKey     = document.getElementById('ragic-api-key').value.trim();
+  const urlCoupang = document.getElementById('ragic-url-coupang').value.trim();
+  const urlUsd     = document.getElementById('ragic-url-usd').value.trim();
+  const urlPetty   = document.getElementById('ragic-url-petty').value.trim();
+  if(!sheetUrl){ alert('請填入主帳務表格網址'); return; }
   if(!rawKey){ alert('請填入 API Key'); return; }
-  const apiKey = 'Basic ' + rawKey.replace(/^Basic\s*/i, '');
-  saveRagicCfg({ sheetUrl, rawKey, apiKey });
+  const apiKey = rawKey.startsWith('Basic ') ? rawKey : 'Basic ' + rawKey;
+  saveRagicCfg({ sheetUrl, rawKey, apiKey, urlCoupang, urlUsd, urlPetty });
   closeRagicModal();
   alert('✅ 已儲存，可以點「從 Ragic 同步」');
 }
 document.getElementById('ragic-modal').addEventListener('click', e=>{ if(e.target===e.currentTarget) closeRagicModal(); });
 
+// ── RAGIC SYNC (支援多帳務來源) ──
 async function syncFromRagic(){
   const cfg = loadRagicCfg();
   if(!cfg.apiKey){ alert('請先設定 Ragic API Key'); openRagicModal(); return; }
   const btn = document.getElementById('sync-btn');
   btn.textContent='⏳ 同步中...'; btn.disabled=true;
+
+  const sources = [
+    {url: cfg.sheetUrl,    label:'主帳務'},
+    {url: cfg.urlCoupang,  label:'桑爹/酷澎'},
+    {url: cfg.urlUsd,      label:'美金帳務'},
+    {url: cfg.urlPetty,    label:'零用金'},
+  ].filter(s=>s.url);
+
   try{
-    let all=[], offset=0, limit=1000;
-    const baseUrl = cfg.sheetUrl.split('?')[0];
-    while(true){
-      const url=`${baseUrl}?api&limit=${limit}&offset=${offset}`;
-      const res=await fetch(url,{headers:{'Authorization':cfg.apiKey}});
-      if(!res.ok) throw new Error(`Ragic 回應 ${res.status}，請確認 API Key 格式是否正確`);
-      const json=await res.json();
-      const entries=Object.entries(json).filter(([k,v])=>!isNaN(parseInt(k))&&typeof v==='object'&&v!==null);
-      if(!entries.length) break;
-      entries.forEach(([,r])=>{
-        const mainCat=r['主分類']||'', subCat=r['子分類']||'';
-        const typeRaw=r['交易類別']||'';
-        const type=typeRaw.includes('收入')?'收入':typeRaw.includes('支出')?'支出':typeRaw;
-        const txnDate=fmtDate(r['交易日期']);
-        const amount=parseFloat(r['原幣金額'])||0;
-        if(txnDate&&amount) all.push({
-          txn_date:txnDate, type,
-          currency:r['帳戶幣別']||'TWD',
-          amount, main_cat:mainCat, sub_cat:subCat,
-          gs_cat:mapCat(mainCat,subCat),
-          payee:r['自帳戶']||'',
-          description:r['描述']||'',
-          file_name:'ragic_sync',
+    let totalAll=0;
+    for(const src of sources){
+      let all=[], offset=0, limit=1000;
+      const baseUrl = src.url.split('?')[0];
+      while(true){
+        const url=`${baseUrl}?api&limit=${limit}&offset=${offset}`;
+        const res=await fetch(url,{headers:{'Authorization':cfg.apiKey}});
+        if(!res.ok) throw new Error(`[${src.label}] Ragic 回應 ${res.status}，請確認 API Key 與表格路徑`);
+        const json=await res.json();
+        const entries=Object.entries(json).filter(([k,v])=>!isNaN(parseInt(k))&&typeof v==='object'&&v!==null);
+        if(!entries.length) break;
+        entries.forEach(([,r])=>{
+          const mainCat=r['主分類']||r['主項目']||'', subCat=r['子分類']||r['子項目']||'';
+          const typeRaw=r['交易類別']||r['收入/支出']||'';
+          const type=typeRaw.includes('收入')?'收入':typeRaw.includes('支出')?'支出':typeRaw;
+          const txnDate=fmtDate(r['交易日期']);
+          const amount=parseFloat(r['原幣金額'])||0;
+          if(txnDate&&amount) all.push({
+            txn_date:txnDate, type,
+            currency:r['帳戶幣別']||r['幣別']||'TWD',
+            amount, main_cat:mainCat, sub_cat:subCat,
+            gs_cat:mapCat(mainCat,subCat),
+            payee:r['自帳戶']||r['收款人']||'',
+            description:r['描述']||'',
+            file_name:`ragic_sync_${src.label}`,
+          });
         });
-      });
-      if(entries.length<limit) break;
-      offset+=limit;
+        if(entries.length<limit) break;
+        offset+=limit;
+      }
+      if(all.length){
+        const{error}=await db.from('finance_transactions')
+          .upsert(all,{onConflict:'txn_date,type,amount,payee,description',ignoreDuplicates:true});
+        if(error) throw error;
+        totalAll+=all.length;
+      }
     }
-    if(!all.length){ alert('Ragic 沒有回傳資料，請確認 API Key 與表格路徑是否正確'); return; }
-    const{error}=await db.from('finance_transactions')
-      .upsert(all,{onConflict:'txn_date,type,amount,payee,description',ignoreDuplicates:true});
-    if(error) throw error;
-    alert(`✅ 從 Ragic 同步 ${all.length} 筆完成`);
+    alert(`✅ 從 Ragic 同步完成，共 ${totalAll} 筆（${sources.map(s=>s.label).join('、')}）`);
     loadData();
   }catch(e){ alert('同步失敗：'+e.message); }
   finally{ btn.textContent='↻ 從 Ragic 同步'; btn.disabled=false; }
