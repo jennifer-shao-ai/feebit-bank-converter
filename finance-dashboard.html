@@ -11,9 +11,10 @@
 <style>
 .fd-upload{border:2px dashed var(--gray-300);border-radius:var(--radius);padding:48px 24px;text-align:center;cursor:pointer;transition:all 0.2s;background:white;margin-bottom:24px}
 .fd-upload:hover,.fd-upload.drag-over{border-color:var(--primary);background:var(--primary-light)}
-.range-tabs{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center}
+.range-tabs{display:flex;gap:8px;margin-bottom:6px;flex-wrap:wrap;align-items:center}
 .range-tab{padding:6px 18px;border-radius:20px;border:1px solid var(--gray-300);background:white;cursor:pointer;font-size:13px;transition:all 0.15s}
 .range-tab.active{background:var(--primary);color:white;border-color:var(--primary)}
+.range-label{font-size:11px;color:var(--gray-500);margin-bottom:10px;min-height:16px}
 /* ── custom range filter ── */
 .custom-filter{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:20px;padding:10px 14px;background:white;border-radius:var(--radius);border:1px solid var(--gray-200);font-size:13px}
 .custom-filter label{color:var(--gray-600);font-size:12px;white-space:nowrap}
@@ -174,12 +175,15 @@ tr.total-row td:first-child{background:var(--gray-100)!important}
 
     <!-- range tabs -->
     <div class="range-tabs">
-      <button class="range-tab active" data-range="month"   onclick="setRange(this,'month')">本月</button>
-      <button class="range-tab"        data-range="quarter" onclick="setRange(this,'quarter')">本季</button>
-      <button class="range-tab"        data-range="half"    onclick="setRange(this,'half')">半年</button>
-      <button class="range-tab"        data-range="year"    onclick="setRange(this,'year')">本年</button>
-      <button class="range-tab"        data-range="all"     onclick="setRange(this,'all')">全部</button>
+      <button class="range-tab active" data-range="month"     onclick="setRange(this,'month')">本月</button>
+      <button class="range-tab"        data-range="lastmonth" onclick="setRange(this,'lastmonth')">上個月</button>
+      <button class="range-tab"        data-range="quarter"   onclick="setRange(this,'quarter')">本季</button>
+      <button class="range-tab"        data-range="half"      onclick="setRange(this,'half')">半年</button>
+      <button class="range-tab"        data-range="year"      onclick="setRange(this,'year')">本年</button>
+      <button class="range-tab"        data-range="lastyear"  onclick="setRange(this,'lastyear')">去年</button>
+      <button class="range-tab"        data-range="all"       onclick="setRange(this,'all')">全部</button>
     </div>
+    <div class="range-label" id="range-label"></div>
 
     <!-- custom range filter -->
     <div class="custom-filter" id="custom-filter">
@@ -508,6 +512,7 @@ function setRange(el, r){
   document.getElementById('custom-filter').classList.remove('active-filter');
   document.querySelectorAll('.range-tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
+  updateRangeLabel(r);
   loadData();
 }
 
@@ -546,10 +551,25 @@ function getRangeDates(r){
   }
   const now=new Date(), today=now.toISOString().slice(0,10);
   if(r==='month') return {from:new Date(now.getFullYear(),now.getMonth(),1).toISOString().slice(0,10),to:today};
+  if(r==='lastmonth'){
+    const y=now.getMonth()===0?now.getFullYear()-1:now.getFullYear();
+    const m=now.getMonth()===0?11:now.getMonth()-1;
+    const lastDay=new Date(y,m+1,0).getDate();
+    return {from:`${y}-${String(m+1).padStart(2,'0')}-01`,to:`${y}-${String(m+1).padStart(2,'0')}-${lastDay}`};
+  }
   if(r==='quarter'){const q=Math.floor(now.getMonth()/3);return{from:new Date(now.getFullYear(),q*3,1).toISOString().slice(0,10),to:today};}
   if(r==='half'){const d=new Date(now);d.setMonth(d.getMonth()-6);return{from:d.toISOString().slice(0,10),to:today};}
   if(r==='year') return {from:`${now.getFullYear()}-01-01`,to:`${now.getFullYear()}-12-31`};
+  if(r==='lastyear'){const y=now.getFullYear()-1;return{from:`${y}-01-01`,to:`${y}-12-31`};}
   return {from:'2020-01-01',to:today};
+}
+function fmtRangeLabel(d){ return d.slice(0,7).replace('-','/'); }
+function updateRangeLabel(r){
+  const el=document.getElementById('range-label');
+  if(!el) return;
+  const {from,to}=getRangeDates(r);
+  const fs=fmtRangeLabel(from), ts=fmtRangeLabel(to);
+  el.textContent=fs===ts?`篩選範圍：${fs}`:`篩選範圍：${fs} ～ ${ts}`;
 }
 
 // 產生範圍內所有年月（確保趨勢圖顯示完整）
@@ -1079,25 +1099,26 @@ async function syncFromRagic(){
     {url:cfg.urlUsd,     label:'美金帳務'},
     {url:cfg.urlPetty,   label:'零用金'},
   ].filter(s=>s.url);
+  let totalAll=0;
   try{
-    let totalAll=0;
     for(const src of sources){
-      let all=[], pageNo=1, limit=1000;
+      let pageNo=1, limit=1000, srcTotal=0;
       const baseUrl=src.url.split('?')[0];
       while(true){
-        // Ragic 用 PAGENO 分頁（非 offset），limit 最大建議 1000
+        btn.textContent=`⏳ [${src.label}] 第 ${pageNo} 頁...`;
         const res=await fetch(`${baseUrl}?api&limit=${limit}&PAGENO=${pageNo}`,{headers:{'Authorization':cfg.apiKey}});
         if(!res.ok) throw new Error(`[${src.label}] HTTP ${res.status}`);
         const json=await res.json();
         const entries=Object.entries(json).filter(([k,v])=>!isNaN(parseInt(k))&&typeof v==='object'&&v!==null);
         if(!entries.length) break;
+        const batch=[];
         entries.forEach(([,r])=>{
           const mainCat=r['主分類']||r['主項目']||'', subCat=r['子分類']||r['子項目']||'';
           const typeRaw=r['交易類別']||r['收入/支出']||'';
           const type=typeRaw.includes('收入')?'收入':typeRaw.includes('支出')?'支出':typeRaw;
           const txnDate=fmtDate(r['交易日期']);
           const amount=parseFloat(r['原幣金額'])||0;
-          if(txnDate&&amount&&(!syncFrom||txnDate>=syncFrom)) all.push({
+          if(txnDate&&amount&&(!syncFrom||txnDate>=syncFrom)) batch.push({
             txn_date:txnDate, type,
             currency:r['帳戶幣別']||r['幣別']||'TWD',
             amount, main_cat:mainCat, sub_cat:subCat,
@@ -1107,19 +1128,20 @@ async function syncFromRagic(){
             file_name:`ragic_sync_${src.label}`,
           });
         });
+        if(batch.length){
+          btn.textContent=`💾 [${src.label}] 存入第 ${pageNo} 頁 ${batch.length} 筆...`;
+          const{error}=await db.from('finance_transactions')
+            .upsert(batch,{onConflict:'txn_date,type,amount,payee,description',ignoreDuplicates:true});
+          if(error) throw error;
+          srcTotal+=batch.length; totalAll+=batch.length;
+        }
         if(entries.length<limit) break;
         pageNo++;
       }
-      if(all.length){
-        const{error}=await db.from('finance_transactions')
-          .upsert(all,{onConflict:'txn_date,type,amount,payee,description',ignoreDuplicates:true});
-        if(error) throw error;
-        totalAll+=all.length;
-      }
     }
-    alert(`✅ ${syncLabel}完成，本次新增 ${totalAll} 筆`);
+    alert(`✅ ${syncLabel}完成，共處理 ${totalAll} 筆`);
     loadData();
-  }catch(e){alert('同步失敗：'+e.message);}
+  }catch(e){alert('同步失敗（已儲存 '+totalAll+' 筆）：'+e.message);}
   finally{btn.textContent='↻ 從 Ragic 同步';btn.disabled=false;}
 }
 
@@ -1128,6 +1150,7 @@ function toggleSidebar(){document.getElementById('sidebar').classList.toggle('op
 function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sidebar-overlay').classList.remove('show');}
 
 // ── INIT ──
+updateRangeLabel(curRange);
 loadData();
 </script>
 </body>
