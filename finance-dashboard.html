@@ -1102,11 +1102,11 @@ async function syncFromRagic(){
   let totalAll=0;
   try{
     for(const src of sources){
-      let pageNo=1, limit=1000, srcTotal=0;
+      let offset=0, limit=1000, srcTotal=0;
       const baseUrl=src.url.split('?')[0];
       while(true){
-        btn.textContent=`⏳ [${src.label}] 第 ${pageNo} 頁...`;
-        const res=await fetch(`${baseUrl}?api&limit=${limit}&PAGENO=${pageNo}`,{headers:{'Authorization':cfg.apiKey}});
+        btn.textContent=`⏳ [${src.label}] 第 ${Math.floor(offset/limit)+1} 批（offset ${offset}）...`;
+        const res=await fetch(`${baseUrl}?api&limit=${limit}&offset=${offset}`,{headers:{'Authorization':cfg.apiKey}});
         if(!res.ok) throw new Error(`[${src.label}] HTTP ${res.status}`);
         const json=await res.json();
         const entries=Object.entries(json).filter(([k,v])=>!isNaN(parseInt(k))&&typeof v==='object'&&v!==null);
@@ -1129,14 +1129,15 @@ async function syncFromRagic(){
           });
         });
         if(batch.length){
-          btn.textContent=`💾 [${src.label}] 存入第 ${pageNo} 頁 ${batch.length} 筆...`;
+          btn.textContent=`💾 [${src.label}] 存入 offset ${offset} 共 ${batch.length} 筆...`;
           const{error}=await db.from('finance_transactions')
             .upsert(batch,{onConflict:'txn_date,type,amount,payee,description',ignoreDuplicates:true});
           if(error) throw error;
           srcTotal+=batch.length; totalAll+=batch.length;
         }
+        // 若這批筆數少於 limit，代表已到最後一頁
         if(entries.length<limit) break;
-        pageNo++;
+        offset+=limit;
       }
     }
     alert(`✅ ${syncLabel}完成，共處理 ${totalAll} 筆`);
