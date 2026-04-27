@@ -480,6 +480,10 @@ const CAT_MAP = [
   ['零用金','','零用金'],
 ];
 
+// 反查：gs_cat → Ragic 主分類名稱
+const CAT_TO_GROUP = {};
+CAT_MAP.forEach(([m,,cat]) => { if(!CAT_TO_GROUP[cat]) CAT_TO_GROUP[cat]=m; });
+
 // ── CUSTOM CAT MAP ──
 const CUSTOM_CAT_KEY = 'feebit_custom_cat';
 function getCustomCat(){ try{return JSON.parse(localStorage.getItem(CUSTOM_CAT_KEY))||{};}catch{return{};} }
@@ -588,10 +592,18 @@ function getMonthsInRange(from, to){
 async function loadData(){
   const {from,to}=getRangeDates(curRange);
   curFromDate=from; curToDate=to;
-  const {data,error}=await db.from('finance_transactions')
-    .select('txn_date,type,amount,gs_cat').gte('txn_date',from).lte('txn_date',to).order('txn_date').limit(50000);
-  if(error){console.error(error);return;}
-  curData=data||[];
+  let allData=[], start=0;
+  while(true){
+    const {data,error}=await db.from('finance_transactions')
+      .select('txn_date,type,amount,gs_cat').gte('txn_date',from).lte('txn_date',to)
+      .order('txn_date').range(start, start+999);
+    if(error){console.error(error);break;}
+    if(!data?.length) break;
+    allData=allData.concat(data);
+    if(data.length<1000) break;
+    start+=1000;
+  }
+  curData=allData;
   if(curData.length){
     document.getElementById('upload-zone').style.display='none';
     document.getElementById('dashboard').style.display='block';
@@ -710,6 +722,11 @@ function renderBar(){
 }
 
 // ── TABLE ──
+const tableExpandedGroups={};
+function toggleGroup(gname){
+  tableExpandedGroups[gname]=!tableExpandedGroups[gname];
+  renderTable();
+}
 function renderTable(){
   const mo={}, cats=new Set();
   curData.forEach(r=>{
@@ -720,8 +737,16 @@ function renderTable(){
     cats.add(r.gs_cat);
   });
   const months=getMonthsInRange(curFromDate, curToDate).filter(m=>mo[m]);
-  const catList=[...cats].sort();
   if(!months.length){document.getElementById('summary-table').innerHTML='';return;}
+
+  // 按主分類分組
+  const groups={};
+  [...cats].sort().forEach(cat=>{
+    const gname=cat.startsWith('【未對應】')?'【未對應】':(CAT_TO_GROUP[cat]||cat);
+    if(!groups[gname])groups[gname]=[];
+    groups[gname].push(cat);
+  });
+
   let h='<table><thead><tr><th>類別</th>';
   months.forEach(m=>h+=`<th colspan="2" style="text-align:center">${m}</th>`);
   h+='<th colspan="2" style="text-align:center;background:var(--gray-100)">合計</th>';
@@ -729,17 +754,38 @@ function renderTable(){
   months.forEach(()=>h+='<th style="color:var(--success);font-size:10px">收入</th><th style="color:var(--danger);font-size:10px">支出</th>');
   h+='<th style="color:var(--success);font-size:10px;background:var(--gray-100)">收入</th><th style="color:var(--danger);font-size:10px;background:var(--gray-100)">支出</th>';
   h+='</tr></thead><tbody>';
-  catList.forEach(cat=>{
-    let rI=0, rE=0, cells='';
+
+  Object.keys(groups).sort().forEach(gname=>{
+    const subCats=groups[gname].sort();
+    const isExpanded=tableExpandedGroups[gname];
+    const hasSubs=subCats.length>1||(subCats.length===1&&subCats[0]!==gname);
+    let grI=0, grE=0, groupCells='';
     months.forEach(m=>{
-      const i=mo[m]?.[cat+'__收入']||0, e=mo[m]?.[cat+'__支出']||0;
-      rI+=i; rE+=e;
-      cells+=`<td class="c-income">${i?i.toLocaleString():'-'}</td><td class="c-expense">${e?e.toLocaleString():'-'}</td>`;
+      let mI=0, mE=0;
+      subCats.forEach(cat=>{ mI+=mo[m]?.[cat+'__收入']||0; mE+=mo[m]?.[cat+'__支出']||0; });
+      grI+=mI; grE+=mE;
+      groupCells+=`<td class="c-income">${mI?mI.toLocaleString():'-'}</td><td class="c-expense">${mE?mE.toLocaleString():'-'}</td>`;
     });
-    h+=`<tr><td>${cat}</td>${cells}`;
-    h+=`<td class="c-income" style="font-weight:700;background:var(--gray-50)">${rI?rI.toLocaleString():'-'}</td>`;
-    h+=`<td class="c-expense" style="font-weight:700;background:var(--gray-50)">${rE?rE.toLocaleString():'-'}</td></tr>`;
+    const arrow=hasSubs?(isExpanded?'▼ ':'▶ '):'　';
+    const clickAttr=hasSubs?`onclick="toggleGroup(${JSON.stringify(gname)})" style="cursor:pointer;user-select:none"`:'';
+    h+=`<tr style="background:var(--gray-50)"><td ${clickAttr}><strong>${arrow}${gname}</strong></td>${groupCells}`;
+    h+=`<td class="c-income" style="font-weight:700;background:var(--gray-100)">${grI?grI.toLocaleString():'-'}</td>`;
+    h+=`<td class="c-expense" style="font-weight:700;background:var(--gray-100)">${grE?grE.toLocaleString():'-'}</td></tr>`;
+    if(hasSubs&&isExpanded){
+      subCats.forEach(cat=>{
+        let rI=0, rE=0, cells='';
+        months.forEach(m=>{
+          const i=mo[m]?.[cat+'__收入']||0, e=mo[m]?.[cat+'__支出']||0;
+          rI+=i; rE+=e;
+          cells+=`<td class="c-income">${i?i.toLocaleString():'-'}</td><td class="c-expense">${e?e.toLocaleString():'-'}</td>`;
+        });
+        h+=`<tr><td style="padding-left:22px;color:var(--gray-500);font-size:11px">└ ${cat}</td>${cells}`;
+        h+=`<td class="c-income" style="background:var(--gray-50)">${rI?rI.toLocaleString():'-'}</td>`;
+        h+=`<td class="c-expense" style="background:var(--gray-50)">${rE?rE.toLocaleString():'-'}</td></tr>`;
+      });
+    }
   });
+
   h+='<tr class="total-row"><td>合計</td>';
   let gI=0, gE=0;
   months.forEach(m=>{
@@ -753,7 +799,6 @@ function renderTable(){
   h+='</tr></tbody></table>';
   const wrap=document.getElementById('summary-table');
   wrap.innerHTML=h;
-  // 自動捲到最右，讓最新月份先顯示
   const card=wrap.closest('.table-card');
   if(card) requestAnimationFrame(()=>{ card.scrollLeft=card.scrollWidth; });
 }
