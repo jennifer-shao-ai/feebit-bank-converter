@@ -555,6 +555,7 @@ function getDisplayData(){
   if(curCurrencyFilter) d=d.filter(r=>(r.currency||'TWD')===curCurrencyFilter);
   if(curExcludeZhoujuan) d=d.filter(r=>!isZhoujuan(r));
   if(curExcludeShareholder) d=d.filter(r=>!isShareholder(r));
+  d=d.filter(r=>!isSecondaryPayee(r)); // 永遠排除餘額/儲值帳戶
   return d;
 }
 function toggleZhoujuan(){ curExcludeZhoujuan=!curExcludeZhoujuan; renderAll(); }
@@ -931,16 +932,18 @@ function renderTable(){
 }
 
 // ── ACCOUNT BALANCE ──
-const SECONDARY_TYPES=['餘額','儲值金'];
-function isSecondaryAccount(type){ return SECONDARY_TYPES.some(t=>(type||'').includes(t)); }
+// 帳戶名稱含「餘額」或「儲值」者為次要帳戶
+function isSecondaryAccount(entry){ return ['餘額','儲值'].some(t=>(entry.name||'').includes(t)); }
+// 交易的 payee（自帳戶）若含相同關鍵字，排除出計算
+function isSecondaryPayee(r){ return ['餘額','儲值'].some(t=>(r.payee||'').includes(t)); }
 
 function renderBalanceCards(entries, updatedAt){
   const el=document.getElementById('account-balance-list');
   if(!entries||!entries.length){el.innerHTML='<p style="color:var(--gray-500);font-size:12px;margin:0">查無帳戶資料</p>';return;}
   const hidden=getHiddenBal();
   const fxRates=getFxRates();
-  const primary=entries.filter(e=>!isSecondaryAccount(e.type));
-  const secondary=entries.filter(e=>isSecondaryAccount(e.type));
+  const primary=entries.filter(e=>!isSecondaryAccount(e));
+  const secondary=entries.filter(e=>isSecondaryAccount(e));
   const hiddenCount=entries.filter(e=>hidden.includes(e.name)).length;
 
   function cardHtml(e, isPrimary){
