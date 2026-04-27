@@ -657,7 +657,7 @@ async function loadData(){
   let allData=[], start=0;
   while(true){
     const {data,error}=await db.from('finance_transactions')
-      .select('txn_date,type,amount,gs_cat,main_cat,sub_cat,currency,description').gte('txn_date',from).lte('txn_date',to)
+      .select('txn_date,type,amount,gs_cat,main_cat,sub_cat,currency,description,payee').gte('txn_date',from).lte('txn_date',to)
       .order('txn_date').range(start, start+999);
     if(error){console.error(error);break;}
     if(!data?.length) break;
@@ -830,8 +830,8 @@ function toggleGroup(gi){
   renderTable();
 }
 function renderTable(){
-  // group by main_cat → sub_cat
-  const mo={}, groups={};
+  // group by main_cat → sub_cat, and by payee (account)
+  const mo={}, groups={}, acctMo={};
   const disp=getDisplayData();
   disp.forEach(r=>{
     const ym=r.txn_date.slice(0,7);
@@ -842,6 +842,12 @@ function renderTable(){
     mo[ym][k]=(mo[ym][k]||0)+Number(r.amount);
     if(!groups[mc])groups[mc]=new Set();
     groups[mc].add(sc);
+    // per-account aggregation
+    const acct=r.payee||'(未知帳戶)';
+    if(!acctMo[acct])acctMo[acct]={};
+    if(!acctMo[acct][ym])acctMo[acct][ym]={i:0,e:0};
+    if(r.type==='收入')acctMo[acct][ym].i+=Number(r.amount);
+    else acctMo[acct][ym].e+=Number(r.amount);
   });
   const months=getMonthsInRange(curFromDate, curToDate).filter(m=>mo[m]);
   if(!months.length){document.getElementById('summary-table').innerHTML='';return;}
@@ -899,7 +905,25 @@ function renderTable(){
     h+=`<td class="c-income">${ti.toLocaleString()}</td><td class="c-expense">${te.toLocaleString()}</td>`;
   });
   h+=`<td class="c-income">${gI.toLocaleString()}</td><td class="c-expense">${gE.toLocaleString()}</td>`;
-  h+='</tr></tbody></table>';
+  h+='</tr>';
+  // ── 各帳戶分列 ──
+  const acctNames=Object.keys(acctMo).sort();
+  if(acctNames.length){
+    const span=months.length*2+3;
+    h+=`<tr><td colspan="${span}" style="padding:6px 10px;font-size:10px;font-weight:600;color:var(--gray-500);letter-spacing:.5px;background:var(--gray-50);text-transform:uppercase">各帳戶收支</td></tr>`;
+    acctNames.forEach(acct=>{
+      let aI=0,aE=0;
+      h+=`<tr style="background:#fafafa"><td style="padding-left:14px;font-size:12px;color:var(--gray-700)">${acct}</td>`;
+      months.forEach(m=>{
+        const a=acctMo[acct][m]||{i:0,e:0};
+        aI+=a.i; aE+=a.e;
+        h+=`<td class="c-income" style="font-size:11px">${a.i?a.i.toLocaleString():'-'}</td><td class="c-expense" style="font-size:11px">${a.e?a.e.toLocaleString():'-'}</td>`;
+      });
+      h+=`<td class="c-income" style="background:var(--gray-50);font-size:11px;font-weight:600">${aI?aI.toLocaleString():'-'}</td>`;
+      h+=`<td class="c-expense" style="background:var(--gray-50);font-size:11px;font-weight:600">${aE?aE.toLocaleString():'-'}</td></tr>`;
+    });
+  }
+  h+='</tbody></table>';
   const wrap=document.getElementById('summary-table');
   wrap.innerHTML=h;
   const scroll=wrap.closest('.table-scroll');
