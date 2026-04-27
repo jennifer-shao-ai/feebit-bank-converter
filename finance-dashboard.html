@@ -556,7 +556,7 @@ function getDisplayData(){
   if(curCurrencyFilter) d=d.filter(r=>(r.currency||'TWD')===curCurrencyFilter);
   if(curExcludeZhoujuan) d=d.filter(r=>!isZhoujuan(r));
   if(curExcludeShareholder) d=d.filter(r=>!isShareholder(r));
-  d=d.filter(r=>!isSecondaryPayee(r)); // 永遠排除餘額/儲值帳戶
+  d=d.filter(r=>!(isSecondaryPayee(r)&&r.type==='收入')); // 排除轉入餘額/儲值帳戶的收入（避免雙重計算），保留從這些帳戶支付的費用
   return d;
 }
 function toggleZhoujuan(){ curExcludeZhoujuan=!curExcludeZhoujuan; renderAll(); }
