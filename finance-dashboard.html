@@ -693,7 +693,11 @@ async function loadData(){
 }
 
 // ── RENDER ──
-function fmt(n){return'NT$ '+Math.round(n).toLocaleString('zh-TW');}
+function fmt(n){
+  const c=curCurrencyFilter;
+  const sym=(!c||c==='TWD'||c==='NTD')?'NT$':(c==='USD'?'US$':(c+'$'));
+  return sym+' '+Math.round(n).toLocaleString('zh-TW');
+}
 function renderAll(){
   const disp=getDisplayData();
   const inc=disp.filter(r=>r.type==='收入'), exp=disp.filter(r=>r.type==='支出');
@@ -1334,6 +1338,17 @@ function toggleSidebar(){document.getElementById('sidebar').classList.toggle('op
 function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sidebar-overlay').classList.remove('show');}
 
 // ── INIT ──
+// viewer 模式：隱藏管理按鈕，頁面唯讀
+(function applyViewerMode(){
+  if(!window._feebitViewerMode) return;
+  ['sync-btn'].forEach(id=>{ const el=document.getElementById(id); if(el)el.style.display='none'; });
+  // 隱藏 topbar 右側管理按鈕（上傳/初始化DB/Ragic設定/Debug）
+  document.querySelectorAll('.topbar .btn,.topbar .btn-primary,.topbar .btn-outline').forEach(btn=>{
+    const t=btn.textContent.trim();
+    if(['⬆ 上傳CSV','⚙️ 初始化DB','🔗 Ragic 設定','🔎 Debug','↻ 從 Ragic 同步'].some(k=>t.includes(k.trim())))
+      btn.style.display='none';
+  });
+})();
 updateRangeLabel(curRange);
 loadData();
 </script>

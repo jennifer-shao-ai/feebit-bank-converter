@@ -50,12 +50,30 @@
     topbarRight.insertBefore(wrap, topbarRight.firstChild);
   }
 
+  // finance_viewer 角色：只允許存取 finance-dashboard.html，其他頁面擋掉
+  const VIEWER_ROLE = 'finance_viewer';
+  const VIEWER_ALLOWED = 'finance-dashboard.html';
+
   async function run() {
     try {
       await loadSDK();
       window._authClient = window.supabase.createClient(SB_URL, SB_KEY);
       const { data: { session } } = await window._authClient.auth.getSession();
       if (!session) { location.href = loginUrl(); return; }
+
+      const role = session.user?.user_metadata?.role || '';
+      const isViewer = role === VIEWER_ROLE;
+
+      // viewer 只能在 finance-dashboard.html，其他頁面導回
+      if (isViewer && !path.includes(VIEWER_ALLOWED)) {
+        const base = path.replace(/\/[^/]*$/, '');
+        location.href = base + '/' + VIEWER_ALLOWED;
+        return;
+      }
+
+      // viewer 模式：告知頁面隱藏管理功能
+      if (isViewer) window._feebitViewerMode = true;
+
       document.documentElement.style.visibility = '';
       if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => addLogoutUI(session));
