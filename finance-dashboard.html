@@ -23,8 +23,9 @@
 .custom-filter.active-filter{border-color:var(--primary);background:var(--primary-light)}
 /* ── account balance ── */
 .balance-strip{background:white;border-radius:var(--radius);padding:16px 20px;box-shadow:0 1px 3px rgba(0,0,0,.08);margin-bottom:24px}
-.balance-cards{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px}
-.balance-card{background:var(--gray-50);border-radius:var(--radius);padding:12px 16px;min-width:150px;flex:1;position:relative}
+.balance-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-top:12px}
+.balance-card{background:var(--gray-50);border-radius:var(--radius);padding:12px 16px;position:relative}
+.balance-row-label{grid-column:1/-1}
 .balance-card .bc-type{font-size:10px;color:var(--gray-500);margin-bottom:2px}
 .balance-card .bc-name{font-size:12px;font-weight:600;margin-bottom:6px;color:var(--gray-700)}
 .balance-card .bc-amount{font-size:20px;font-weight:700}
@@ -73,7 +74,7 @@
 .bc-hide{position:absolute;top:6px;right:6px;background:none;border:none;cursor:pointer;font-size:13px;color:var(--gray-400);padding:2px;line-height:1}
 /* ── balance card primary (主要帳戶) ── */
 .balance-card.primary{background:linear-gradient(135deg,#eff6ff,#dbeafe);border:1px solid #bfdbfe}
-.balance-row-label{font-size:10px;font-weight:600;color:var(--gray-500);letter-spacing:.5px;text-transform:uppercase;margin:12px 0 6px;width:100%}
+.balance-row-label{font-size:10px;font-weight:600;color:var(--gray-500);letter-spacing:.5px;text-transform:uppercase;margin:12px 0 2px}
 .balance-row-label.secondary-label{color:var(--gray-400)}
 /* ── table ── */
 .table-card{background:white;border-radius:var(--radius);padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.08);overflow-x:hidden;margin-bottom:24px}
@@ -539,7 +540,7 @@ let pieC, lineC, barC;
 let curFromDate='', curToDate='';
 let curExcludeZhoujuan=true;
 let curExcludeShareholder=false;
-let curCurrencyFilter=null; // null=全部; 'TWD'=只看台幣; 'USD'=只看美金 等
+let curCurrencyFilter='TWD'; // 'TWD' or 'USD' — no "all" option
 const FX_KEY='feebit_fx_rates';
 const BAL_HIDDEN_KEY='feebit_bal_hidden';
 function getFxRates(){ try{return JSON.parse(localStorage.getItem(FX_KEY))||{};}catch{return{};} }
@@ -563,8 +564,8 @@ function setCurrencyFilter(cur){ curCurrencyFilter=cur; renderAll(); }
 function renderAcctFilter(){
   document.getElementById('acct-filter-bar').style.display='block';
   const pills=document.getElementById('acct-filter-pills');
-  const opts=[{val:null,label:'全部'},{val:'TWD',label:'台幣 TWD'},{val:'USD',label:'美金 USD'}];
-  pills.innerHTML=opts.map(o=>`<button class="acct-pill${curCurrencyFilter===o.val?' active':''}" onclick="setCurrencyFilter(${o.val===null?'null':`'${o.val}'`})">${o.label}</button>`).join('');
+  const opts=[{val:'TWD',label:'台幣 TWD'},{val:'USD',label:'美金 USD'}];
+  pills.innerHTML=opts.map(o=>`<button class="acct-pill${curCurrencyFilter===o.val?' active':''}" onclick="setCurrencyFilter('${o.val}')">${o.label}</button>`).join('');
 }
 
 // ── RANGE TABS ──
