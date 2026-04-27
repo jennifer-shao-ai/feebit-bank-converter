@@ -1064,7 +1064,7 @@ async function handleFile(file){
       payee:r['收款人']||'', description:r['描述']||'', file_name:file.name,
     })).filter(r=>r.txn_date&&r.amount);
     const{error}=await db.from('finance_transactions')
-      .upsert(records,{onConflict:'txn_date,type,amount,payee,description',ignoreDuplicates:true});
+      .upsert(records,{onConflict:'txn_date,type,amount,payee,description',ignoreDuplicates:false});
     if(error)throw error;
     alert(`✅ 匯入 ${records.length} 筆，重複資料自動略過`);
     loadData();
@@ -1236,7 +1236,7 @@ async function syncFromRagic(){
         if(batch.length){
           btn.textContent=`💾 存入 offset ${offset} 共 ${batch.length} 筆...`;
           const{error}=await db.from('finance_transactions')
-            .upsert(batch,{onConflict:'txn_date,type,amount,payee,description',ignoreDuplicates:true});
+            .upsert(batch,{onConflict:'txn_date,type,amount,payee,description',ignoreDuplicates:false});
           if(error) throw error;
           totalAll+=batch.length;
         }
