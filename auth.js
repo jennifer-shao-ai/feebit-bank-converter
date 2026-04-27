@@ -158,7 +158,32 @@
         return;
       }
 
-      if (isViewer) window._feebitViewerMode = true;
+      if (isViewer) {
+        window._feebitViewerMode = true;
+        // 先套用限制，再顯示頁面（頁面仍是 hidden 狀態，不會閃）
+        const restrict = () => {
+          // 隱藏側邊欄
+          const sb = document.getElementById('sidebar');
+          const ov = document.getElementById('sidebar-overlay');
+          const hb = document.querySelector('.btn-hamburger');
+          if (sb) sb.style.display = 'none';
+          if (ov) ov.style.display = 'none';
+          if (hb) hb.style.display = 'none';
+          // main 不需要 sidebar 的 margin
+          const main = document.getElementById('main');
+          if (main) main.style.marginLeft = '0';
+          // 隱藏管理按鈕（用文字比對，兼容各頁面）
+          const hideKeywords = ['初始化DB','Ragic 設定','Debug','Ragic 同步','上傳CSV','⬆','⚙️','🔎','🔗','↻'];
+          document.querySelectorAll('.topbar button').forEach(btn => {
+            const t = btn.textContent.trim();
+            if (hideKeywords.some(k => t.includes(k))) btn.style.display = 'none';
+          });
+          const syncBtn = document.getElementById('sync-btn');
+          if (syncBtn) syncBtn.style.display = 'none';
+        };
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', restrict);
+        else restrict();
+      }
 
       document.documentElement.style.visibility = '';
 
