@@ -8,8 +8,13 @@
   const SB_URL = 'https://tokhhoyzztaynppcatci.supabase.co';
   const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRva2hob3l6enRheW5wcGNhdGNpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMDAyODMsImV4cCI6MjA5MDg3NjI4M30.PQB4lJGF3OMatv5wIedCu3zIWq0urrFbniBRYTbNtUU';
 
-  // login.html 本身不需要檢查（避免無限跳轉）
-  if (location.pathname.includes('login.html')) return;
+  // 以下情況跳過驗證：
+  // 1. login.html 本身（避免無限跳轉）
+  // 2. travel-planner 的分享/協作連結（既有功能保留）
+  const path = location.pathname;
+  const qs   = location.search;
+  if (path.includes('login.html')) return;
+  if (path.includes('travel-planner.html') && (qs.includes('share') || qs.includes('collab'))) return;
 
   // 立即隱藏頁面，驗證通過後再顯示（避免未授權內容閃過）
   document.documentElement.style.visibility = 'hidden';
