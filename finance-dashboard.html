@@ -1000,13 +1000,10 @@ function renderBalanceCards(entries, updatedAt){
   }
 
   let html='';
-  if(zhoujuan.length){
-    html+=`<div class="balance-row-label zhoujuan-label">週轉金（不列入月度匯總）</div>`;
-    html+=zhoujuan.map(e=>cardHtml(e,'zhoujuan')).join('');
-  }
-  if(primary.length){
+  if(primary.length||zhoujuan.length){
     html+=`<div class="balance-row-label">主要帳戶</div>`;
     html+=primary.map(e=>cardHtml(e,true)).join('');
+    html+=zhoujuan.map(e=>cardHtml(e,'zhoujuan')).join('');
   }
   if(secondary.length){
     html+=`<div class="balance-row-label secondary-label">儲值 / 餘額帳戶（不列入收支計算）</div>`;
