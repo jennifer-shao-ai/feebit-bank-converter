@@ -238,7 +238,7 @@ tr.total-row td:first-child{background:var(--gray-100)!important}
           <div style="font-size:14px;font-weight:600">💳 帳戶餘額快照</div>
           <div style="display:flex;align-items:center;gap:8px">
             <span id="balance-updated-at" style="font-size:11px;color:var(--gray-500)"></span>
-            <button class="btn btn-outline" onclick="fetchAccountBalances()" style="font-size:12px;padding:3px 10px">↻ 更新餘額</button>
+            <button id="balance-refresh-btn" class="btn btn-outline" onclick="fetchAccountBalances()" style="font-size:12px;padding:3px 10px">↻ 更新餘額</button>
           </div>
         </div>
         <div id="account-balance-list" class="balance-cards" style="margin-top:12px">
@@ -261,7 +261,7 @@ tr.total-row td:first-child{background:var(--gray-100)!important}
               <span>🔴 總支出</span>
               <div style="display:flex;gap:4px">
                 <button id="zj-toggle-btn" onclick="toggleZhoujuan()" class="zj-toggle excluded" title="週轉金還款">週轉金排除中</button>
-                <button id="sh-toggle-btn" onclick="toggleShareholder()" class="zj-toggle included" title="股東費用（含 Ricky）">股東列入中</button>
+                <button id="sh-toggle-btn" onclick="toggleShareholder()" class="zj-toggle excluded" title="股東費用（含 Ricky）">股東排除中</button>
               </div>
             </div>
           </div>
@@ -539,7 +539,7 @@ let curRange='month', curFrom=null, curTo=null, curData=[], curPieMode='expense'
 let pieC, lineC, barC;
 let curFromDate='', curToDate='';
 let curExcludeZhoujuan=true;
-let curExcludeShareholder=false;
+let curExcludeShareholder=true;
 let curCurrencyFilter='TWD'; // 'TWD' or 'USD' — no "all" option
 const FX_KEY='feebit_fx_rates';
 const BAL_HIDDEN_KEY='feebit_bal_hidden';

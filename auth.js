@@ -180,6 +180,8 @@
           });
           const syncBtn = document.getElementById('sync-btn');
           if (syncBtn) syncBtn.style.display = 'none';
+          const balBtn = document.getElementById('balance-refresh-btn');
+          if (balBtn) balBtn.style.display = 'none';
         };
         if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', restrict);
         else restrict();
