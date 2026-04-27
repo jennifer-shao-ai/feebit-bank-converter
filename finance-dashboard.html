@@ -551,11 +551,12 @@ function saveFxRate(cur,rate){ const r=getFxRates(); r[cur]=rate; localStorage.s
 function getHiddenBal(){ try{return JSON.parse(localStorage.getItem(BAL_HIDDEN_KEY))||[];}catch{return[];} }
 function toggleHiddenBal(name){ const h=getHiddenBal(); const i=h.indexOf(name); if(i>=0)h.splice(i,1);else h.push(name); localStorage.setItem(BAL_HIDDEN_KEY,JSON.stringify(h)); renderBalanceCards(window._lastBalanceEntries,window._lastBalanceTs); }
 
+function normCur(c){const v=c||'TWD';return v==='NTD'?'TWD':v;}
 function isZhoujuan(r){ return (r.sub_cat||'').includes('轉金')||(r.gs_cat||'').includes('週轉金'); }
 function isShareholder(r){ const s=((r.sub_cat||'')+(r.description||'')).toLowerCase(); return s.includes('ricky'); }
 function getDisplayData(){
   let d=curData;
-  if(curCurrencyFilter) d=d.filter(r=>(r.currency||'TWD')===curCurrencyFilter);
+  if(curCurrencyFilter) d=d.filter(r=>normCur(r.currency)===curCurrencyFilter);
   if(curExcludeZhoujuan) d=d.filter(r=>!isZhoujuan(r));
   if(curExcludeShareholder) d=d.filter(r=>!isShareholder(r));
   d=d.filter(r=>!isSecondaryPayee(r)); // 排除所有餘額/儲值帳戶收支
@@ -717,7 +718,7 @@ function renderAll(){
   // 帳戶篩選 pills
   renderAcctFilter();
   // 週轉金提示
-  const base=curCurrencyFilter?curData.filter(r=>(r.currency||'TWD')===curCurrencyFilter):curData;
+  const base=curCurrencyFilter?curData.filter(r=>normCur(r.currency)===curCurrencyFilter):curData;
   const zjRecs=base.filter(r=>isZhoujuan(r));
   const zjAmt=zjRecs.reduce((s,r)=>s+Number(r.amount),0);
   const zjEl=document.getElementById('zhoujuan-amount');
