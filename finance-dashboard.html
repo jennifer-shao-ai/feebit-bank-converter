@@ -60,6 +60,10 @@
 .vresult{margin-top:12px;padding:10px 14px;border-radius:var(--radius);font-size:13px;line-height:1.6}
 .vresult.ok{background:#dcfce7;color:#15803d}
 .vresult.err{background:#fee2e2;color:#b91c1c}
+/* ── 週轉金 toggle ── */
+.zj-toggle{font-size:10px;padding:2px 8px;border-radius:12px;border:none;cursor:pointer;font-weight:600;transition:all .2s;white-space:nowrap}
+.zj-toggle.excluded{background:#fef3c7;color:#d97706}
+.zj-toggle.included{background:#fee2e2;color:#dc2626}
 /* ── table ── */
 .table-card{background:white;border-radius:var(--radius);padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.08);overflow-x:hidden;margin-bottom:24px}
 .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
@@ -150,7 +154,7 @@ tr.total-row td:first-child{background:var(--gray-100)!important}
     <div class="sidebar-label">系統</div>
     <a class="nav-item" href="tools.html"><span class="icon">🔧</span> 使用工具</a>
   </div>
-  <div class="sidebar-footer">v2.0 · Feebit © 2026</div>
+  <div class="sidebar-footer">v2.1 · Feebit © 2026</div>
 </div>
 <div id="sidebar-overlay" onclick="closeSidebar()"></div>
 
@@ -159,7 +163,7 @@ tr.total-row td:first-child{background:var(--gray-100)!important}
   <div class="topbar">
     <div style="display:flex;align-items:center;gap:10px">
       <button class="btn-hamburger" onclick="toggleSidebar()">☰</button>
-      <span class="topbar-title">帳務分析 <span style="font-size:11px;font-weight:400;color:var(--gray-500);">v2.0</span></span>
+      <span class="topbar-title">帳務分析 <span style="font-size:11px;font-weight:400;color:var(--gray-500);">v2.1</span></span>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
       <button class="btn btn-outline" onclick="openDbModal()" style="font-size:12px;padding:4px 10px">⚙️ 初始化DB</button>
@@ -168,7 +172,7 @@ tr.total-row td:first-child{background:var(--gray-100)!important}
       <button class="btn btn-outline" onclick="debugRagic()" style="font-size:12px;padding:4px 10px">🔎 Debug</button>
       <button class="btn btn-primary" onclick="document.getElementById('csv-input').click()" style="font-size:12px;padding:4px 12px">⬆ 上傳CSV</button>
       <input type="file" id="csv-input" accept=".csv" style="display:none">
-      <span class="topbar-badge">v2.0</span>
+      <span class="topbar-badge">v2.1</span>
     </div>
   </div>
 
@@ -207,13 +211,13 @@ tr.total-row td:first-child{background:var(--gray-100)!important}
     <!-- dashboard -->
     <div id="dashboard" style="display:none">
 
-      <!-- unmapped warning -->
-      <div id="unmapped-warn" class="unmapped-warn">
+      <!-- 未分類警告 -->
+      <div id="unmapped-warn" class="unmapped-warn" style="display:none">
         <div class="unmapped-warn-header">
-          <strong>⚠️ 以下類別未對應，請確認 CSV 格式或更新對應設定</strong>
-          <button class="btn btn-outline" onclick="openCatMapModal()" style="font-size:12px;padding:3px 10px;white-space:nowrap">⚙️ 設定對應</button>
+          <strong>⚠️ 有 <span id="uncat-count">0</span> 筆資料未設定主分類（舊版同步或CSV無主項目欄位）</strong>
+          <button class="btn btn-outline" onclick="openUncatModal()" style="font-size:12px;padding:3px 10px;white-space:nowrap">🔍 查看明細</button>
         </div>
-        <div id="unmapped-list"></div>
+        <div style="font-size:11px;color:var(--gray-600);margin-top:4px">建議重新執行「從 Ragic 同步」即可自動修正，或重新上傳含主項目欄位的 CSV</div>
       </div>
 
       <!-- account balance -->
@@ -230,19 +234,17 @@ tr.total-row td:first-child{background:var(--gray-100)!important}
         </div>
       </div>
 
-      <!-- 週轉金 exclude toggle -->
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;padding:8px 14px;background:white;border-radius:var(--radius);border:1px solid var(--gray-200);font-size:13px">
-        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;color:var(--gray-700)">
-          <input type="checkbox" id="exclude-zhoujuan" checked onchange="onExcludeChange()" style="accent-color:var(--primary)">
-          排除「週轉金還款」（非營業支出）
-        </label>
-        <span id="zhoujuan-amount" style="font-size:12px;color:var(--gray-500)"></span>
-      </div>
-
       <!-- summary cards -->
       <div class="summary-cards">
         <div class="sc"><div class="sc-label">💚 總收入</div><div class="sc-value" id="v-income" style="color:var(--success)">-</div></div>
-        <div class="sc"><div class="sc-label">🔴 總支出</div><div class="sc-value" id="v-expense" style="color:var(--danger)">-</div></div>
+        <div class="sc">
+          <div class="sc-label" style="display:flex;align-items:center;justify-content:space-between">
+            <span>🔴 總支出</span>
+            <button id="zj-toggle-btn" onclick="toggleZhoujuan()" class="zj-toggle excluded" title="週轉金還款：非營業支出，點擊切換是否列入計算">週轉金排除中</button>
+          </div>
+          <div class="sc-value" id="v-expense" style="color:var(--danger)">-</div>
+          <div id="zhoujuan-amount" style="font-size:11px;color:var(--gray-500);margin-top:4px"></div>
+        </div>
         <div class="sc"><div class="sc-label">📊 淨利</div><div class="sc-value" id="v-profit">-</div></div>
       </div>
 
@@ -325,6 +327,18 @@ tr.total-row td:first-child{background:var(--gray-100)!important}
     </div><!-- /dashboard -->
   </div><!-- /page -->
 </div><!-- /main -->
+
+<!-- 未分類 Modal -->
+<div class="modal-overlay" id="uncat-modal">
+  <div class="modal-box" style="width:720px">
+    <h3 style="margin-bottom:6px">🔍 未分類資料明細</h3>
+    <p style="font-size:12px;color:var(--gray-600);margin-bottom:16px">以下記錄缺少 Ragic 主項目，重新從 Ragic 同步後可自動修正</p>
+    <div id="uncat-list" style="max-height:60vh;overflow-y:auto"></div>
+    <div style="display:flex;justify-content:flex-end;margin-top:16px">
+      <button class="btn btn-outline" onclick="document.getElementById('uncat-modal').classList.remove('open')">關閉</button>
+    </div>
+  </div>
+</div>
 
 <!-- Cat Map Modal -->
 <div class="modal-overlay" id="catmap-modal">
@@ -517,10 +531,13 @@ function mapCat(m, s){
 let curRange='month', curFrom=null, curTo=null, curData=[], curPieMode='expense';
 let pieC, lineC, barC;
 let curFromDate='', curToDate='';
-const ZHOUJUAN_CAT='週轉金';
-function isZhoujuan(r){ return r.gs_cat===ZHOUJUAN_CAT; }
-function getDisplayData(){ return document.getElementById('exclude-zhoujuan')?.checked ? curData.filter(r=>!isZhoujuan(r)) : curData; }
-function onExcludeChange(){ renderAll(); }
+let curExcludeZhoujuan=true;
+function isZhoujuan(r){ return (r.sub_cat||'').includes('轉金')||(r.gs_cat||'').includes('週轉金'); }
+function getDisplayData(){ return curExcludeZhoujuan ? curData.filter(r=>!isZhoujuan(r)) : curData; }
+function toggleZhoujuan(){
+  curExcludeZhoujuan=!curExcludeZhoujuan;
+  renderAll();
+}
 
 // ── RANGE TABS ──
 function setRange(el, r){
@@ -647,20 +664,34 @@ function renderAll(){
   const zjRecs=curData.filter(r=>isZhoujuan(r));
   const zjAmt=zjRecs.reduce((s,r)=>s+Number(r.amount),0);
   const zjEl=document.getElementById('zhoujuan-amount');
-  if(zjEl) zjEl.textContent=zjRecs.length?`（本期共 ${zjRecs.length} 筆，${fmt(zjAmt)}）`:'';
+  if(zjEl) zjEl.textContent=zjRecs.length?`本期 ${zjRecs.length} 筆，${fmt(zjAmt)}`:'';
+  const zjBtn=document.getElementById('zj-toggle-btn');
+  if(zjBtn){ zjBtn.textContent=curExcludeZhoujuan?'週轉金排除中':'週轉金列入中'; zjBtn.className='zj-toggle '+(curExcludeZhoujuan?'excluded':'included'); }
   setPieMode(curPieMode, true);
   renderLine(); renderBar(); renderTable();
   showUnmapped();
 }
 
 function showUnmapped(){
-  const un=[...new Set(curData.filter(r=>r.gs_cat?.startsWith('【未對應】')).map(r=>r.gs_cat))];
+  const uncat=curData.filter(r=>!r.main_cat);
   const el=document.getElementById('unmapped-warn');
-  if(un.length){
-    el.style.display='block';
-    document.getElementById('unmapped-list').textContent=un.join(' / ');
-  } else { el.style.display='none'; }
+  const cntEl=document.getElementById('uncat-count');
+  if(uncat.length){ el.style.display='block'; if(cntEl)cntEl.textContent=uncat.length; }
+  else el.style.display='none';
 }
+function openUncatModal(){
+  const uncat=curData.filter(r=>!r.main_cat).slice(0,200);
+  let h='<table style="width:100%;border-collapse:collapse;font-size:12px">';
+  h+='<thead><tr style="background:var(--gray-50)"><th style="padding:6px 8px;text-align:left;border-bottom:2px solid var(--gray-200)">日期</th><th style="padding:6px 8px;text-align:left;border-bottom:2px solid var(--gray-200)">類型</th><th style="padding:6px 8px;text-align:right;border-bottom:2px solid var(--gray-200)">金額</th><th style="padding:6px 8px;text-align:left;border-bottom:2px solid var(--gray-200)">gs_cat</th><th style="padding:6px 8px;text-align:left;border-bottom:2px solid var(--gray-200)">收款人</th></tr></thead><tbody>';
+  uncat.forEach(r=>{
+    h+=`<tr style="border-bottom:1px solid var(--gray-100)"><td style="padding:5px 8px">${r.txn_date}</td><td style="padding:5px 8px;color:${r.type==='收入'?'var(--success)':'var(--danger)'}">${r.type}</td><td style="padding:5px 8px;text-align:right">${Number(r.amount).toLocaleString()}</td><td style="padding:5px 8px;color:var(--gray-500)">${r.gs_cat||'-'}</td><td style="padding:5px 8px">${r.payee||'-'}</td></tr>`;
+  });
+  h+='</tbody></table>';
+  if(uncat.length===200) h+='<p style="font-size:11px;color:var(--gray-500);margin-top:8px">僅顯示前 200 筆</p>';
+  document.getElementById('uncat-list').innerHTML=h||'<p style="color:var(--gray-500);text-align:center;padding:24px">無未分類資料</p>';
+  document.getElementById('uncat-modal').classList.add('open');
+}
+document.getElementById('uncat-modal')?.addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('open');});
 
 // ── PIE ──
 function setPieMode(mode, skipSave){
