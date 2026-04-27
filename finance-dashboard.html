@@ -1234,11 +1234,15 @@ async function syncFromRagic(){
           });
         });
         if(batch.length){
-          btn.textContent=`💾 存入 offset ${offset} 共 ${batch.length} 筆...`;
+          // 批次內去重（Ragic 可能有重複列，同批更新同一行會報錯）
+          const seen=new Map();
+          batch.forEach(r=>{ const k=`${r.txn_date}||${r.type}||${r.amount}||${r.payee}||${r.description}`; seen.set(k,r); });
+          const deduped=[...seen.values()];
+          btn.textContent=`💾 存入 offset ${offset} 共 ${deduped.length} 筆...`;
           const{error}=await db.from('finance_transactions')
-            .upsert(batch,{onConflict:'txn_date,type,amount,payee,description',ignoreDuplicates:false});
+            .upsert(deduped,{onConflict:'txn_date,type,amount,payee,description',ignoreDuplicates:false});
           if(error) throw error;
-          totalAll+=batch.length;
+          totalAll+=deduped.length;
         }
         if(entries.length<limit) break;
         offset+=limit;
