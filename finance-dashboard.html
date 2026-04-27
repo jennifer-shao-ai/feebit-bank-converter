@@ -1093,21 +1093,16 @@ async function syncFromRagic(){
   const syncLabel=syncFrom?`增量同步（${syncFrom} 起）`:'全量同步';
   btn.textContent=`⏳ ${syncLabel}...`;
 
-  const sources=[
-    {url:cfg.sheetUrl,   label:'主帳務'},
-    {url:cfg.urlCoupang, label:'桑爹/酷澎'},
-    {url:cfg.urlUsd,     label:'美金帳務'},
-    {url:cfg.urlPetty,   label:'零用金'},
-  ].filter(s=>s.url);
+  const baseUrl=cfg.sheetUrl.split('?')[0];
   let totalAll=0;
   try{
-    for(const src of sources){
-      let offset=0, limit=1000, srcTotal=0;
-      const baseUrl=src.url.split('?')[0];
+    {
+      let offset=0, limit=1000;
       while(true){
-        btn.textContent=`⏳ [${src.label}] 第 ${Math.floor(offset/limit)+1} 批（offset ${offset}）...`;
-        const res=await fetch(`${baseUrl}?api&limit=${limit}&offset=${offset}`,{headers:{'Authorization':cfg.apiKey}});
-        if(!res.ok) throw new Error(`[${src.label}] HTTP ${res.status}`);
+        btn.textContent=`⏳ 第 ${Math.floor(offset/limit)+1} 批（offset ${offset}）...`;
+        // ignoreFilter=1：強制忽略 Ragic 視圖篩選，抓全部資料
+        const res=await fetch(`${baseUrl}?api&limit=${limit}&offset=${offset}&ignoreFilter=1`,{headers:{'Authorization':cfg.apiKey}});
+        if(!res.ok) throw new Error(`Ragic HTTP ${res.status}`);
         const json=await res.json();
         const entries=Object.entries(json).filter(([k,v])=>!isNaN(parseInt(k))&&typeof v==='object'&&v!==null);
         if(!entries.length) break;
@@ -1125,17 +1120,16 @@ async function syncFromRagic(){
             gs_cat:mapCat(mainCat,subCat),
             payee:r['自帳戶']||r['收款人']||'',
             description:r['描述']||'',
-            file_name:`ragic_sync_${src.label}`,
+            file_name:'ragic_sync',
           });
         });
         if(batch.length){
-          btn.textContent=`💾 [${src.label}] 存入 offset ${offset} 共 ${batch.length} 筆...`;
+          btn.textContent=`💾 存入 offset ${offset} 共 ${batch.length} 筆...`;
           const{error}=await db.from('finance_transactions')
             .upsert(batch,{onConflict:'txn_date,type,amount,payee,description',ignoreDuplicates:true});
           if(error) throw error;
-          srcTotal+=batch.length; totalAll+=batch.length;
+          totalAll+=batch.length;
         }
-        // 若這批筆數少於 limit，代表已到最後一頁
         if(entries.length<limit) break;
         offset+=limit;
       }
