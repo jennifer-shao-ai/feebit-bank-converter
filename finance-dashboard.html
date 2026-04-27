@@ -61,7 +61,8 @@
 .vresult.ok{background:#dcfce7;color:#15803d}
 .vresult.err{background:#fee2e2;color:#b91c1c}
 /* ── table ── */
-.table-card{background:white;border-radius:var(--radius);padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.08);overflow-x:auto;margin-bottom:24px}
+.table-card{background:white;border-radius:var(--radius);padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.08);overflow-x:hidden;margin-bottom:24px}
+.table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
 .table-card table{width:100%;border-collapse:collapse;font-size:12px}
 .table-card th{background:var(--gray-50);padding:8px 10px;text-align:right;border-bottom:2px solid var(--gray-200);font-weight:600;white-space:nowrap}
 .table-card th:first-child{text-align:left;position:sticky;left:0;z-index:1;background:var(--gray-50)}
@@ -229,6 +230,15 @@ tr.total-row td:first-child{background:var(--gray-100)!important}
         </div>
       </div>
 
+      <!-- 週轉金 exclude toggle -->
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;padding:8px 14px;background:white;border-radius:var(--radius);border:1px solid var(--gray-200);font-size:13px">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;color:var(--gray-700)">
+          <input type="checkbox" id="exclude-zhoujuan" checked onchange="onExcludeChange()" style="accent-color:var(--primary)">
+          排除「週轉金還款」（非營業支出）
+        </label>
+        <span id="zhoujuan-amount" style="font-size:12px;color:var(--gray-500)"></span>
+      </div>
+
       <!-- summary cards -->
       <div class="summary-cards">
         <div class="sc"><div class="sc-label">💚 總收入</div><div class="sc-value" id="v-income" style="color:var(--success)">-</div></div>
@@ -307,7 +317,9 @@ tr.total-row td:first-child{background:var(--gray-100)!important}
           <div style="font-size:14px;font-weight:600">月度類別彙總 <span style="font-size:11px;font-weight:400;color:var(--gray-500)">← 左右滑動查看全部月份 →</span></div>
           <button class="btn btn-outline" onclick="exportCSV()" style="font-size:12px;padding:4px 12px">⬇ 匯出 Google 表單格式</button>
         </div>
-        <div id="summary-table"></div>
+        <div class="table-scroll">
+          <div id="summary-table"></div>
+        </div>
       </div>
 
     </div><!-- /dashboard -->
@@ -505,6 +517,10 @@ function mapCat(m, s){
 let curRange='month', curFrom=null, curTo=null, curData=[], curPieMode='expense';
 let pieC, lineC, barC;
 let curFromDate='', curToDate='';
+const ZHOUJUAN_CAT='週轉金';
+function isZhoujuan(r){ return r.gs_cat===ZHOUJUAN_CAT; }
+function getDisplayData(){ return document.getElementById('exclude-zhoujuan')?.checked ? curData.filter(r=>!isZhoujuan(r)) : curData; }
+function onExcludeChange(){ renderAll(); }
 
 // ── RANGE TABS ──
 function setRange(el, r){
@@ -595,7 +611,7 @@ async function loadData(){
   let allData=[], start=0;
   while(true){
     const {data,error}=await db.from('finance_transactions')
-      .select('txn_date,type,amount,gs_cat').gte('txn_date',from).lte('txn_date',to)
+      .select('txn_date,type,amount,gs_cat,main_cat,sub_cat').gte('txn_date',from).lte('txn_date',to)
       .order('txn_date').range(start, start+999);
     if(error){console.error(error);break;}
     if(!data?.length) break;
@@ -617,7 +633,8 @@ async function loadData(){
 // ── RENDER ──
 function fmt(n){return'NT$ '+Math.round(n).toLocaleString('zh-TW');}
 function renderAll(){
-  const inc=curData.filter(r=>r.type==='收入'), exp=curData.filter(r=>r.type==='支出');
+  const disp=getDisplayData();
+  const inc=disp.filter(r=>r.type==='收入'), exp=disp.filter(r=>r.type==='支出');
   const tInc=inc.reduce((s,r)=>s+Number(r.amount),0);
   const tExp=exp.reduce((s,r)=>s+Number(r.amount),0);
   const net=tInc-tExp;
@@ -626,6 +643,11 @@ function renderAll(){
   const vp=document.getElementById('v-profit');
   vp.textContent=(net>=0?'+':'')+fmt(net);
   vp.style.color=net>=0?'var(--success)':'var(--danger)';
+  // 週轉金還款提示
+  const zjRecs=curData.filter(r=>isZhoujuan(r));
+  const zjAmt=zjRecs.reduce((s,r)=>s+Number(r.amount),0);
+  const zjEl=document.getElementById('zhoujuan-amount');
+  if(zjEl) zjEl.textContent=zjRecs.length?`（本期共 ${zjRecs.length} 筆，${fmt(zjAmt)}）`:'';
   setPieMode(curPieMode, true);
   renderLine(); renderBar(); renderTable();
   showUnmapped();
@@ -646,12 +668,14 @@ function setPieMode(mode, skipSave){
   document.getElementById('pie-btn-exp').classList.toggle('active', mode==='expense');
   document.getElementById('pie-btn-inc').classList.toggle('active', mode==='income');
   document.getElementById('pie-title').textContent = mode==='expense' ? '支出類別佔比' : '收入類別佔比';
-  renderPie(curData.filter(r=>r.type===(mode==='expense'?'支出':'收入')));
+  const disp=getDisplayData();
+  renderPie(disp.filter(r=>r.type===(mode==='expense'?'支出':'收入')));
 }
 function renderPie(items){
   const bycat={};
-  items.forEach(r=>{bycat[r.gs_cat]=(bycat[r.gs_cat]||0)+Number(r.amount);});
+  items.forEach(r=>{ const k=r.main_cat||r.gs_cat||'(未知)'; bycat[k]=(bycat[k]||0)+Number(r.amount); });
   const sorted=Object.entries(bycat).sort((a,b)=>b[1]-a[1]).slice(0,14);
+  const total=sorted.reduce((s,[,v])=>s+v,0);
   const COLORS=['#2563eb','#16a34a','#d97706','#dc2626','#7c3aed','#0891b2','#be185d','#065f46','#92400e','#0369a1','#15803d','#b45309','#6d28d9','#9f1239'];
   if(pieC)pieC.destroy();
   pieC=new Chart(document.getElementById('pie-chart'),{
@@ -659,14 +683,15 @@ function renderPie(items){
     data:{labels:sorted.map(([k])=>k),datasets:[{data:sorted.map(([,v])=>v),backgroundColor:COLORS,borderWidth:2}]},
     options:{responsive:true,maintainAspectRatio:false,
       plugins:{legend:{position:'right',labels:{font:{size:10},boxWidth:10,padding:6}},
-      tooltip:{callbacks:{label:c=>` ${c.label}: NT$${Math.round(c.raw).toLocaleString()}`}}}}
+      tooltip:{callbacks:{label:c=>{const pct=total?(c.raw/total*100).toFixed(1):0; return ` ${c.label}: NT$${Math.round(c.raw).toLocaleString()} (${pct}%)`;} }}}}
   });
 }
 
 // ── LINE (所有月份都顯示) ──
 function renderLine(){
   const mo={};
-  curData.forEach(r=>{
+  const disp=getDisplayData();
+  disp.forEach(r=>{
     const ym=r.txn_date.slice(0,7);
     if(!mo[ym])mo[ym]={i:0,e:0};
     if(r.type==='收入')mo[ym].i+=Number(r.amount); else mo[ym].e+=Number(r.amount);
@@ -689,7 +714,8 @@ function renderLine(){
 // ── BAR → 每月淨利線圖（所有月份都顯示）──
 function renderBar(){
   const mo={};
-  curData.forEach(r=>{
+  const disp=getDisplayData();
+  disp.forEach(r=>{
     const ym=r.txn_date.slice(0,7);
     if(!mo[ym])mo[ym]={i:0,e:0};
     if(r.type==='收入')mo[ym].i+=Number(r.amount); else mo[ym].e+=Number(r.amount);
@@ -723,31 +749,31 @@ function renderBar(){
 
 // ── TABLE ──
 const tableExpandedGroups={};
-function toggleGroup(gname){
-  tableExpandedGroups[gname]=!tableExpandedGroups[gname];
+window._tblGroups=[];
+function toggleGroup(gi){
+  const gname=window._tblGroups[gi];
+  if(gname!==undefined) tableExpandedGroups[gname]=!tableExpandedGroups[gname];
   renderTable();
 }
 function renderTable(){
-  const mo={}, cats=new Set();
-  curData.forEach(r=>{
+  // group by main_cat → sub_cat
+  const mo={}, groups={};
+  const disp=getDisplayData();
+  disp.forEach(r=>{
     const ym=r.txn_date.slice(0,7);
+    const mc=r.main_cat||'(未分類)';
+    const sc=r.sub_cat||'';
+    const k=mc+'\x00'+sc+'\x00'+r.type;
     if(!mo[ym])mo[ym]={};
-    const k=r.gs_cat+'__'+r.type;
     mo[ym][k]=(mo[ym][k]||0)+Number(r.amount);
-    cats.add(r.gs_cat);
+    if(!groups[mc])groups[mc]=new Set();
+    groups[mc].add(sc);
   });
   const months=getMonthsInRange(curFromDate, curToDate).filter(m=>mo[m]);
   if(!months.length){document.getElementById('summary-table').innerHTML='';return;}
 
-  // 按主分類分組
-  const groups={};
-  [...cats].sort().forEach(cat=>{
-    const gname=cat.startsWith('【未對應】')?'【未對應】':(CAT_TO_GROUP[cat]||cat);
-    if(!groups[gname])groups[gname]=[];
-    groups[gname].push(cat);
-  });
-
-  let h='<table><thead><tr><th>類別</th>';
+  window._tblGroups=[];
+  let h='<table><thead><tr><th>主分類</th>';
   months.forEach(m=>h+=`<th colspan="2" style="text-align:center">${m}</th>`);
   h+='<th colspan="2" style="text-align:center;background:var(--gray-100)">合計</th>';
   h+='</tr><tr><th></th>';
@@ -755,31 +781,34 @@ function renderTable(){
   h+='<th style="color:var(--success);font-size:10px;background:var(--gray-100)">收入</th><th style="color:var(--danger);font-size:10px;background:var(--gray-100)">支出</th>';
   h+='</tr></thead><tbody>';
 
-  Object.keys(groups).sort().forEach(gname=>{
-    const subCats=groups[gname].sort();
-    const isExpanded=tableExpandedGroups[gname];
-    const hasSubs=subCats.length>1||(subCats.length===1&&subCats[0]!==gname);
+  Object.keys(groups).sort().forEach(mc=>{
+    const subs=[...groups[mc]].sort();
+    const gi=window._tblGroups.length;
+    window._tblGroups.push(mc);
+    const isExpanded=tableExpandedGroups[mc];
+    const hasSubs=subs.length>1||(subs.length===1&&subs[0]!=='');
     let grI=0, grE=0, groupCells='';
     months.forEach(m=>{
       let mI=0, mE=0;
-      subCats.forEach(cat=>{ mI+=mo[m]?.[cat+'__收入']||0; mE+=mo[m]?.[cat+'__支出']||0; });
+      subs.forEach(sc=>{ mI+=mo[m]?.[mc+'\x00'+sc+'\x00收入']||0; mE+=mo[m]?.[mc+'\x00'+sc+'\x00支出']||0; });
       grI+=mI; grE+=mE;
       groupCells+=`<td class="c-income">${mI?mI.toLocaleString():'-'}</td><td class="c-expense">${mE?mE.toLocaleString():'-'}</td>`;
     });
     const arrow=hasSubs?(isExpanded?'▼ ':'▶ '):'　';
-    const clickAttr=hasSubs?`onclick="toggleGroup(${JSON.stringify(gname)})" style="cursor:pointer;user-select:none"`:'';
-    h+=`<tr style="background:var(--gray-50)"><td ${clickAttr}><strong>${arrow}${gname}</strong></td>${groupCells}`;
+    const clickAttr=hasSubs?`onclick="toggleGroup(${gi})" style="cursor:pointer;user-select:none"`:'';
+    h+=`<tr style="background:var(--gray-50)"><td ${clickAttr}><strong>${arrow}${mc}</strong></td>${groupCells}`;
     h+=`<td class="c-income" style="font-weight:700;background:var(--gray-100)">${grI?grI.toLocaleString():'-'}</td>`;
     h+=`<td class="c-expense" style="font-weight:700;background:var(--gray-100)">${grE?grE.toLocaleString():'-'}</td></tr>`;
     if(hasSubs&&isExpanded){
-      subCats.forEach(cat=>{
+      subs.forEach(sc=>{
+        const label=sc||mc;
         let rI=0, rE=0, cells='';
         months.forEach(m=>{
-          const i=mo[m]?.[cat+'__收入']||0, e=mo[m]?.[cat+'__支出']||0;
+          const i=mo[m]?.[mc+'\x00'+sc+'\x00收入']||0, e=mo[m]?.[mc+'\x00'+sc+'\x00支出']||0;
           rI+=i; rE+=e;
           cells+=`<td class="c-income">${i?i.toLocaleString():'-'}</td><td class="c-expense">${e?e.toLocaleString():'-'}</td>`;
         });
-        h+=`<tr><td style="padding-left:22px;color:var(--gray-500);font-size:11px">└ ${cat}</td>${cells}`;
+        h+=`<tr><td style="padding-left:22px;color:var(--gray-500);font-size:11px">└ ${label}</td>${cells}`;
         h+=`<td class="c-income" style="background:var(--gray-50)">${rI?rI.toLocaleString():'-'}</td>`;
         h+=`<td class="c-expense" style="background:var(--gray-50)">${rE?rE.toLocaleString():'-'}</td></tr>`;
       });
@@ -790,8 +819,8 @@ function renderTable(){
   let gI=0, gE=0;
   months.forEach(m=>{
     const entries=Object.entries(mo[m]||{});
-    const ti=entries.filter(([k])=>k.endsWith('__收入')).reduce((s,[,v])=>s+v,0);
-    const te=entries.filter(([k])=>k.endsWith('__支出')).reduce((s,[,v])=>s+v,0);
+    const ti=entries.filter(([k])=>k.endsWith('\x00收入')).reduce((s,[,v])=>s+v,0);
+    const te=entries.filter(([k])=>k.endsWith('\x00支出')).reduce((s,[,v])=>s+v,0);
     gI+=ti; gE+=te;
     h+=`<td class="c-income">${ti.toLocaleString()}</td><td class="c-expense">${te.toLocaleString()}</td>`;
   });
@@ -799,8 +828,8 @@ function renderTable(){
   h+='</tr></tbody></table>';
   const wrap=document.getElementById('summary-table');
   wrap.innerHTML=h;
-  const card=wrap.closest('.table-card');
-  if(card) requestAnimationFrame(()=>{ card.scrollLeft=card.scrollWidth; });
+  const scroll=wrap.closest('.table-scroll');
+  if(scroll) requestAnimationFrame(()=>{ scroll.scrollLeft=scroll.scrollWidth; });
 }
 
 // ── ACCOUNT BALANCE ──
