@@ -304,7 +304,7 @@ tr.total-row td:first-child{background:var(--gray-100)!important}
       <!-- monthly summary table -->
       <div class="table-card">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-          <div style="font-size:14px;font-weight:600">月度類別彙總（所有月份橫向展開）</div>
+          <div style="font-size:14px;font-weight:600">月度類別彙總 <span style="font-size:11px;font-weight:400;color:var(--gray-500)">← 左右滑動查看全部月份 →</span></div>
           <button class="btn btn-outline" onclick="exportCSV()" style="font-size:12px;padding:4px 12px">⬇ 匯出 Google 表單格式</button>
         </div>
         <div id="summary-table"></div>
@@ -751,7 +751,11 @@ function renderTable(){
   });
   h+=`<td class="c-income">${gI.toLocaleString()}</td><td class="c-expense">${gE.toLocaleString()}</td>`;
   h+='</tr></tbody></table>';
-  document.getElementById('summary-table').innerHTML=h;
+  const wrap=document.getElementById('summary-table');
+  wrap.innerHTML=h;
+  // 自動捲到最右，讓最新月份先顯示
+  const card=wrap.closest('.table-card');
+  if(card) requestAnimationFrame(()=>{ card.scrollLeft=card.scrollWidth; });
 }
 
 // ── ACCOUNT BALANCE ──
