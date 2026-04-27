@@ -71,6 +71,10 @@
 .zj-toggle.included{background:#fee2e2;color:#dc2626}
 /* ── balance card 顯隱 ── */
 .bc-hide{position:absolute;top:6px;right:6px;background:none;border:none;cursor:pointer;font-size:13px;color:var(--gray-400);padding:2px;line-height:1}
+/* ── balance card primary (主要帳戶) ── */
+.balance-card.primary{background:linear-gradient(135deg,#eff6ff,#dbeafe);border:1px solid #bfdbfe}
+.balance-row-label{font-size:10px;font-weight:600;color:var(--gray-500);letter-spacing:.5px;text-transform:uppercase;margin:12px 0 6px;width:100%}
+.balance-row-label.secondary-label{color:var(--gray-400)}
 /* ── table ── */
 .table-card{background:white;border-radius:var(--radius);padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.08);overflow-x:hidden;margin-bottom:24px}
 .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
@@ -161,7 +165,7 @@ tr.total-row td:first-child{background:var(--gray-100)!important}
     <div class="sidebar-label">系統</div>
     <a class="nav-item" href="tools.html"><span class="icon">🔧</span> 使用工具</a>
   </div>
-  <div class="sidebar-footer">v2.1 · Feebit © 2026</div>
+  <div class="sidebar-footer">v2.2 · Feebit © 2026</div>
 </div>
 <div id="sidebar-overlay" onclick="closeSidebar()"></div>
 
@@ -170,7 +174,7 @@ tr.total-row td:first-child{background:var(--gray-100)!important}
   <div class="topbar">
     <div style="display:flex;align-items:center;gap:10px">
       <button class="btn-hamburger" onclick="toggleSidebar()">☰</button>
-      <span class="topbar-title">帳務分析 <span style="font-size:11px;font-weight:400;color:var(--gray-500);">v2.1</span></span>
+      <span class="topbar-title">帳務分析 <span style="font-size:11px;font-weight:400;color:var(--gray-500);">v2.2</span></span>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
       <button class="btn btn-outline" onclick="openDbModal()" style="font-size:12px;padding:4px 10px">⚙️ 初始化DB</button>
@@ -179,7 +183,7 @@ tr.total-row td:first-child{background:var(--gray-100)!important}
       <button class="btn btn-outline" onclick="debugRagic()" style="font-size:12px;padding:4px 10px">🔎 Debug</button>
       <button class="btn btn-primary" onclick="document.getElementById('csv-input').click()" style="font-size:12px;padding:4px 12px">⬆ 上傳CSV</button>
       <input type="file" id="csv-input" accept=".csv" style="display:none">
-      <span class="topbar-badge">v2.1</span>
+      <span class="topbar-badge">v2.2</span>
     </div>
   </div>
 
@@ -315,28 +319,11 @@ tr.total-row td:first-child{background:var(--gray-100)!important}
         <div id="compare-result"></div>
       </div>
 
-      <!-- validate -->
-      <div class="validate-section">
-        <div style="font-size:14px;font-weight:600">🔍 與 Google 表單核對</div>
-        <div class="vrow">
-          <div>
-            <div style="font-size:11px;color:var(--gray-600);margin-bottom:4px">Google表單 總收入（TWD）</div>
-            <input type="number" id="gs-income" placeholder="0" style="padding:7px 10px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:14px;width:200px">
-          </div>
-          <div>
-            <div style="font-size:11px;color:var(--gray-600);margin-bottom:4px">Google表單 總支出（TWD）</div>
-            <input type="number" id="gs-expense" placeholder="0" style="padding:7px 10px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:14px;width:200px">
-          </div>
-          <button class="btn btn-primary" onclick="doValidate()">核對</button>
-        </div>
-        <div id="vresult"></div>
-      </div>
-
       <!-- monthly summary table -->
       <div class="table-card">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
           <div style="font-size:14px;font-weight:600">月度類別彙總 <span style="font-size:11px;font-weight:400;color:var(--gray-500)">← 左右滑動查看全部月份 →</span></div>
-          <button class="btn btn-outline" onclick="exportCSV()" style="font-size:12px;padding:4px 12px">⬇ 匯出 Google 表單格式</button>
+          <button class="btn btn-outline" onclick="exportCSV()" style="font-size:12px;padding:4px 12px">⬇ 匯出 CSV</button>
         </div>
         <div class="table-scroll">
           <div id="summary-table"></div>
@@ -558,7 +545,7 @@ const BAL_HIDDEN_KEY='feebit_bal_hidden';
 function getFxRates(){ try{return JSON.parse(localStorage.getItem(FX_KEY))||{};}catch{return{};} }
 function saveFxRate(cur,rate){ const r=getFxRates(); r[cur]=rate; localStorage.setItem(FX_KEY,JSON.stringify(r)); }
 function getHiddenBal(){ try{return JSON.parse(localStorage.getItem(BAL_HIDDEN_KEY))||[];}catch{return[];} }
-function toggleHiddenBal(name){ const h=getHiddenBal(); const i=h.indexOf(name); if(i>=0)h.splice(i,1);else h.push(name); localStorage.setItem(BAL_HIDDEN_KEY,JSON.stringify(h)); fetchAccountBalances(); }
+function toggleHiddenBal(name){ const h=getHiddenBal(); const i=h.indexOf(name); if(i>=0)h.splice(i,1);else h.push(name); localStorage.setItem(BAL_HIDDEN_KEY,JSON.stringify(h)); renderBalanceCards(window._lastBalanceEntries,window._lastBalanceTs); }
 
 function isZhoujuan(r){ return (r.sub_cat||'').includes('轉金')||(r.gs_cat||'').includes('週轉金'); }
 function isShareholder(r){ const s=((r.sub_cat||'')+(r.description||'')).toLowerCase(); return s.includes('ricky'); }
@@ -574,14 +561,10 @@ function toggleShareholder(){ curExcludeShareholder=!curExcludeShareholder; rend
 function setCurrencyFilter(cur){ curCurrencyFilter=cur; renderAll(); }
 
 function renderAcctFilter(){
-  const currencies=[...new Set(curData.map(r=>r.currency||'TWD'))].sort();
-  if(currencies.length<=1){ document.getElementById('acct-filter-bar').style.display='none'; return; }
   document.getElementById('acct-filter-bar').style.display='block';
-  const labels={'TWD':'台幣 TWD','USD':'美金 USD','NTD':'台幣 NTD'};
   const pills=document.getElementById('acct-filter-pills');
-  let h=`<button class="acct-pill${curCurrencyFilter===null?' active':''}" onclick="setCurrencyFilter(null)">全部</button>`;
-  currencies.forEach(c=>{ h+=`<button class="acct-pill${curCurrencyFilter===c?' active':''}" onclick="setCurrencyFilter('${c}')">${labels[c]||c}</button>`; });
-  pills.innerHTML=h;
+  const opts=[{val:null,label:'全部'},{val:'TWD',label:'台幣 TWD'},{val:'USD',label:'美金 USD'}];
+  pills.innerHTML=opts.map(o=>`<button class="acct-pill${curCurrencyFilter===o.val?' active':''}" onclick="setCurrencyFilter(${o.val===null?'null':`'${o.val}'`})">${o.label}</button>`).join('');
 }
 
 // ── RANGE TABS ──
@@ -923,6 +906,82 @@ function renderTable(){
 }
 
 // ── ACCOUNT BALANCE ──
+const SECONDARY_TYPES=['餘額','儲值金'];
+function isSecondaryAccount(type){ return SECONDARY_TYPES.some(t=>(type||'').includes(t)); }
+
+function renderBalanceCards(entries, updatedAt){
+  const el=document.getElementById('account-balance-list');
+  if(!entries||!entries.length){el.innerHTML='<p style="color:var(--gray-500);font-size:12px;margin:0">查無帳戶資料</p>';return;}
+  const hidden=getHiddenBal();
+  const fxRates=getFxRates();
+  const primary=entries.filter(e=>!isSecondaryAccount(e.type));
+  const secondary=entries.filter(e=>isSecondaryAccount(e.type));
+  const hiddenCount=entries.filter(e=>hidden.includes(e.name)).length;
+
+  function cardHtml(e, isPrimary){
+    if(hidden.includes(e.name)) return '';
+    const isTWD=e.currency==='TWD'||e.currency==='NTD'||e.currency==='';
+    const isUSD=e.currency==='USD';
+    const symbol=isTWD?'NT$':isUSD?'US$':(e.currency+'$');
+    const color=isTWD?'var(--success)':isUSD?'#7c3aed':'#d97706';
+    const amtStr=Math.abs(e.balance)>=1?Math.round(e.balance).toLocaleString('zh-TW'):e.balance.toFixed(4);
+    const eName=e.name.replace(/'/g,"\\'");
+    let fxHtml='';
+    if(!isTWD){
+      const savedRate=fxRates[e.currency]||'';
+      const twdEq=savedRate?Math.round(e.balance*savedRate).toLocaleString('zh-TW'):'';
+      const inputId=`fx-${e.currency}-${e.name.replace(/\s/g,'_')}`;
+      fxHtml=`<div style="margin-top:8px;display:flex;align-items:center;gap:4px">
+        <span style="font-size:10px;color:var(--gray-500)">1${e.currency}=</span>
+        <input id="${inputId}" type="number" value="${savedRate}" placeholder="匯率" style="width:70px;padding:3px 6px;border:1px solid var(--gray-200);border-radius:6px;font-size:11px">
+        <button onclick="saveFxRate('${e.currency}',parseFloat(document.getElementById('${inputId}').value)||0);renderBalanceCards(window._lastBalanceEntries,window._lastBalanceTs)" style="font-size:10px;padding:2px 7px;border:1px solid var(--gray-200);border-radius:6px;cursor:pointer;background:white">存</button>
+      </div>`;
+      if(twdEq) fxHtml+=`<div style="font-size:12px;color:var(--success);font-weight:600;margin-top:4px">≈ NT$ ${twdEq}</div>`;
+    }
+    return `<div class="balance-card${isPrimary?' primary':''}">
+      <button class="bc-hide" onclick="toggleHiddenBal('${eName}')" title="隱藏此帳戶">✕</button>
+      <div class="bc-type">${e.type}</div>
+      <div class="bc-name">${e.name}</div>
+      <div class="bc-amount" style="color:${color}">${symbol} ${amtStr}</div>
+      ${fxHtml}
+    </div>`;
+  }
+
+  let html='';
+  if(primary.length){
+    html+=`<div class="balance-row-label">主要帳戶</div>`;
+    html+=primary.map(e=>cardHtml(e,true)).join('');
+  }
+  if(secondary.length){
+    html+=`<div class="balance-row-label secondary-label">儲值 / 餘額帳戶（不列入收支計算）</div>`;
+    html+=secondary.map(e=>cardHtml(e,false)).join('');
+  }
+  if(hiddenCount) html+=`<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:var(--radius);border:1px dashed var(--gray-300);font-size:12px;color:var(--gray-500);cursor:pointer;width:100%" onclick="localStorage.removeItem('${BAL_HIDDEN_KEY}');renderBalanceCards(window._lastBalanceEntries,window._lastBalanceTs)">已隱藏 ${hiddenCount} 個帳戶　點此全部顯示</div>`;
+  el.innerHTML=html||'<p style="color:var(--gray-500);font-size:12px;margin:0">所有帳戶已隱藏</p>';
+
+  if(updatedAt){
+    const d=new Date(updatedAt);
+    document.getElementById('balance-updated-at').textContent=`更新：${d.toLocaleDateString('zh-TW')} ${d.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'})}`;
+  }
+}
+
+async function saveBalanceSnapshot(entries){
+  try{
+    await db.from('balance_snapshots').upsert({id:1,data:entries,updated_at:new Date().toISOString()},{onConflict:'id'});
+  }catch(e){console.warn('[balance_snapshots] save failed',e);}
+}
+
+async function loadBalanceSnapshot(){
+  try{
+    const {data}=await db.from('balance_snapshots').select('data,updated_at').eq('id',1).maybeSingle();
+    if(data?.data?.length){
+      window._lastBalanceEntries=data.data;
+      window._lastBalanceTs=data.updated_at;
+      renderBalanceCards(data.data, data.updated_at);
+    }
+  }catch(e){console.warn('[balance_snapshots] load failed',e);}
+}
+
 async function fetchAccountBalances(){
   const cfg=loadRagicCfg();
   const el=document.getElementById('account-balance-list');
@@ -930,7 +989,7 @@ async function fetchAccountBalances(){
     el.innerHTML='<p style="color:var(--gray-500);font-size:12px;margin:0">請先設定 Ragic API Key</p>';
     return;
   }
-  const balUrl = (cfg.urlBalance||'https://ap13.ragic.com/feebit50968407/ragicpersonal-finance/20001').split('?')[0];
+  const balUrl=(cfg.urlBalance||'https://ap13.ragic.com/feebit50968407/ragicpersonal-finance/20001').split('?')[0];
   el.innerHTML='<p style="color:var(--gray-500);font-size:12px;margin:0">載入中...</p>';
   try{
     const res=await fetch(`${balUrl}?api`,{headers:{'Authorization':cfg.apiKey}});
@@ -946,42 +1005,11 @@ async function fetchAccountBalances(){
         balance:parseFloat(String(r['現有餘額']||'').replace(/,/g,''))||0,
       }))
       .filter(r=>r.name);
-    if(!entries.length){el.innerHTML='<p style="color:var(--gray-500);font-size:12px;margin:0">查無帳戶資料</p>';return;}
-    const hidden=getHiddenBal();
-    const fxRates=getFxRates();
-    const hiddenCount=entries.filter(e=>hidden.includes(e.name)).length;
-    let html='';
-    entries.forEach(e=>{
-      if(hidden.includes(e.name)) return;
-      const isTWD=e.currency==='TWD'||e.currency==='NTD'||e.currency==='';
-      const isUSD=e.currency==='USD';
-      const symbol=isTWD?'NT$':isUSD?'US$':(e.currency+'$');
-      const color=isTWD?'var(--success)':isUSD?'#7c3aed':'#d97706';
-      const amtStr=Math.abs(e.balance)>=1?Math.round(e.balance).toLocaleString('zh-TW'):e.balance.toFixed(4);
-      const eName=e.name.replace(/'/g,"\\'");
-      let fxHtml='';
-      if(!isTWD){
-        const savedRate=fxRates[e.currency]||'';
-        const twdEq=savedRate?Math.round(e.balance*savedRate).toLocaleString('zh-TW'):'';
-        const inputId=`fx-${e.currency}-${e.name.replace(/\s/g,'_')}`;
-        fxHtml=`<div style="margin-top:8px;display:flex;align-items:center;gap:4px">
-          <span style="font-size:10px;color:var(--gray-500)">1${e.currency}=</span>
-          <input id="${inputId}" type="number" value="${savedRate}" placeholder="匯率" style="width:70px;padding:3px 6px;border:1px solid var(--gray-200);border-radius:6px;font-size:11px">
-          <button onclick="saveFxRate('${e.currency}',parseFloat(document.getElementById('${inputId}').value)||0);fetchAccountBalances()" style="font-size:10px;padding:2px 7px;border:1px solid var(--gray-200);border-radius:6px;cursor:pointer;background:white">存</button>
-        </div>`;
-        if(twdEq) fxHtml+=`<div style="font-size:12px;color:var(--success);font-weight:600;margin-top:4px">≈ NT$ ${twdEq}</div>`;
-      }
-      html+=`<div class="balance-card">
-        <button class="bc-hide" onclick="toggleHiddenBal('${eName}')" title="隱藏此帳戶">✕</button>
-        <div class="bc-type">${e.type}</div>
-        <div class="bc-name">${e.name}</div>
-        <div class="bc-amount" style="color:${color}">${symbol} ${amtStr}</div>
-        ${fxHtml}
-      </div>`;
-    });
-    if(hiddenCount) html+=`<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:var(--radius);border:1px dashed var(--gray-300);font-size:12px;color:var(--gray-500);cursor:pointer" onclick="localStorage.removeItem('${BAL_HIDDEN_KEY}');fetchAccountBalances()">已隱藏 ${hiddenCount} 個帳戶　點此全部顯示</div>`;
-    el.innerHTML=html||'<p style="color:var(--gray-500);font-size:12px;margin:0">所有帳戶已隱藏</p>';
-    document.getElementById('balance-updated-at').textContent=`更新：${new Date().toLocaleTimeString('zh-TW')}`;
+    const now=new Date().toISOString();
+    window._lastBalanceEntries=entries;
+    window._lastBalanceTs=now;
+    renderBalanceCards(entries, now);
+    await saveBalanceSnapshot(entries);
   }catch(e){
     el.innerHTML=`<p style="color:var(--danger);font-size:12px;margin:0">載入失敗：${e.message}</p>`;
   }
@@ -1081,19 +1109,6 @@ function saveCatMapModal(){
 document.getElementById('catmap-modal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeCatMapModal();});
 
 // ── VALIDATE ──
-function doValidate(){
-  const gsi=parseFloat(document.getElementById('gs-income').value)||0;
-  const gse=parseFloat(document.getElementById('gs-expense').value)||0;
-  const ti=curData.filter(r=>r.type==='收入').reduce((s,r)=>s+Number(r.amount),0);
-  const te=curData.filter(r=>r.type==='支出').reduce((s,r)=>s+Number(r.amount),0);
-  const di=ti-gsi, de=te-gse, ok=Math.abs(di)<1&&Math.abs(de)<1;
-  const el=document.getElementById('vresult');
-  el.className='vresult '+(ok?'ok':'err');
-  el.innerHTML=ok?'✅ 完全相符！帳務正確。'
-    :`⚠️ 有差異<br>收入：${ti.toLocaleString()} ／ ${gsi.toLocaleString()} → 差異 ${di>0?'+':''}${di.toLocaleString()}<br>
-       支出：${te.toLocaleString()} ／ ${gse.toLocaleString()} → 差異 ${de>0?'+':''}${de.toLocaleString()}`;
-}
-
 // ── EXPORT CSV ──
 function exportCSV(){
   const mo={}, cats=new Set();
@@ -1340,6 +1355,7 @@ function closeSidebar(){document.getElementById('sidebar').classList.remove('ope
 // ── INIT ──
 updateRangeLabel(curRange);
 loadData();
+loadBalanceSnapshot();
 </script>
 </body>
 </html>
