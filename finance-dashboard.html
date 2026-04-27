@@ -194,8 +194,9 @@ tr.total-row td:first-child{background:var(--gray-100)!important}
     <div class="range-tabs">
       <button class="range-tab active" data-range="month"     onclick="setRange(this,'month')">本月</button>
       <button class="range-tab"        data-range="lastmonth" onclick="setRange(this,'lastmonth')">上個月</button>
-      <button class="range-tab"        data-range="quarter"   onclick="setRange(this,'quarter')">本季</button>
-      <button class="range-tab"        data-range="half"      onclick="setRange(this,'half')">半年</button>
+      <button class="range-tab"        data-range="quarter"     onclick="setRange(this,'quarter')">本季</button>
+      <button class="range-tab"        data-range="lastquarter" onclick="setRange(this,'lastquarter')">上一季</button>
+      <button class="range-tab"        data-range="half"        onclick="setRange(this,'half')">半年</button>
       <button class="range-tab"        data-range="year"      onclick="setRange(this,'year')">今年</button>
       <button class="range-tab"        data-range="lastyear"  onclick="setRange(this,'lastyear')">去年</button>
       <button class="range-tab"        data-range="all"       onclick="setRange(this,'all')">全部</button>
@@ -610,24 +611,41 @@ function clearCustomFilter(){
   loadData();
 }
 
+function localDateStr(y,m,d){ return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
 function getRangeDates(r){
   if(curFrom && curTo){
     const [ty, tm] = curTo.split('-').map(Number);
     const lastDay = new Date(ty, tm, 0).getDate();
     return {from:`${curFrom}-01`, to:`${curTo}-${String(lastDay).padStart(2,'0')}`};
   }
-  const now=new Date(), today=now.toISOString().slice(0,10);
-  if(r==='month') return {from:new Date(now.getFullYear(),now.getMonth(),1).toISOString().slice(0,10),to:today};
+  const now=new Date();
+  const Y=now.getFullYear(), M=now.getMonth()+1, D=now.getDate();
+  const today=localDateStr(Y,M,D);
+  if(r==='month') return {from:localDateStr(Y,M,1), to:today};
   if(r==='lastmonth'){
-    const y=now.getMonth()===0?now.getFullYear()-1:now.getFullYear();
-    const m=now.getMonth()===0?11:now.getMonth()-1;
-    const lastDay=new Date(y,m+1,0).getDate();
-    return {from:`${y}-${String(m+1).padStart(2,'0')}-01`,to:`${y}-${String(m+1).padStart(2,'0')}-${lastDay}`};
+    const pm=M===1?12:M-1, py=M===1?Y-1:Y;
+    const lastDay=new Date(py,pm,0).getDate();
+    return {from:localDateStr(py,pm,1), to:localDateStr(py,pm,lastDay)};
   }
-  if(r==='quarter'){const q=Math.floor(now.getMonth()/3);return{from:new Date(now.getFullYear(),q*3,1).toISOString().slice(0,10),to:today};}
-  if(r==='half'){const d=new Date(now);d.setMonth(d.getMonth()-6);return{from:d.toISOString().slice(0,10),to:today};}
-  if(r==='year') return {from:`${now.getFullYear()}-01-01`,to:`${now.getFullYear()}-12-31`};
-  if(r==='lastyear'){const y=now.getFullYear()-1;return{from:`${y}-01-01`,to:`${y}-12-31`};}
+  if(r==='quarter'){
+    const q=Math.floor((M-1)/3); // 0=Q1,1=Q2,2=Q3,3=Q4
+    const qm=q*3+1; // quarter start month
+    return {from:localDateStr(Y,qm,1), to:today};
+  }
+  if(r==='lastquarter'){
+    const q=Math.floor((M-1)/3);
+    const lqm=q===0?10:q*3-2; // last quarter start month
+    const ly=q===0?Y-1:Y;
+    const lqEndM=q===0?12:q*3;
+    const lqEndD=new Date(q===0?Y-1:Y,lqEndM,0).getDate();
+    return {from:localDateStr(ly,lqm,1), to:localDateStr(q===0?Y-1:Y,lqEndM,lqEndD)};
+  }
+  if(r==='half'){
+    const hm=M-6<=0?M+6:M-6, hy=M-6<=0?Y-1:Y;
+    return {from:localDateStr(hy,hm,D), to:today};
+  }
+  if(r==='year') return {from:localDateStr(Y,1,1), to:localDateStr(Y,12,31)};
+  if(r==='lastyear'){const py=Y-1;return{from:localDateStr(py,1,1),to:localDateStr(py,12,31)};}
   return {from:'2020-01-01',to:today};
 }
 function fmtRangeLabel(d){ return d.slice(0,7).replace('-','/'); }
