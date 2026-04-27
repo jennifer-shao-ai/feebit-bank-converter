@@ -24,7 +24,7 @@
 /* ── account balance ── */
 .balance-strip{background:white;border-radius:var(--radius);padding:16px 20px;box-shadow:0 1px 3px rgba(0,0,0,.08);margin-bottom:24px}
 .balance-cards{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px}
-.balance-card{background:var(--gray-50);border-radius:var(--radius);padding:12px 16px;min-width:150px;flex:1}
+.balance-card{background:var(--gray-50);border-radius:var(--radius);padding:12px 16px;min-width:150px;flex:1;position:relative}
 .balance-card .bc-type{font-size:10px;color:var(--gray-500);margin-bottom:2px}
 .balance-card .bc-name{font-size:12px;font-weight:600;margin-bottom:6px;color:var(--gray-700)}
 .balance-card .bc-amount{font-size:20px;font-weight:700}
@@ -61,10 +61,16 @@
 .vresult{margin-top:12px;padding:10px 14px;border-radius:var(--radius);font-size:13px;line-height:1.6}
 .vresult.ok{background:#dcfce7;color:#15803d}
 .vresult.err{background:#fee2e2;color:#b91c1c}
-/* ── 週轉金 toggle ── */
+/* ── 帳戶篩選 pills ── */
+.acct-filter-bar{background:white;border-radius:var(--radius);padding:10px 14px;box-shadow:0 1px 3px rgba(0,0,0,.08);margin-bottom:12px;display:none}
+.acct-pill{padding:3px 12px;border-radius:20px;border:1px solid var(--gray-200);background:white;cursor:pointer;font-size:12px;transition:all .15s;color:var(--gray-600)}
+.acct-pill.active{background:var(--primary);color:white;border-color:var(--primary)}
+/* ── 支出排除 toggles ── */
 .zj-toggle{font-size:10px;padding:2px 8px;border-radius:12px;border:none;cursor:pointer;font-weight:600;transition:all .2s;white-space:nowrap}
 .zj-toggle.excluded{background:#fef3c7;color:#d97706}
 .zj-toggle.included{background:#fee2e2;color:#dc2626}
+/* ── balance card 顯隱 ── */
+.bc-hide{position:absolute;top:6px;right:6px;background:none;border:none;cursor:pointer;font-size:13px;color:var(--gray-400);padding:2px;line-height:1}
 /* ── table ── */
 .table-card{background:white;border-radius:var(--radius);padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.08);overflow-x:hidden;margin-bottom:24px}
 .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
@@ -235,16 +241,28 @@ tr.total-row td:first-child{background:var(--gray-100)!important}
         </div>
       </div>
 
+      <!-- account filter -->
+      <div class="acct-filter-bar" id="acct-filter-bar">
+        <div style="font-size:11px;color:var(--gray-500);margin-bottom:7px">帳戶篩選（依幣別）</div>
+        <div id="acct-filter-pills" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+      </div>
+
       <!-- summary cards -->
       <div class="summary-cards">
         <div class="sc"><div class="sc-label">💚 總收入</div><div class="sc-value" id="v-income" style="color:var(--success)">-</div></div>
         <div class="sc">
-          <div class="sc-label" style="display:flex;align-items:center;justify-content:space-between">
-            <span>🔴 總支出</span>
-            <button id="zj-toggle-btn" onclick="toggleZhoujuan()" class="zj-toggle excluded" title="週轉金還款：非營業支出，點擊切換是否列入計算">週轉金排除中</button>
+          <div class="sc-label">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
+              <span>🔴 總支出</span>
+              <div style="display:flex;gap:4px">
+                <button id="zj-toggle-btn" onclick="toggleZhoujuan()" class="zj-toggle excluded" title="週轉金還款">週轉金排除中</button>
+                <button id="sh-toggle-btn" onclick="toggleShareholder()" class="zj-toggle included" title="股東費用（含 Ricky）">股東列入中</button>
+              </div>
+            </div>
           </div>
           <div class="sc-value" id="v-expense" style="color:var(--danger)">-</div>
           <div id="zhoujuan-amount" style="font-size:11px;color:var(--gray-500);margin-top:4px"></div>
+          <div id="shareholder-amount" style="font-size:11px;color:var(--gray-500);margin-top:2px"></div>
         </div>
         <div class="sc"><div class="sc-label">📊 淨利</div><div class="sc-value" id="v-profit">-</div></div>
       </div>
@@ -533,11 +551,37 @@ let curRange='month', curFrom=null, curTo=null, curData=[], curPieMode='expense'
 let pieC, lineC, barC;
 let curFromDate='', curToDate='';
 let curExcludeZhoujuan=true;
+let curExcludeShareholder=false;
+let curCurrencyFilter=null; // null=全部; 'TWD'=只看台幣; 'USD'=只看美金 等
+const FX_KEY='feebit_fx_rates';
+const BAL_HIDDEN_KEY='feebit_bal_hidden';
+function getFxRates(){ try{return JSON.parse(localStorage.getItem(FX_KEY))||{};}catch{return{};} }
+function saveFxRate(cur,rate){ const r=getFxRates(); r[cur]=rate; localStorage.setItem(FX_KEY,JSON.stringify(r)); }
+function getHiddenBal(){ try{return JSON.parse(localStorage.getItem(BAL_HIDDEN_KEY))||[];}catch{return[];} }
+function toggleHiddenBal(name){ const h=getHiddenBal(); const i=h.indexOf(name); if(i>=0)h.splice(i,1);else h.push(name); localStorage.setItem(BAL_HIDDEN_KEY,JSON.stringify(h)); fetchAccountBalances(); }
+
 function isZhoujuan(r){ return (r.sub_cat||'').includes('轉金')||(r.gs_cat||'').includes('週轉金'); }
-function getDisplayData(){ return curExcludeZhoujuan ? curData.filter(r=>!isZhoujuan(r)) : curData; }
-function toggleZhoujuan(){
-  curExcludeZhoujuan=!curExcludeZhoujuan;
-  renderAll();
+function isShareholder(r){ const s=((r.sub_cat||'')+(r.description||'')).toLowerCase(); return s.includes('ricky'); }
+function getDisplayData(){
+  let d=curData;
+  if(curCurrencyFilter) d=d.filter(r=>(r.currency||'TWD')===curCurrencyFilter);
+  if(curExcludeZhoujuan) d=d.filter(r=>!isZhoujuan(r));
+  if(curExcludeShareholder) d=d.filter(r=>!isShareholder(r));
+  return d;
+}
+function toggleZhoujuan(){ curExcludeZhoujuan=!curExcludeZhoujuan; renderAll(); }
+function toggleShareholder(){ curExcludeShareholder=!curExcludeShareholder; renderAll(); }
+function setCurrencyFilter(cur){ curCurrencyFilter=cur; renderAll(); }
+
+function renderAcctFilter(){
+  const currencies=[...new Set(curData.map(r=>r.currency||'TWD'))].sort();
+  if(currencies.length<=1){ document.getElementById('acct-filter-bar').style.display='none'; return; }
+  document.getElementById('acct-filter-bar').style.display='block';
+  const labels={'TWD':'台幣 TWD','USD':'美金 USD','NTD':'台幣 NTD'};
+  const pills=document.getElementById('acct-filter-pills');
+  let h=`<button class="acct-pill${curCurrencyFilter===null?' active':''}" onclick="setCurrencyFilter(null)">全部</button>`;
+  currencies.forEach(c=>{ h+=`<button class="acct-pill${curCurrencyFilter===c?' active':''}" onclick="setCurrencyFilter('${c}')">${labels[c]||c}</button>`; });
+  pills.innerHTML=h;
 }
 
 // ── RANGE TABS ──
@@ -629,7 +673,7 @@ async function loadData(){
   let allData=[], start=0;
   while(true){
     const {data,error}=await db.from('finance_transactions')
-      .select('txn_date,type,amount,gs_cat,main_cat,sub_cat').gte('txn_date',from).lte('txn_date',to)
+      .select('txn_date,type,amount,gs_cat,main_cat,sub_cat,currency,description').gte('txn_date',from).lte('txn_date',to)
       .order('txn_date').range(start, start+999);
     if(error){console.error(error);break;}
     if(!data?.length) break;
@@ -661,13 +705,23 @@ function renderAll(){
   const vp=document.getElementById('v-profit');
   vp.textContent=(net>=0?'+':'')+fmt(net);
   vp.style.color=net>=0?'var(--success)':'var(--danger)';
-  // 週轉金還款提示
-  const zjRecs=curData.filter(r=>isZhoujuan(r));
+  // 帳戶篩選 pills
+  renderAcctFilter();
+  // 週轉金提示
+  const base=curCurrencyFilter?curData.filter(r=>(r.currency||'TWD')===curCurrencyFilter):curData;
+  const zjRecs=base.filter(r=>isZhoujuan(r));
   const zjAmt=zjRecs.reduce((s,r)=>s+Number(r.amount),0);
   const zjEl=document.getElementById('zhoujuan-amount');
-  if(zjEl) zjEl.textContent=zjRecs.length?`本期 ${zjRecs.length} 筆，${fmt(zjAmt)}`:'';
+  if(zjEl) zjEl.textContent=zjRecs.length?`週轉金：${zjRecs.length} 筆，${fmt(zjAmt)}`:'';
   const zjBtn=document.getElementById('zj-toggle-btn');
   if(zjBtn){ zjBtn.textContent=curExcludeZhoujuan?'週轉金排除中':'週轉金列入中'; zjBtn.className='zj-toggle '+(curExcludeZhoujuan?'excluded':'included'); }
+  // 股東費用提示
+  const shRecs=base.filter(r=>isShareholder(r));
+  const shAmt=shRecs.reduce((s,r)=>s+Number(r.amount),0);
+  const shEl=document.getElementById('shareholder-amount');
+  if(shEl) shEl.textContent=shRecs.length?`股東費用：${shRecs.length} 筆，${fmt(shAmt)}`:'';
+  const shBtn=document.getElementById('sh-toggle-btn');
+  if(shBtn){ shBtn.textContent=curExcludeShareholder?'股東排除中':'股東列入中'; shBtn.className='zj-toggle '+(curExcludeShareholder?'excluded':'included'); }
   setPieMode(curPieMode, true);
   renderLine(); renderBar(); renderTable();
   showUnmapped();
@@ -889,19 +943,40 @@ async function fetchAccountBalances(){
       }))
       .filter(r=>r.name);
     if(!entries.length){el.innerHTML='<p style="color:var(--gray-500);font-size:12px;margin:0">查無帳戶資料</p>';return;}
+    const hidden=getHiddenBal();
+    const fxRates=getFxRates();
+    const hiddenCount=entries.filter(e=>hidden.includes(e.name)).length;
     let html='';
     entries.forEach(e=>{
+      if(hidden.includes(e.name)) return;
       const isTWD=e.currency==='TWD'||e.currency==='NTD'||e.currency==='';
       const isUSD=e.currency==='USD';
       const symbol=isTWD?'NT$':isUSD?'US$':(e.currency+'$');
       const color=isTWD?'var(--success)':isUSD?'#7c3aed':'#d97706';
+      const amtStr=Math.abs(e.balance)>=1?Math.round(e.balance).toLocaleString('zh-TW'):e.balance.toFixed(4);
+      const eName=e.name.replace(/'/g,"\\'");
+      let fxHtml='';
+      if(!isTWD){
+        const savedRate=fxRates[e.currency]||'';
+        const twdEq=savedRate?Math.round(e.balance*savedRate).toLocaleString('zh-TW'):'';
+        const inputId=`fx-${e.currency}-${e.name.replace(/\s/g,'_')}`;
+        fxHtml=`<div style="margin-top:8px;display:flex;align-items:center;gap:4px">
+          <span style="font-size:10px;color:var(--gray-500)">1${e.currency}=</span>
+          <input id="${inputId}" type="number" value="${savedRate}" placeholder="匯率" style="width:70px;padding:3px 6px;border:1px solid var(--gray-200);border-radius:6px;font-size:11px">
+          <button onclick="saveFxRate('${e.currency}',parseFloat(document.getElementById('${inputId}').value)||0);fetchAccountBalances()" style="font-size:10px;padding:2px 7px;border:1px solid var(--gray-200);border-radius:6px;cursor:pointer;background:white">存</button>
+        </div>`;
+        if(twdEq) fxHtml+=`<div style="font-size:12px;color:var(--success);font-weight:600;margin-top:4px">≈ NT$ ${twdEq}</div>`;
+      }
       html+=`<div class="balance-card">
+        <button class="bc-hide" onclick="toggleHiddenBal('${eName}')" title="隱藏此帳戶">✕</button>
         <div class="bc-type">${e.type}</div>
         <div class="bc-name">${e.name}</div>
-        <div class="bc-amount" style="color:${color}">${symbol} ${Math.abs(e.balance)>=1?Math.round(e.balance).toLocaleString('zh-TW'):e.balance.toFixed(2)}</div>
+        <div class="bc-amount" style="color:${color}">${symbol} ${amtStr}</div>
+        ${fxHtml}
       </div>`;
     });
-    el.innerHTML=html;
+    if(hiddenCount) html+=`<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:var(--radius);border:1px dashed var(--gray-300);font-size:12px;color:var(--gray-500);cursor:pointer" onclick="localStorage.removeItem('${BAL_HIDDEN_KEY}');fetchAccountBalances()">已隱藏 ${hiddenCount} 個帳戶　點此全部顯示</div>`;
+    el.innerHTML=html||'<p style="color:var(--gray-500);font-size:12px;margin:0">所有帳戶已隱藏</p>';
     document.getElementById('balance-updated-at').textContent=`更新：${new Date().toLocaleTimeString('zh-TW')}`;
   }catch(e){
     el.innerHTML=`<p style="color:var(--danger);font-size:12px;margin:0">載入失敗：${e.message}</p>`;
