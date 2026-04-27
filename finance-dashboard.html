@@ -72,10 +72,12 @@
 .zj-toggle.included{background:#fee2e2;color:#dc2626}
 /* ── balance card 顯隱 ── */
 .bc-hide{position:absolute;top:6px;right:6px;background:none;border:none;cursor:pointer;font-size:13px;color:var(--gray-400);padding:2px;line-height:1}
-/* ── balance card primary (主要帳戶) ── */
+/* ── balance card groups ── */
 .balance-card.primary{background:linear-gradient(135deg,#eff6ff,#dbeafe);border:1px solid #bfdbfe}
+.balance-card.zhoujuan{background:linear-gradient(135deg,#fff7ed,#fed7aa);border:1px solid #fdba74}
 .balance-row-label{font-size:10px;font-weight:600;color:var(--gray-500);letter-spacing:.5px;text-transform:uppercase;margin:12px 0 2px}
 .balance-row-label.secondary-label{color:var(--gray-400)}
+.balance-row-label.zhoujuan-label{color:#c2410c}
 /* ── table ── */
 .table-card{background:white;border-radius:var(--radius);padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.08);overflow-x:hidden;margin-bottom:24px}
 .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
@@ -556,7 +558,7 @@ function getDisplayData(){
   if(curCurrencyFilter) d=d.filter(r=>(r.currency||'TWD')===curCurrencyFilter);
   if(curExcludeZhoujuan) d=d.filter(r=>!isZhoujuan(r));
   if(curExcludeShareholder) d=d.filter(r=>!isShareholder(r));
-  d=d.filter(r=>!(isSecondaryPayee(r)&&r.type==='收入')); // 排除轉入餘額/儲值帳戶的收入（避免雙重計算），保留從這些帳戶支付的費用
+  d=d.filter(r=>!isSecondaryPayee(r)); // 排除所有餘額/儲值帳戶收支
   return d;
 }
 function toggleZhoujuan(){ curExcludeZhoujuan=!curExcludeZhoujuan; renderAll(); }
@@ -950,9 +952,11 @@ function renderTable(){
 }
 
 // ── ACCOUNT BALANCE ──
-// 帳戶名稱含「餘額」或「儲值」者為次要帳戶
+// 帳戶名稱含「餘額」或「儲值」者為次要帳戶（灰色）
 function isSecondaryAccount(entry){ return ['餘額','儲值'].some(t=>(entry.name||'').includes(t)); }
-// 交易的 payee（自帳戶）若含相同關鍵字，排除出計算
+// 帳戶類別為「週轉金」者（橘色，排最上）
+function isZhoujuanAccount(entry){ return (entry.type||'').includes('週轉'); }
+// 交易的 payee（自帳戶）若含餘額/儲值，全數排除出計算
 function isSecondaryPayee(r){ return ['餘額','儲值'].some(t=>(r.payee||'').includes(t)); }
 
 function renderBalanceCards(entries, updatedAt){
@@ -960,7 +964,8 @@ function renderBalanceCards(entries, updatedAt){
   if(!entries||!entries.length){el.innerHTML='<p style="color:var(--gray-500);font-size:12px;margin:0">查無帳戶資料</p>';return;}
   const hidden=getHiddenBal();
   const fxRates=getFxRates();
-  const primary=entries.filter(e=>!isSecondaryAccount(e));
+  const zhoujuan=entries.filter(e=>isZhoujuanAccount(e));
+  const primary=entries.filter(e=>!isSecondaryAccount(e)&&!isZhoujuanAccount(e));
   const secondary=entries.filter(e=>isSecondaryAccount(e));
   const hiddenCount=entries.filter(e=>hidden.includes(e.name)).length;
 
@@ -984,7 +989,8 @@ function renderBalanceCards(entries, updatedAt){
       </div>`;
       if(twdEq) fxHtml+=`<div style="font-size:12px;color:var(--success);font-weight:600;margin-top:4px">≈ NT$ ${twdEq}</div>`;
     }
-    return `<div class="balance-card${isPrimary?' primary':''}">
+    const cls=isPrimary==='zhoujuan'?' zhoujuan':isPrimary?' primary':'';
+    return `<div class="balance-card${cls}">
       <button class="bc-hide" onclick="toggleHiddenBal('${eName}')" title="隱藏此帳戶">✕</button>
       <div class="bc-type">${e.type}</div>
       <div class="bc-name">${e.name}</div>
@@ -994,6 +1000,10 @@ function renderBalanceCards(entries, updatedAt){
   }
 
   let html='';
+  if(zhoujuan.length){
+    html+=`<div class="balance-row-label zhoujuan-label">週轉金（不列入月度匯總）</div>`;
+    html+=zhoujuan.map(e=>cardHtml(e,'zhoujuan')).join('');
+  }
   if(primary.length){
     html+=`<div class="balance-row-label">主要帳戶</div>`;
     html+=primary.map(e=>cardHtml(e,true)).join('');
