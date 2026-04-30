@@ -2,7 +2,6 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<script src="auth.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>飛比特 營運工具箱</title>
 <link rel="icon" href="favicon.svg">
@@ -81,7 +80,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Microsoft
   .page { padding: 16px; }
   .topbar { padding: 0 16px; }
   .home-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
-.nav-item.soon { display: none; }
+  .nav-item.soon { display: none; }
 }
 </style>
 </head>
@@ -121,7 +120,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Microsoft
     <a class="nav-item" href="shopee-converter.html" id="nav-shopee">
       <span class="icon">🛒</span> 蝦皮撥款轉換
     </a>
-    <a class="nav-item" href="profit-calculator.html" id="nav-price"><span class="icon">💰</span> 毛利試算機</a>
+    <a class="nav-item" href="profit-calculator.html" id="nav-profit"><span class="icon">💰</span> 毛利試算機</a>
     <a class="nav-item" href="brand-sales.html" id="nav-brand"><span class="icon">📈</span> 品牌銷售分析</a>
   </div>
 
@@ -177,6 +176,13 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Microsoft
   </div>
 
   <div class="sidebar-section">
+    <div class="sidebar-label">法規</div>
+    <a class="nav-item" href="http://127.0.0.1:5050" target="_blank" id="nav-pif">
+      <span class="icon">📋</span> PIF Builder
+    </a>
+  </div>
+
+  <div class="sidebar-section">
     <div class="sidebar-label">生活</div>
     <a class="nav-item" href="travel-planner.html" id="nav-travel">
       <span class="icon">✈️</span> 旅行規劃
@@ -190,7 +196,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Microsoft
     </a>
   </div>
 
-  <div class="sidebar-footer">v1.8 · Feebit © 2026</div>
+  <div class="sidebar-footer">v1.9 · Feebit © 2026</div>
 </div>
 
 <!-- ── SIDEBAR OVERLAY ── -->
@@ -310,6 +316,12 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Microsoft
           <div class="hc-name">研發筆記</div>
           <div class="hc-desc">YouTube 字幕、OCR 圖片轉文字，快速建立產品研發筆記</div>
           <div class="hc-tag">可使用</div>
+        </div>
+        <div class="home-card" onclick="window.open('http://127.0.0.1:5050','_blank')">
+          <div class="hc-icon">📋</div>
+          <div class="hc-name">PIF Builder</div>
+          <div class="hc-desc">化粧品 PIF 自動生成，串接 Ragic 產品資料，輸出 Word + PDF（需本機啟動）</div>
+          <div class="hc-tag">本機工具</div>
         </div>
         <div class="home-card" onclick="location.href='travel-planner.html'">
           <div class="hc-icon">✈️</div>
