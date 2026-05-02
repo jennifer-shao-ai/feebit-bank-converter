@@ -5,7 +5,7 @@ const fs   = require('fs');
 const path = require('path');
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const TO_EMAIL  = 'esuse.adobe@gmail.com';
+const TO_EMAIL  = 'jennifer.feebit@gmail.com';
 const DATA_FILE = path.join(__dirname, '..', 'data', 'inventory-snapshots.json');
 
 const MILD_P = 2, MODERATE_P = 4, SEVERE_P = 8, CHRONIC_P = 24;
