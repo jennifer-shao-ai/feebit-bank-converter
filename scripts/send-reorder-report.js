@@ -19,7 +19,7 @@ async function main() {
     return;
   }
 
-  const result = analyze(snaps);
+  const result = analyze(snaps, db.receipts || {});
   const html = buildEmail(result, db);
 
   const today = new Date().toISOString().split('T')[0];
@@ -40,19 +40,30 @@ async function main() {
   console.log(`✅ 庫存訂貨建議已寄送至 ${TO_EMAIL}`);
 }
 
+// ── 輔助：取某商品在日期區間內的已結案進貨量 ──────────────────────
+function receivedInPeriod(receipts, code, afterDate, throughDate) {
+  return (receipts?.[code] || [])
+    .filter(r => r.date > afterDate && r.date <= throughDate)
+    .reduce((s, r) => s + r.qty, 0);
+}
+
 // ── 分析核心 ─────────────────────────────────────────────────────
-function analyze(snaps) {
+function analyze(snaps, receipts = {}) {
   const totalDays = (new Date(snaps.at(-1).date) - new Date(snaps[0].date)) / 86400000;
 
-  // 累計每個商品的總銷量（qty 減少量合計）
+  // 累計每個商品的實際銷量（期初 + 進貨 - 期末）
   const totalSales = {};
   for (let i = 1; i < snaps.length; i++) {
     const prev = snaps[i - 1], curr = snaps[i];
     const codes = new Set([...Object.keys(prev.products), ...Object.keys(curr.products)]);
     for (const code of codes) {
-      const diff = (curr.products[code]?.qty ?? 0) - (prev.products[code]?.qty ?? 0);
+      const prevQty = prev.products[code]?.qty ?? 0;
+      const currQty = curr.products[code]?.qty ?? 0;
+      const recv    = receivedInPeriod(receipts, code, prev.date, curr.date);
+      // 實際銷量 = 期初 + 本期到貨 - 期末（>0 才算）
+      const sales   = Math.max(0, prevQty + recv - currQty);
       if (!totalSales[code]) totalSales[code] = 0;
-      if (diff < 0) totalSales[code] += -diff;
+      totalSales[code] += sales;
     }
   }
 

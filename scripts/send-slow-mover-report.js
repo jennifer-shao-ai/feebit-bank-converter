@@ -21,7 +21,7 @@ async function main() {
     return;
   }
 
-  const slowMovers = analyze(snaps);
+  const slowMovers = analyze(snaps, db.receipts || {});
   const html = buildEmail(slowMovers, db);
 
   const today = new Date().toISOString().split('T')[0];
@@ -42,8 +42,15 @@ async function main() {
   console.log(`✅ 滯銷品月報已寄送至 ${TO_EMAIL}`);
 }
 
+// ── 輔助：取某商品在日期區間內的已結案進貨量 ──────────────────────
+function receivedInPeriod(receipts, code, afterDate, throughDate) {
+  return (receipts?.[code] || [])
+    .filter(r => r.date > afterDate && r.date <= throughDate)
+    .reduce((s, r) => s + r.qty, 0);
+}
+
 // ── 分析（與前端邏輯一致）──────────────────────────────────────────
-function analyze(snaps) {
+function analyze(snaps, receipts = {}) {
   const history = {};
   for (let i = 1; i < snaps.length; i++) {
     const prev = snaps[i - 1], curr = snaps[i];
@@ -51,9 +58,13 @@ function analyze(snaps) {
     for (const code of codes) {
       const pQty = prev.products[code]?.qty ?? 0;
       const cQty = curr.products[code]?.qty ?? 0;
-      const diff = cQty - pQty;
+      const recv = receivedInPeriod(receipts, code, prev.date, curr.date);
+      // 實際銷量 = 期初 + 本期到貨 - 期末
+      const sales = Math.max(0, pQty + recv - cQty);
+      // 有到貨紀錄 = 補貨期（給予好處，不中斷滯銷計數）
+      const restocked = recv > 0 || cQty > pQty;
       if (!history[code]) history[code] = [];
-      history[code].push({ date: curr.date, qty: cQty, sales: diff < 0 ? -diff : 0, restocked: diff > 0 });
+      history[code].push({ date: curr.date, qty: cQty, sales, restocked });
     }
   }
 

@@ -362,7 +362,7 @@ async function init() {
   }
 
   showLoading('計算訂貨建議...');
-  result = analyze(db.snapshots);
+  result = analyze(db.snapshots, db.receipts || {});
   hideLoading();
 
   renderStats();
@@ -389,20 +389,30 @@ async function init() {
   renderSufficient();
 }
 
+// ── 輔助：取某商品在日期區間內的已結案進貨量 ────────────────────
+function receivedInPeriod(receipts, code, afterDate, throughDate) {
+  return (receipts?.[code] || [])
+    .filter(r => r.date > afterDate && r.date <= throughDate)
+    .reduce((s, r) => s + r.qty, 0);
+}
+
 // ── 分析核心 ─────────────────────────────────────────────
-function analyze(snaps) {
+function analyze(snaps, receipts = {}) {
   const sorted = [...snaps].sort((a, b) => a.date.localeCompare(b.date));
   const totalDays = (new Date(sorted.at(-1).date) - new Date(sorted[0].date)) / 86400000;
 
-  // 累計每個商品的總銷量（qty 減少量合計，忽略補貨增量）
+  // 累計每個商品的實際銷量：期初 + 本期到貨 - 期末
   const salesMap = {};
   for (let i = 1; i < sorted.length; i++) {
     const prev = sorted[i - 1], curr = sorted[i];
     const codes = new Set([...Object.keys(prev.products), ...Object.keys(curr.products)]);
     for (const code of codes) {
-      const diff = (curr.products[code]?.qty ?? 0) - (prev.products[code]?.qty ?? 0);
+      const prevQty = prev.products[code]?.qty ?? 0;
+      const currQty = curr.products[code]?.qty ?? 0;
+      const recv    = receivedInPeriod(receipts, code, prev.date, curr.date);
+      const sales   = Math.max(0, prevQty + recv - currQty);
       if (!salesMap[code]) salesMap[code] = 0;
-      if (diff < 0) salesMap[code] += -diff;
+      salesMap[code] += sales;
     }
   }
 

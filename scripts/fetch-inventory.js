@@ -9,25 +9,24 @@ const TOKEN = process.env.RAGIC_TOKEN;
 if (!TOKEN) { console.error('❌ RAGIC_TOKEN 未設定'); process.exit(1); }
 
 const PRODUCT_URL = 'https://ap13.ragic.com/feebit50968407/product/16?api&limit=5000';
+const RECEIPT_URL = 'https://ap13.ragic.com/feebit50968407/ragicpurchasing/20007?api&limit=5000';
 const DATA_FILE   = path.join(__dirname, '..', 'data', 'inventory-snapshots.json');
 const MAX_SNAPS   = 26; // 保留最近 26 筆（約 1 年）
 
+const AUTH = { Authorization: 'Basic ' + TOKEN };
+
 async function main() {
+  // ── 抓商品庫存 ───────────────────────────────────────
   console.log('🔄 開始抓取 Ragic 商品資料...');
-
-  const res = await fetch(PRODUCT_URL, {
-    headers: { Authorization: 'Basic ' + TOKEN }
-  });
-  if (!res.ok) throw new Error(`Ragic API 回傳 ${res.status}`);
-
+  const res = await fetch(PRODUCT_URL, { headers: AUTH });
+  if (!res.ok) throw new Error(`Ragic 商品 API 回傳 ${res.status}`);
   const raw = await res.json();
 
-  // 整理成 {產品代號: {name, ean, qty, price}} 格式
   const products = {};
   let count = 0;
   for (const [id, row] of Object.entries(raw)) {
     if (id.startsWith('_')) continue;
-    const qty = parseInt(row['數量']) || 0;
+    const qty  = parseInt(row['數量']) || 0;
     const code = String(row['產品代號'] || id).trim();
     if (!code) continue;
     products[code] = {
@@ -39,11 +38,51 @@ async function main() {
     };
     count++;
   }
-
   console.log(`✅ 取得 ${count} 項商品`);
 
-  // 讀取現有快照
-  let db = { snapshots: [] };
+  // ── 抓進貨單（已結案的補貨紀錄）─────────────────────
+  console.log('🔄 開始抓取進貨單...');
+  let receipts = {};
+  try {
+    const rRes = await fetch(RECEIPT_URL, { headers: AUTH });
+    if (!rRes.ok) throw new Error(`進貨單 API 回傳 ${rRes.status}`);
+    const rRaw = await rRes.json();
+
+    let receiptCount = 0;
+    for (const [id, row] of Object.entries(rRaw)) {
+      if (id.startsWith('_')) continue;
+      if (row['進貨狀態'] !== '結案') continue; // 只取已完成進貨
+
+      const dateRaw = (row['預計到貨日期'] || '').trim();
+      if (!dateRaw) continue;
+      const date = dateRaw.replace(/\//g, '-'); // "2026/03/10" → "2026-03-10"
+
+      // 展開 subtable 明細（欄位 ID 3001370 為進貨明細子表）
+      const subtable = row['_subtable_3001370'] || {};
+      for (const [sid, srow] of Object.entries(subtable)) {
+        if (sid.startsWith('_')) continue;
+        const code = (srow['商品採購編號'] || '').trim();
+        const qty  = parseInt(srow['本次進貨數量']) || 0;
+        if (!code || qty <= 0) continue;
+
+        if (!receipts[code]) receipts[code] = [];
+        receipts[code].push({ date, qty });
+        receiptCount++;
+      }
+    }
+
+    // 每個商品的進貨紀錄按日期排序
+    for (const code of Object.keys(receipts)) {
+      receipts[code].sort((a, b) => a.date.localeCompare(b.date));
+    }
+    console.log(`✅ 整理完成 ${receiptCount} 筆已結案進貨紀錄（${Object.keys(receipts).length} 項商品）`);
+  } catch (e) {
+    console.warn(`⚠️ 進貨單抓取失敗：${e.message}，補貨資料將維持上次`);
+    // 保留上次的 receipts（從 db 讀取後會覆蓋）
+  }
+
+  // ── 讀取並更新 JSON ───────────────────────────────────
+  let db = { snapshots: [], receipts: {} };
   if (fs.existsSync(DATA_FILE)) {
     try { db = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')); }
     catch { console.warn('⚠️ 現有 JSON 解析失敗，重新建立'); }
@@ -52,7 +91,7 @@ async function main() {
   const today = new Date().toISOString().split('T')[0];
 
   // 同一天重複執行時，覆蓋當天快照
-  const idx = db.snapshots.findIndex(s => s.date === today);
+  const idx  = db.snapshots.findIndex(s => s.date === today);
   const snap = { date: today, products };
   if (idx >= 0) { db.snapshots[idx] = snap; console.log(`♻️ 覆蓋當天快照（${today}）`); }
   else           { db.snapshots.push(snap); }
@@ -61,15 +100,17 @@ async function main() {
   db.snapshots.sort((a, b) => a.date.localeCompare(b.date));
   if (db.snapshots.length > MAX_SNAPS) db.snapshots = db.snapshots.slice(-MAX_SNAPS);
 
+  // 更新進貨紀錄（若抓取成功）
+  if (Object.keys(receipts).length > 0) db.receipts = receipts;
+
   db.lastUpdated   = today;
   db.productCount  = count;
   db.snapshotCount = db.snapshots.length;
 
-  // 確保 data/ 資料夾存在
   fs.mkdirSync(path.dirname(DATA_FILE), { recursive: true });
   fs.writeFileSync(DATA_FILE, JSON.stringify(db, null, 2), 'utf8');
 
-  console.log(`💾 已儲存快照 data/inventory-snapshots.json`);
+  console.log(`💾 已儲存 data/inventory-snapshots.json`);
   console.log(`   共 ${db.snapshots.length} 筆快照，時間範圍：${db.snapshots[0]?.date} ～ ${today}`);
 }
 
