@@ -8,8 +8,9 @@ const path = require('path');
 const TOKEN = process.env.RAGIC_TOKEN;
 if (!TOKEN) { console.error('❌ RAGIC_TOKEN 未設定'); process.exit(1); }
 
-const PRODUCT_URL = 'https://ap13.ragic.com/feebit50968407/product/16?api&limit=5000';
-const RECEIPT_URL = 'https://ap13.ragic.com/feebit50968407/ragicpurchasing/20007?api&limit=5000';
+const PRODUCT_URL  = 'https://ap13.ragic.com/feebit50968407/product/16?api&limit=5000';
+const RECEIPT_URL  = 'https://ap13.ragic.com/feebit50968407/ragicpurchasing/20007?api&limit=5000';
+const COUPANG_URL  = 'https://ap13.ragic.com/feebit50968407/warehouse-management/16?api&limit=5000';
 const DATA_FILE   = path.join(__dirname, '..', 'data', 'inventory-snapshots.json');
 const MAX_SNAPS   = 26; // 保留最近 26 筆（約 1 年）
 
@@ -81,6 +82,40 @@ async function main() {
     // 保留上次的 receipts（從 db 讀取後會覆蓋）
   }
 
+  // ── 抓酷澎訂單明細 ───────────────────────────────────────
+  console.log('🔄 開始抓取酷澎訂單...');
+  let coupangOrders = {};
+  try {
+    const cRes = await fetch(COUPANG_URL, { headers: AUTH });
+    if (!cRes.ok) throw new Error(`酷澎訂單 API 回傳 ${cRes.status}`);
+    const cRaw = await cRes.json();
+
+    let orderCount = 0;
+    for (const [id, row] of Object.entries(cRaw)) {
+      if (id.startsWith('_')) continue;
+      const sku = (row['SKU'] || '').trim();
+      if (!sku) continue; // 沒有內部 SKU 的跳過
+
+      const qty          = parseInt(row['數量']) || 0;
+      const deliveryDate = (row['預計交貨日期'] || '').replace(/\//g, '-');
+      const poId         = (row['PO ID'] || '').trim();
+      const name         = (row['品名'] || '').trim();
+
+      if (!coupangOrders[sku]) coupangOrders[sku] = { totalQty: 0, orders: [] };
+      coupangOrders[sku].totalQty += qty;
+      coupangOrders[sku].orders.push({ poId, qty, deliveryDate, name });
+      orderCount++;
+    }
+
+    // 每個 SKU 的訂單按交貨日期排序
+    for (const sku of Object.keys(coupangOrders)) {
+      coupangOrders[sku].orders.sort((a, b) => a.deliveryDate.localeCompare(b.deliveryDate));
+    }
+    console.log(`✅ 整理完成 ${orderCount} 筆酷澎訂單明細（${Object.keys(coupangOrders).length} 項 SKU）`);
+  } catch (e) {
+    console.warn(`⚠️ 酷澎訂單抓取失敗：${e.message}，維持上次資料`);
+  }
+
   // ── 讀取並更新 JSON ───────────────────────────────────
   let db = { snapshots: [], receipts: {} };
   if (fs.existsSync(DATA_FILE)) {
@@ -100,8 +135,9 @@ async function main() {
   db.snapshots.sort((a, b) => a.date.localeCompare(b.date));
   if (db.snapshots.length > MAX_SNAPS) db.snapshots = db.snapshots.slice(-MAX_SNAPS);
 
-  // 更新進貨紀錄（若抓取成功）
-  if (Object.keys(receipts).length > 0) db.receipts = receipts;
+  // 更新進貨紀錄與酷澎訂單（若抓取成功）
+  if (Object.keys(receipts).length > 0)      db.receipts      = receipts;
+  if (Object.keys(coupangOrders).length > 0) db.coupangOrders = coupangOrders;
 
   db.lastUpdated   = today;
   db.productCount  = count;

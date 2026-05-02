@@ -117,6 +117,16 @@ function buildEmail(r, db) {
   const tdS = 'padding:7px 10px;border-bottom:1px solid #f1f5f9;font-size:13px;';
   const tdR = tdS + 'text-align:right;';
 
+  const coupangCell = (code) => {
+    const co = (db.coupangOrders || {})[code];
+    if (!co || co.totalQty <= 0) return `<td style="${tdS}color:#94a3b8;">—</td>`;
+    const nextDate = co.orders[0]?.deliveryDate || '';
+    return `<td style="${tdS}">
+      <span style="display:inline-block;padding:2px 6px;border-radius:8px;font-size:11px;font-weight:600;background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;">酷澎 ${co.totalQty.toLocaleString()}件</span>
+      ${nextDate ? `<div style="font-size:10px;color:#94a3b8;margin-top:1px;">交貨 ${nextDate}</div>` : ''}
+    </td>`;
+  };
+
   const makeTable = (items) => {
     if (!items.length) return '';
     const rows = items.map(it => `<tr>
@@ -124,6 +134,7 @@ function buildEmail(r, db) {
       <td style="${tdR}">${it.qty.toLocaleString()}</td>
       <td style="${tdR}">${it.monthlyQty.toLocaleString()}</td>
       <td style="${tdR}font-weight:600;color:${it.monthsRemaining < 1 ? '#dc2626' : it.monthsRemaining < 3 ? '#d97706' : '#0284c7'};">${it.monthsRemaining} 月</td>
+      ${coupangCell(it.code)}
       <td style="${tdR}color:${it.order1m > 0 ? '#dc2626' : '#94a3b8'};font-weight:${it.order1m > 0 ? '700' : '400'};">${it.order1m > 0 ? it.order1m.toLocaleString() : '—'}</td>
       <td style="${tdR}">${it.order3m > 0 ? it.order3m.toLocaleString() : '—'}</td>
       <td style="${tdR}">${it.order6m > 0 ? it.order6m.toLocaleString() : '—'}</td>
@@ -134,6 +145,7 @@ function buildEmail(r, db) {
         <th style="${thS}text-align:right;">現有庫存</th>
         <th style="${thS}text-align:right;">月銷量</th>
         <th style="${thS}text-align:right;">剩餘月份</th>
+        <th style="${thS}">酷澎訂單</th>
         <th style="${thS}text-align:right;">補1個月</th>
         <th style="${thS}text-align:right;">補3個月</th>
         <th style="${thS}text-align:right;">補6個月</th>
