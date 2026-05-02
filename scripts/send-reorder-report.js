@@ -117,13 +117,19 @@ function buildEmail(r, db) {
   const tdS = 'padding:7px 10px;border-bottom:1px solid #f1f5f9;font-size:13px;';
   const tdR = tdS + 'text-align:right;';
 
+  // 只顯示快照期間內的酷澎訂單
+  const sortedSnaps = [...(db.snapshots || [])].sort((a, b) => a.date.localeCompare(b.date));
+  const fromDate = sortedSnaps[0].date;
+  const toDate   = sortedSnaps.at(-1).date;
   const coupangCell = (code) => {
     const co = (db.coupangOrders || {})[code];
-    if (!co || co.totalQty <= 0) return `<td style="${tdS}color:#94a3b8;">—</td>`;
-    const nextDate = co.orders[0]?.deliveryDate || '';
+    if (!co) return `<td style="${tdS}color:#94a3b8;">—</td>`;
+    const filtered = co.orders.filter(o => o.deliveryDate >= fromDate && o.deliveryDate <= toDate);
+    if (!filtered.length) return `<td style="${tdS}color:#94a3b8;">—</td>`;
+    const totalQty = filtered.reduce((s, o) => s + o.qty, 0);
     return `<td style="${tdS}">
-      <span style="display:inline-block;padding:2px 6px;border-radius:8px;font-size:11px;font-weight:600;background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;">酷澎 ${co.totalQty.toLocaleString()}件</span>
-      ${nextDate ? `<div style="font-size:10px;color:#94a3b8;margin-top:1px;">交貨 ${nextDate}</div>` : ''}
+      <span style="display:inline-block;padding:2px 6px;border-radius:8px;font-size:11px;font-weight:600;background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;">酷澎 ${totalQty.toLocaleString()}件</span>
+      <div style="font-size:10px;color:#94a3b8;margin-top:1px;">${fromDate} ～ ${toDate}</div>
     </td>`;
   };
 

@@ -489,12 +489,19 @@ function orderQty(n, cls) {
 
 function coupangCell(code) {
   const co = (db.coupangOrders || {})[code];
-  if (!co || co.totalQty <= 0) return '<td>—</td>';
-  const nextDate = co.orders[0]?.deliveryDate || '';
-  const tip = co.orders.map(o => `PO ${o.poId}｜${o.qty}件｜${o.deliveryDate}`).join('\n');
+  if (!co) return '<td>—</td>';
+
+  // 只計算快照期間內的訂單
+  const fromDate = db.snapshots[0].date;
+  const toDate   = db.snapshots.at(-1).date;
+  const filtered = co.orders.filter(o => o.deliveryDate >= fromDate && o.deliveryDate <= toDate);
+  if (!filtered.length) return '<td>—</td>';
+
+  const totalQty = filtered.reduce((s, o) => s + o.qty, 0);
+  const tip = filtered.map(o => `PO ${o.poId}｜${o.qty}件｜${o.deliveryDate}`).join('\n');
   return `<td title="${esc(tip)}">
-    <span class="coupang-badge">酷澎 ${co.totalQty.toLocaleString()}件</span>
-    ${nextDate ? `<div style="font-size:10px;color:var(--gray-400);margin-top:2px;">交貨 ${nextDate}</div>` : ''}
+    <span class="coupang-badge">酷澎 ${totalQty.toLocaleString()}件</span>
+    <div style="font-size:10px;color:var(--gray-400);margin-top:2px;">${fromDate} ～ ${toDate}</div>
   </td>`;
 }
 
