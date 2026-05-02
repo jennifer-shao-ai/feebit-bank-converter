@@ -2,7 +2,6 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<script src="auth.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>旅行規劃 · 飛比特工具箱</title>
 <link rel="icon" href="favicon.svg">
@@ -414,6 +413,10 @@
   <div class="sidebar-section">
     <div class="sidebar-label">研發</div>
     <a class="nav-item" href="research-notes.html"><span class="icon">📚</span> 研發筆記</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">法規</div>
+    <a class="nav-item" href="http://127.0.0.1:5050" target="_blank"><span class="icon">📋</span> PIF Builder</a>
   </div>
   <div class="sidebar-section">
     <div class="sidebar-label">生活</div>
@@ -1565,7 +1568,7 @@ function renderExpenseItem(e, i) {
     </div>`;
   } else {
     const splitWith = e.splitWith?.length ? e.splitWith : (e.splitCount ? Array(e.splitCount).fill('?') : ['?']);
-    const per = splitWith.length > 0 ? Math.ceil(Number(e.amount)/splitWith.length) : 0;
+    const per = splitWith.length > 0 ? Math.round(Number(e.amount)/splitWith.length) : 0;
     const splitters = e.splitWith?.length ? e.splitWith.map(m=>`<span class="member-chip" style="font-size:11px;padding:2px 7px">${esc(m)}</span>`).join('') : `${splitWith.length} 人`;
     splitInfo = `<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin-top:6px">
       <span style="font-size:12px;color:var(--gray-600)">分攤：</span>${splitters}
@@ -1708,8 +1711,8 @@ function renderSettle(list) {
   const balHTML = allNames.map(m => {
     const b = Math.round(balance[m]||0);
     const cls = b>0?'bal-pos':b<0?'bal-neg':'';
-    const sign = b>0?'+':'';
-    const label = b>0?'收回':'支出';
+    const sign = b>0?'+':b<0?'-':'';
+    const label = b>0?'收回':'需還款';
     return `<div class="settle-balance-row"><span>${esc(m)}</span><span class="${cls}">${sign}${fmtTWD(Math.abs(b))} ${b!==0?`<span style="font-size:10px;opacity:0.7">(${label})</span>`:''}</span></div>`;
   }).join('');
 
@@ -2682,8 +2685,8 @@ function calcPer() {
   if (amt>0 && sp>0) {
     badge.style.display='block';
     const names = splitters?.join('、') || `${sp} 人`;
-    const twdPer = toTWD(Math.ceil(amt/sp), cur);
-    badge.innerHTML = `${esc(names)} 各付 <strong>${currSym(cur)}${Math.ceil(amt/sp).toLocaleString()}</strong>${cur!=='TWD'?` ≈ ${fmtTWD(twdPer)}`:''}`;
+    const twdPer = toTWD(Math.round(amt/sp), cur);
+    badge.innerHTML = `${esc(names)} 各付 <strong>${currSym(cur)}${Math.round(amt/sp).toLocaleString()}</strong>${cur!=='TWD'?` ≈ ${fmtTWD(twdPer)}`:''}`;
   } else badge.style.display='none';
 }
 
