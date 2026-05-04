@@ -148,7 +148,7 @@ select.inline-sel:focus{border-color:var(--primary);}
     <div class="sidebar-label">系統</div>
     <a class="nav-item" href="tools.html"><span class="icon">🔧</span> 使用工具</a>
   </div>
-  <div class="sidebar-footer">v2.2 · Feebit © 2026</div>
+  <div class="sidebar-footer">v2.3 · Feebit © 2026</div>
 </div>
 
 <div id="main">
@@ -157,7 +157,7 @@ select.inline-sel:focus{border-color:var(--primary);}
       <button class="btn-hamburger" style="display:none;" onclick="openSidebar()">☰</button>
       <span class="topbar-title">考勤查驗</span>
       <span class="topbar-badge">人事工具</span>
-      <span style="font-size:11px;color:var(--gray-400);margin-left:4px;">v2.2</span>
+      <span style="font-size:11px;color:var(--gray-400);margin-left:4px;">v2.3</span>
     </div>
   </div>
 
@@ -536,7 +536,8 @@ function calcWorkHours(clockIn, clockOut, emp){
 }
 function fmt(n,d=1){ return parseFloat(n.toFixed(d)); }
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-function monthDays(ym){ const[y,m]=ym.split('-').map(Number),days=[],d=new Date(y,m-1,1); while(d.getMonth()===m-1){days.push(d.toISOString().slice(0,10));d.setDate(d.getDate()+1);} return days; }
+function localDateStr(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function monthDays(ym){ const[y,m]=ym.split('-').map(Number),days=[],d=new Date(y,m-1,1); while(d.getMonth()===m-1){days.push(localDateStr(d));d.setDate(d.getDate()+1);} return days; }
 function dow(ds){ return new Date(ds+'T00:00:00').getDay(); }
 const WD_LABEL=['日','一','二','三','四','五','六'];
 
@@ -1191,7 +1192,7 @@ function getAnniversaryPeriod(hireDate, asOfDate){
     const pStart=new Date(hire); pStart.setFullYear(hire.getFullYear()+n);
     const pEnd=new Date(hire); pEnd.setFullYear(hire.getFullYear()+n+1);
     if(asOf>=pStart&&asOf<pEnd){
-      return {start:pStart,end:pEnd,entitledDays:calcAnnualLeaveDays(hireDate,pStart.toISOString().slice(0,10)),label:`到職滿${n+1}年`};
+      return {start:pStart,end:pEnd,entitledDays:calcAnnualLeaveDays(hireDate,localDateStr(pStart)),label:`到職滿${n+1}年`};
     }
     n++;
   }
@@ -1199,8 +1200,8 @@ function getAnniversaryPeriod(hireDate, asOfDate){
 }
 // 計算員工在指定到職年度區間內已用特休天數
 function calcUsedAnnualLeaveInPeriod(empId, periodStart, periodEnd){
-  const s=periodStart.toISOString().slice(0,10);
-  const e=periodEnd.toISOString().slice(0,10);
+  const s=localDateStr(periodStart);
+  const e=localDateStr(periodEnd);
   return Object.keys(db.monthlyData).reduce((sum,m)=>{
     const leaves=(db.monthlyData[m]?.leaves||[]).filter(l=>l.employeeId===empId&&l.type==='特休'&&l.date>=s&&l.date<e);
     return sum+leaves.reduce((acc,l)=>{
@@ -1331,8 +1332,8 @@ function renderVerify(){
         if(!period) return '';
         const used=calcUsedAnnualLeaveInPeriod(emp.id, period.start, period.end);
         const remain=Math.max(0,period.entitledDays-used);
-        const periodStartStr=period.start.toISOString().slice(0,10);
-        const periodEndStr=new Date(period.end-86400000).toISOString().slice(0,10);
+        const periodStartStr=localDateStr(period.start);
+        const periodEndStr=localDateStr(new Date(period.end-86400000));
         const yrs=((new Date(month+'-01')-new Date(emp.hireDate))/(365.25*24*3600*1000));
         const yrLabel=yrs>=1?`${Math.floor(yrs)}年${Math.floor((yrs%1)*12)}個月`:'未滿1年';
         const cls=remain===0?'danger':remain<=3?'warn':'good';
