@@ -1100,8 +1100,11 @@ function analyzeEmployee(empId, month){
         const inM=toMins(rec.clockIn), outM=toMins(rec.clockOut);
         const sInM=toMins(sStart), sOutM=toMins(sEnd);
         const lateDeadline=sInM+(emp.lateGrace??30);
+        const dayLeave=isLeave?empLeaves.find(l=>l.date===date):null;
+        const isHalfDayLeave=!!dayLeave&&(dayLeave.hours??0)<=4;
         if(sInM!==null&&inM>lateDeadline){ lateMin=inM-lateDeadline; status.push('遲到 '+lateMin+' 分'); rowClass='row-late'; lateCount++; }
-        if((!isPT||sch)&&sOutM!==null&&outM<sOutM-(emp.earlyGrace??0)&&override!=='免早退'){ earlyMin=sOutM-outM; status.push('早退 '+earlyMin+' 分'); if(!rowClass||rowClass==='row-ok') rowClass='row-early'; earlyCount++; }
+        if((!isPT||sch)&&sOutM!==null&&outM<sOutM-(emp.earlyGrace??0)&&override!=='免早退'&&!isHalfDayLeave){ earlyMin=sOutM-outM; status.push('早退 '+earlyMin+' 分'); if(!rowClass||rowClass==='row-ok') rowClass='row-early'; earlyCount++; }
+        if(isHalfDayLeave&&dayLeave){ status.push('半天'+dayLeave.type); if(!rowClass) rowClass='row-ok'; }
         if(!status.length){ status=['正常']; rowClass='row-ok'; }
         hours=calcWorkHours(rec.clockIn,rec.clockOut,emp);
         totalHours+=hours;
@@ -1174,14 +1177,35 @@ function calcAnnualLeaveDays(hireDate, asOfDate){
   if(yrs<10) return 15;
   return Math.min(30,15+Math.floor(yrs)-9);
 }
-// 計算某員工某年度已用特休天數（跨所有月份）
-function calcUsedAnnualLeave(empId, year){
-  const y=String(year);
-  return Object.keys(db.monthlyData).filter(m=>m.startsWith(y+'-')).reduce((sum,m)=>{
-    const leaves=(db.monthlyData[m]?.leaves||[]).filter(l=>l.employeeId===empId&&l.type==='特休');
-    return sum+leaves.reduce((s,l)=>{
+// 取得員工以到職日起算的「當前特休年度」區間
+function getAnniversaryPeriod(hireDate, asOfDate){
+  if(!hireDate) return null;
+  const hire=new Date(hireDate+'T00:00:00');
+  const asOf=new Date(asOfDate+'T00:00:00');
+  const sixMo=new Date(hire); sixMo.setMonth(sixMo.getMonth()+6);
+  if(asOf<sixMo) return null;
+  const firstAnn=new Date(hire); firstAnn.setFullYear(hire.getFullYear()+1);
+  if(asOf<firstAnn) return {start:sixMo,end:firstAnn,entitledDays:3,label:'到職滿6個月'};
+  let n=1;
+  while(n<=50){
+    const pStart=new Date(hire); pStart.setFullYear(hire.getFullYear()+n);
+    const pEnd=new Date(hire); pEnd.setFullYear(hire.getFullYear()+n+1);
+    if(asOf>=pStart&&asOf<pEnd){
+      return {start:pStart,end:pEnd,entitledDays:calcAnnualLeaveDays(hireDate,pStart.toISOString().slice(0,10)),label:`到職滿${n+1}年`};
+    }
+    n++;
+  }
+  return null;
+}
+// 計算員工在指定到職年度區間內已用特休天數
+function calcUsedAnnualLeaveInPeriod(empId, periodStart, periodEnd){
+  const s=periodStart.toISOString().slice(0,10);
+  const e=periodEnd.toISOString().slice(0,10);
+  return Object.keys(db.monthlyData).reduce((sum,m)=>{
+    const leaves=(db.monthlyData[m]?.leaves||[]).filter(l=>l.employeeId===empId&&l.type==='特休'&&l.date>=s&&l.date<e);
+    return sum+leaves.reduce((acc,l)=>{
       const lr=(db.monthlyData[m]?.records||[]).find(r=>r.date===l.date&&r.employeeId===empId);
-      return s+(lr?.clockIn&&lr?.clockOut?l.hours/8:1);
+      return acc+(lr?.clockIn&&lr?.clockOut?l.hours/8:1);
     },0);
   },0);
 }
@@ -1250,7 +1274,7 @@ function renderVerify(){
       ${allRows.map(r=>{
         const statusHtml=r.status.map(s=>{
           const LEAVE_T=['特休','病假','事假','婚假','喪假','公假','生理假','排班調整','補休','產假','陪產假','育嬰留停','其他','請假'];
-          const c=s==='正常'?'badge-ok':s==='公假'?'badge-ok':s.includes('遲到')?'badge-late':s.includes('早退')?'badge-early':s.includes('未打')?'badge-missing':s==='缺勤'||s==='曠職'?'badge-absent':s==='國定假日'?'badge-missing':s==='彈性假期'?'badge-ot':s==='假日'||s==='補假'||s==='補班'?'badge-leave':LEAVE_T.includes(s)?'badge-leave':'badge-ok';
+          const c=s==='正常'?'badge-ok':s==='公假'?'badge-ok':s.includes('遲到')?'badge-late':s.includes('早退')?'badge-early':s.includes('未打')?'badge-missing':s==='缺勤'||s==='曠職'?'badge-absent':s==='國定假日'?'badge-missing':s==='彈性假期'?'badge-ot':s==='假日'||s==='補假'||s==='補班'?'badge-leave':s.startsWith('半天')?'badge-leave':LEAVE_T.includes(s)?'badge-leave':'badge-ok';
           return `<span class="badge ${c}">${esc(s)}</span>`;
         }).join(' ')+(r.ot?` <span class="badge badge-ot">+${r.ot.hours}h加班</span>`:'');
         const overrideSel=`<select class="inline-sel" style="padding:2px 5px;font-size:11px;min-width:68px;" onchange="setOverride('${month}','${r.emp.id}','${r.date}',this.value)">
@@ -1302,17 +1326,20 @@ function renderVerify(){
       </div>
       ${renderLeaveBalance(a.leaveBreakdown,'本月假別明細')}
       ${(()=>{
-        const emp=a.emp; const yr=month.substring(0,4);
-        const entitled=calcAnnualLeaveDays(emp.hireDate, month+'-01');
-        if(entitled===null) return '';
-        const used=calcUsedAnnualLeave(emp.id, yr);
-        const remain=Math.max(0,entitled-used);
-        const yrs=(( new Date(month+'-01')-new Date(emp.hireDate))/(365.25*24*3600*1000));
+        const emp=a.emp;
+        const period=getAnniversaryPeriod(emp.hireDate, month+'-01');
+        if(!period) return '';
+        const used=calcUsedAnnualLeaveInPeriod(emp.id, period.start, period.end);
+        const remain=Math.max(0,period.entitledDays-used);
+        const periodStartStr=period.start.toISOString().slice(0,10);
+        const periodEndStr=new Date(period.end-86400000).toISOString().slice(0,10);
+        const yrs=((new Date(month+'-01')-new Date(emp.hireDate))/(365.25*24*3600*1000));
         const yrLabel=yrs>=1?`${Math.floor(yrs)}年${Math.floor((yrs%1)*12)}個月`:'未滿1年';
         const cls=remain===0?'danger':remain<=3?'warn':'good';
         return `<div style="margin-top:8px;padding:8px 12px;background:#f8fafc;border-radius:6px;font-size:12px;color:var(--gray-700);display:flex;gap:16px;flex-wrap:wrap;">
           <span>📅 年資：${yrLabel}</span>
-          <span>🎯 ${yr}年度特休額度：<strong>${entitled}</strong> 天</span>
+          <span>📆 ${period.label}（${periodStartStr} ～ ${periodEndStr}）</span>
+          <span>🎯 特休額度：<strong>${period.entitledDays}</strong> 天</span>
           <span>✅ 已用：<strong>${fmt(used,1)}</strong> 天</span>
           <span class="${cls}" style="font-weight:700;">剩餘：${fmt(remain,1)} 天</span>
         </div>`;
