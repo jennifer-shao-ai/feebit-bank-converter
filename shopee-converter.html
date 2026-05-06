@@ -2,7 +2,6 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<script src="auth.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>蝦皮撥款轉換 | Feebit</title>
 <link rel="icon" href="favicon.svg">
@@ -186,6 +185,11 @@ tr:hover td { background: var(--gray-50); }
   </div>
 
   <div class="sidebar-section">
+    <div class="sidebar-label">法規</div>
+    <a class="nav-item" href="http://127.0.0.1:5050" target="_blank"><span class="icon">📋</span> PIF Builder</a>
+  </div>
+
+  <div class="sidebar-section">
     <div class="sidebar-label">生活</div>
     <a class="nav-item" href="travel-planner.html"><span class="icon">✈️</span> 旅行規劃</a>
   </div>
@@ -195,7 +199,7 @@ tr:hover td { background: var(--gray-50); }
     <a class="nav-item" href="tools.html"><span class="icon">🔧</span> 使用工具</a>
   </div>
 
-  <div class="sidebar-footer">v1.0 · Feebit © 2026</div>
+  <div class="sidebar-footer">v1.1 · Feebit © 2026</div>
 </div>
 
 <div id="sidebar-overlay" onclick="closeSidebar()"></div>
@@ -207,7 +211,7 @@ tr:hover td { background: var(--gray-50); }
       <button class="hamburger" onclick="toggleSidebar()">☰</button>
       <span class="topbar-title">蝦皮撥款轉換</span>
     </div>
-    <span class="topbar-badge">v1.0</span>
+    <span class="topbar-badge">v1.1</span>
   </div>
 
   <div class="page">
@@ -217,12 +221,8 @@ tr:hover td { background: var(--gray-50); }
       <div class="card-title">⚙️ 轉換設定</div>
       <div class="form-row">
         <div class="form-group">
-          <label>自帳戶名稱（Ragic 來源欄位）</label>
+          <label>從帳戶收（帳戶名稱）</label>
           <input type="text" id="cfg-source" value="蝦皮賣場(彰山5222)" placeholder="蝦皮賣場(彰山5222)">
-        </div>
-        <div class="form-group">
-          <label>批次日期（交易編號用）</label>
-          <input type="date" id="cfg-date">
         </div>
         <div class="form-group">
           <label>主類別</label>
@@ -242,9 +242,9 @@ tr:hover td { background: var(--gray-50); }
            ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
         <div class="dz-icon">📋</div>
         <div class="dz-title" id="dz-title">點擊選擇或拖曳檔案</div>
-        <div class="dz-sub">支援蝦皮「結算報表」CSV（UTF-8）</div>
+        <div class="dz-sub">支援 CSV（UTF-8）或 Excel（.xlsx）格式</div>
       </div>
-      <input type="file" id="file-input" accept=".csv" onchange="handleFile(this.files[0])">
+      <input type="file" id="file-input" accept=".csv,.xlsx,.xls" onchange="handleFile(this.files[0])">
     </div>
 
     <!-- 狀態 -->
@@ -265,14 +265,16 @@ tr:hover td { background: var(--gray-50); }
           <table id="preview-table">
             <thead>
               <tr>
-                <th>交易編號</th>
                 <th>交易日期</th>
-                <th>自帳戶</th>
-                <th>金額</th>
+                <th>交易類型</th>
+                <th>帳戶幣別</th>
+                <th>從帳戶收</th>
+                <th>主幣別</th>
+                <th>外幣金額</th>
+                <th>主幣別金額</th>
                 <th>主類別</th>
                 <th>子類別</th>
                 <th>描述</th>
-                <th>類型</th>
               </tr>
             </thead>
             <tbody id="preview-body"></tbody>
@@ -284,6 +286,7 @@ tr:hover td { background: var(--gray-50); }
   </div><!-- /page -->
 </div><!-- /main -->
 
+<script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
 <script>
 // ── 側邊欄 ──────────────────────────────────
 function toggleSidebar() {
@@ -295,34 +298,10 @@ function closeSidebar() {
   document.getElementById('sidebar-overlay').classList.remove('active');
 }
 
-// ── 初始化 ──────────────────────────────────
-window.addEventListener('DOMContentLoaded', () => {
-  const today = new Date();
-  document.getElementById('cfg-date').value = formatYMD(today);
-});
-
 // ── 日期格式工具 ──────────────────────────────
-function formatYMD(d) {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
-function formatBatchDate(dateStr) {
-  // "2026-04-11" → "20260411"
-  return dateStr.replace(/-/g, '');
-}
 function convertDateTime(dt) {
-  // Input: "2026-03-31 00:58:07"
-  // Returns: { date, timeShort, timeFull }
-  const [datePart, timePart] = dt.trim().split(' ');
-  const ragicDate = datePart.replace(/-/g, '/');
-  const [h, min, sec] = (timePart || '00:00:00').split(':');
-  return {
-    date: ragicDate,
-    timeShort: `${ragicDate} ${h}:${min}`,
-    timeFull: `${ragicDate} ${h}:${min}:${sec || '00'}`,
-  };
+  const [datePart] = dt.trim().split(' ');
+  return datePart.replace(/-/g, '/');
 }
 
 // ── CSV 解析 ─────────────────────────────────
@@ -345,12 +324,10 @@ function parseCSVLine(line) {
 }
 
 function parseShopeeCSV(text) {
-  // Remove BOM
   if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
 
   const lines = text.split(/\r?\n/);
 
-  // Find the column header row (contains 交易日期 and 交易類型)
   let headerIdx = -1;
   for (let i = 0; i < lines.length; i++) {
     const l = lines[i];
@@ -359,18 +336,15 @@ function parseShopeeCSV(text) {
       break;
     }
   }
-  if (headerIdx === -1) throw new Error('找不到「交易日期」欄位標頭，請確認上傳的是蝦皮結算報表 CSV');
+  if (headerIdx === -1) throw new Error('找不到「交易日期」欄位標頭，請確認上傳的是蝦皮結算報表');
 
   const headers = parseCSVLine(lines[headerIdx]);
   const idx = {
-    date:   headers.findIndex(h => h.trim() === '交易日期'),
-    type:   headers.findIndex(h => h.trim() === '交易類型'),
-    desc:   headers.findIndex(h => h.trim() === '描述'),
-    order:  headers.findIndex(h => h.trim() === '訂單編號' || h.trim().includes('訂單')),
-    dir:    headers.findIndex(h => h.trim().includes('進帳') || h.trim().includes('支出')),
-    amt:    headers.findIndex(h => h.trim() === '金額'),
-    status: headers.findIndex(h => h.trim() === '狀態'),
-    fee:    headers.findIndex(h => h.trim() === '手續費'),
+    date: headers.findIndex(h => h.trim() === '交易日期'),
+    type: headers.findIndex(h => h.trim() === '交易類型'),
+    desc: headers.findIndex(h => h.trim() === '描述'),
+    amt:  headers.findIndex(h => h.trim() === '金額'),
+    fee:  headers.findIndex(h => h.trim() === '手續費'),
   };
 
   const rows = [];
@@ -378,88 +352,62 @@ function parseShopeeCSV(text) {
     const line = lines[i].trim();
     if (!line) continue;
     const cols = parseCSVLine(line);
-    if (cols.length < 6) continue;
+    if (cols.length < 3) continue;
 
     const amtRaw = idx.amt >= 0 ? cols[idx.amt].trim() : '0';
     const amt = parseFloat(amtRaw.replace(/,/g, '')) || 0;
-    if (amt === 0) continue; // skip zero rows
+    if (amt === 0) continue;
 
     rows.push({
       datetime: idx.date >= 0 ? cols[idx.date].trim() : '',
       type:     idx.type >= 0 ? cols[idx.type].trim() : '',
       desc:     idx.desc >= 0 ? cols[idx.desc].trim() : '',
-      dir:      idx.dir >= 0 ? cols[idx.dir].trim() : '',
       amount:   amt,
-      fee:      idx.fee >= 0 ? (parseFloat(cols[idx.fee].trim().replace(/,/g, '')) || 0) : 0,
+      fee:      idx.fee >= 0 ? (parseFloat((cols[idx.fee] || '').trim().replace(/,/g, '')) || 0) : 0,
     });
   }
 
   return rows;
 }
 
+// ── Excel 解析 ───────────────────────────────
+function parseShopeeExcel(arrayBuffer) {
+  const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  const csv = XLSX.utils.sheet_to_csv(sheet);
+  return parseShopeeCSV(csv);
+}
+
 // ── 轉換邏輯 ─────────────────────────────────
+const RAGIC_HEADERS = [
+  '交易日期','交易類型','帳戶幣別','從帳戶收','主幣別',
+  '外幣金額','主幣別金額','主類別','子類別','描述'
+];
+
 function convertToRagic(rows) {
-  const batchDate = formatBatchDate(document.getElementById('cfg-date').value);
   const sourceAccount = document.getElementById('cfg-source').value.trim() || '蝦皮賣場(彰山5222)';
   const mainCat = document.getElementById('cfg-main-cat').value.trim() || '賣場/通路費用';
   const subCat = document.getElementById('cfg-sub-cat').value.trim() || '結帳蝦皮';
 
-  const ragicRows = [];
-  let seq = 1;
-
-  for (const row of rows) {
+  return rows.map(row => {
     const absAmt = Math.abs(row.amount);
-    const isPayout = row.amount < 0; // 支出 from Shopee wallet = 進帳 to bank
-    const dt = convertDateTime(row.datetime);
-    const txId = `T-${batchDate}-${String(seq).padStart(3, '0')}`;
-
-    ragicRows.push([
-      '',                                          // 帳戶編號
-      txId,                                        // 交易編號
-      dt.date,                                     // 交易日期
-      isPayout ? '轉帳收入' : '轉帳支出',            // 交易類型
-      'TWD',                                       // 帳務幣別
-      sourceAccount,                               // 自帳戶
-      '',                                          // 至帳戶
-      'TWD',                                       // 主幣別
-      absAmt,                                      // 外幣金額
-      '',                                          // 相關帳目
-      '1',                                         // 可幣
-      row.fee,                                     // 手續費
-      '',                                          // 對帳單時間
-      absAmt,                                      // 主幣別金額
-      isPayout ? mainCat : '',                     // 主類別
-      isPayout ? subCat : '',                      // 子類別
-      '',                                          // 收款人
-      '',                                          // 簽收
-      '',                                          // 標籤
-      '',                                          // 收發不傳送
-      row.desc || '自動撥款',                       // 描述
-      '個人',                                      // 類別
-      '活存入款',                                   // 類型
-      '',                                          // 轉帳空白檢查
-      absAmt,                                      // 計算稅額
-      dt.timeShort,                                // 確認交易執行時間
-      dt.timeFull,                                 // 確認交易空白檢查
-      '',                                          // 建立日期
-    ]);
-
-    seq++;
-  }
-
-  return ragicRows;
+    const date = convertDateTime(row.datetime);
+    return [
+      date,                       // 交易日期
+      '轉帳收入',                  // 交易類型
+      'TWD',                      // 帳戶幣別
+      sourceAccount,              // 從帳戶收
+      'TWD',                      // 主幣別
+      absAmt,                     // 外幣金額
+      absAmt,                     // 主幣別金額
+      mainCat,                    // 主類別
+      subCat,                     // 子類別
+      row.desc || '自動撥款',      // 描述
+    ];
+  });
 }
 
 // ── CSV 輸出 ─────────────────────────────────
-const RAGIC_HEADERS = [
-  '帳戶編號','交易編號','交易日期','交易類型','帳務幣別',
-  '自帳戶','至帳戶','主幣別','外幣金額','相關帳目',
-  '可幣','手續費','對帳單時間','主幣別金額','主類別',
-  '子類別','收款人','簽收','標籤','收發不傳送',
-  '描述','類別','類型','轉帳空白檢查','計算稅額',
-  '確認交易執行時間','確認交易空白檢查','建立日期'
-];
-
 function escapeCSV(v) {
   const s = String(v ?? '');
   if (s.includes(',') || s.includes('"') || s.includes('\n')) {
@@ -503,42 +451,58 @@ function onDrop(e) {
 // ── 處理檔案 ─────────────────────────────────
 function handleFile(file) {
   if (!file) return;
-  if (!file.name.toLowerCase().endsWith('.csv')) {
-    showStatus('請上傳 .csv 格式的檔案', 'error');
+  const name = file.name.toLowerCase();
+  const isExcel = name.endsWith('.xlsx') || name.endsWith('.xls');
+  const isCSV = name.endsWith('.csv');
+
+  if (!isExcel && !isCSV) {
+    showStatus('請上傳 .csv 或 .xlsx 格式的檔案', 'error');
     return;
   }
 
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    try {
-      const text = e.target.result;
-      sourceRows = parseShopeeCSV(text);
-
-      if (sourceRows.length === 0) {
-        showStatus('解析完成，但沒有找到有效的交易資料，請確認檔案格式', 'error');
-        return;
-      }
-
-      convertedRows = convertToRagic(sourceRows);
-      renderResult(file.name);
-
-    } catch (err) {
-      showStatus('解析失敗：' + err.message, 'error');
-    }
-  };
-  reader.readAsText(file, 'UTF-8');
-
-  // Update drop zone
   const dz = document.getElementById('drop-zone');
   dz.classList.add('has-file');
   document.getElementById('dz-title').textContent = '✅ ' + file.name;
+
+  if (isExcel) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        sourceRows = parseShopeeExcel(e.target.result);
+        if (sourceRows.length === 0) {
+          showStatus('解析完成，但沒有找到有效的交易資料，請確認檔案格式', 'error');
+          return;
+        }
+        convertedRows = convertToRagic(sourceRows);
+        renderResult(file.name);
+      } catch (err) {
+        showStatus('解析失敗：' + err.message, 'error');
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  } else {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        sourceRows = parseShopeeCSV(e.target.result);
+        if (sourceRows.length === 0) {
+          showStatus('解析完成，但沒有找到有效的交易資料，請確認檔案格式', 'error');
+          return;
+        }
+        convertedRows = convertToRagic(sourceRows);
+        renderResult(file.name);
+      } catch (err) {
+        showStatus('解析失敗：' + err.message, 'error');
+      }
+    };
+    reader.readAsText(file, 'UTF-8');
+  }
 }
 
 // ── 渲染結果 ─────────────────────────────────
 function renderResult(filename) {
   const totalAmt = sourceRows.reduce((s, r) => s + Math.abs(r.amount), 0);
 
-  // Summary
   document.getElementById('summary-grid').innerHTML = `
     <div class="summary-card">
       <div class="s-label">筆數</div>
@@ -551,38 +515,34 @@ function renderResult(filename) {
       <div class="s-sub">TWD</div>
     </div>
     <div class="summary-card">
-      <div class="s-label">來源帳戶</div>
-      <div class="s-value" style="font-size:13px;margin-top:4px">${document.getElementById('cfg-source').value}</div>
-      <div class="s-sub">自帳戶</div>
-    </div>
-    <div class="summary-card">
-      <div class="s-label">批次日期</div>
-      <div class="s-value" style="font-size:14px;margin-top:4px">${document.getElementById('cfg-date').value}</div>
-      <div class="s-sub">交易編號基準</div>
+      <div class="s-label">從帳戶收</div>
+      <div class="s-value" style="font-size:13px;margin-top:4px">${escapeHtml(document.getElementById('cfg-source').value)}</div>
+      <div class="s-sub">來源帳戶</div>
     </div>
   `;
 
-  // Preview table (max 20 rows)
   const tbody = document.getElementById('preview-body');
   tbody.innerHTML = '';
   const preview = convertedRows.slice(0, 20);
   for (const row of preview) {
     const tr = document.createElement('tr');
     tr.innerHTML = `
+      <td>${escapeHtml(row[0])}</td>
       <td><span class="badge badge-blue">${escapeHtml(row[1])}</span></td>
       <td>${escapeHtml(row[2])}</td>
-      <td>${escapeHtml(row[5])}</td>
-      <td class="amt">$${Number(row[13]).toLocaleString()}</td>
-      <td>${escapeHtml(row[14])}</td>
-      <td>${escapeHtml(row[15])}</td>
-      <td>${escapeHtml(row[20])}</td>
-      <td>${escapeHtml(row[22])}</td>
+      <td>${escapeHtml(row[3])}</td>
+      <td>${escapeHtml(row[4])}</td>
+      <td class="amt">$${Number(row[5]).toLocaleString()}</td>
+      <td class="amt">$${Number(row[6]).toLocaleString()}</td>
+      <td>${escapeHtml(row[7])}</td>
+      <td>${escapeHtml(row[8])}</td>
+      <td>${escapeHtml(row[9])}</td>
     `;
     tbody.appendChild(tr);
   }
   if (convertedRows.length > 20) {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td colspan="8" style="text-align:center;color:var(--gray-500);font-style:italic">...還有 ${convertedRows.length - 20} 筆未顯示，下載 CSV 後可查看全部</td>`;
+    tr.innerHTML = `<td colspan="10" style="text-align:center;color:var(--gray-500);font-style:italic">...還有 ${convertedRows.length - 20} 筆未顯示，下載 CSV 後可查看全部</td>`;
     tbody.appendChild(tr);
   }
 
@@ -602,13 +562,13 @@ function downloadCSV() {
   for (const row of convertedRows) lines.push(rowToCSV(row));
   const csv = lines.join('\r\n');
 
-  // UTF-8 BOM + CSV
-  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  const batchDate = document.getElementById('cfg-date').value.replace(/-/g, '');
+  const d = new Date();
+  const dateStr = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
   a.href = url;
-  a.download = `ragic_shopee_${batchDate}.csv`;
+  a.download = `ragic_shopee_${dateStr}.csv`;
   a.click();
   URL.revokeObjectURL(url);
 }
