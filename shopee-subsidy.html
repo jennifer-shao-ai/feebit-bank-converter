@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>蝦皮運費補助申請 · 飛比特營運工具箱</title>
+<link rel="icon" href="favicon.svg">
+<script>if(location.search.includes("share"))document.documentElement.classList.add("standalone");</script>
+<link rel="stylesheet" href="style.css">
+<style>
+/* ── Upload Zone ── */
+.upload-zone {
+  border: 2px dashed var(--gray-200);
+  border-radius: 12px;
+  padding: 48px 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: white;
+  margin-bottom: 20px;
+}
+.upload-zone:hover, .upload-zone.dragover {
+  border-color: #7c3aed;
+  background: #f5f3ff;
+}
+.upload-zone .uz-icon { font-size: 48px; margin-bottom: 12px; }
+.upload-zone h3 { font-size: 16px; font-weight: 600; color: var(--gray-800); margin-bottom: 6px; }
+.upload-zone p { font-size: 13px; color: var(--gray-600); margin-bottom: 16px; }
+.upload-zone input { display: none; }
+.btn-upload-file {
+  display: inline-block;
+  padding: 9px 22px;
+  background: #7c3aed;
+  color: white;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-upload-file:hover { background: #6d28d9; }
+
+/* ── Summary Cards ── */
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.stat-card {
+  background: white;
+  border-radius: 10px;
+  padding: 16px 18px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+}
+.stat-card .sc-label { font-size: 11px; color: var(--gray-500); font-weight: 600; letter-spacing: 0.5px; margin-bottom: 6px; }
+.stat-card .sc-value { font-size: 26px; font-weight: 700; color: var(--gray-800); line-height: 1; }
+.stat-card .sc-sub { font-size: 12px; color: var(--gray-500); margin-top: 4px; }
+.stat-card.purple .sc-value { color: #7c3aed; }
+.stat-card.orange .sc-value { color: #d97706; }
+.stat-card.green .sc-value { color: #059669; }
+.stat-card.blue .sc-value { color: #2563eb; }
+
+/* ── Warning Banner ── */
+.warn-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #fef3c7;
+  border-left: 4px solid #d97706;
+  border-radius: 6px;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: #78350f;
+  margin-bottom: 16px;
+}
+
+/* ── Results Table ── */
+.result-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+.result-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--gray-100);
+}
+.result-card-header h3 { font-size: 14px; font-weight: 600; }
+.result-card-header .rch-meta { font-size: 12px; color: var(--gray-500); }
+
+.result-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.result-table th {
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--gray-500);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  background: var(--gray-50);
+  border-bottom: 1px solid var(--gray-100);
+}
+.result-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--gray-100);
+  vertical-align: middle;
+}
+.result-table tr:last-child td { border-bottom: none; }
+.result-table tr:hover td { background: var(--gray-50); }
+
+/* Type Badge */
+.type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.type-badge.uncollected { background: #ede9fe; color: #5b21b6; }
+.type-badge.return { background: #fef3c7; color: #92400e; }
+
+/* Order ID + Copy */
+.order-id-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.order-id {
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gray-800);
+  letter-spacing: 0.3px;
+}
+.btn-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border: 1px solid var(--gray-200);
+  border-radius: 6px;
+  background: white;
+  color: var(--gray-600);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.btn-copy:hover { border-color: #7c3aed; color: #7c3aed; }
+.btn-copy.copied { border-color: #059669; color: #059669; background: #ecfdf5; }
+
+/* Claim Amount */
+.claim-amount {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--gray-800);
+}
+.claim-amount.capped { color: #d97706; }
+.claim-amount.full { color: #059669; }
+
+/* Fee Detail */
+.fee-detail { font-size: 12px; color: var(--gray-500); margin-top: 2px; }
+
+/* Row Number */
+.row-num {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--gray-100);
+  color: var(--gray-500);
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.row-num.uncollected { background: #ede9fe; color: #5b21b6; }
+.row-num.return { background: #fef3c7; color: #92400e; }
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--gray-400);
+}
+.empty-state .es-icon { font-size: 40px; margin-bottom: 12px; }
+.empty-state p { font-size: 14px; }
+
+/* Section divider in table */
+.section-divider td {
+  background: var(--gray-50) !important;
+  padding: 6px 14px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--gray-500);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  border-top: 1px solid var(--gray-200);
+}
+
+/* Copy All buttons */
+.copy-all-wrap {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 12px 20px;
+  border-top: 1px solid var(--gray-100);
+  background: var(--gray-50);
+}
+.btn-copy-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.15s;
+}
+.btn-copy-all.purple { background: #ede9fe; color: #5b21b6; }
+.btn-copy-all.purple:hover { background: #7c3aed; color: white; }
+.btn-copy-all.orange { background: #fef3c7; color: #92400e; }
+.btn-copy-all.orange:hover { background: #d97706; color: white; }
+.btn-copy-all.gray { background: var(--gray-200); color: var(--gray-700); }
+.btn-copy-all.gray:hover { background: var(--gray-700); color: white; }
+
+/* Mobile */
+@media (max-width: 640px) {
+  .summary-grid { grid-template-columns: repeat(2, 1fr); }
+  .result-table th:nth-child(4), .result-table td:nth-child(4) { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── SIDEBAR ── -->
+<div id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand">飛比特 Feebit</div>
+    <div class="sub">營運工具箱</div>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">總覽</div>
+    <a class="nav-item" href="index.html"><span class="icon">🏠</span> 首頁</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">財務</div>
+    <a class="nav-item" href="bank-converter.html"><span class="icon">🏦</span> 帳務轉換</a>
+    <a class="nav-item" href="accounting-ops.html"><span class="icon">📅</span> 例行帳務作業</a>
+    <a class="nav-item active" href="shopee-subsidy.html"><span class="icon">🚚</span> 蝦皮運費補助</a>
+    <a class="nav-item" href="finance-dashboard.html"><span class="icon">📊</span> 帳務分析</a>
+    <a class="nav-item" href="coupang-invoice.html"><span class="icon">🧾</span> 酷澎發票轉檔</a>
+    <a class="nav-item" href="coupang-reconcile.html"><span class="icon">🔍</span> 酷澎商城對帳</a>
+    <a class="nav-item" href="shopee-converter.html"><span class="icon">🛒</span> 蝦皮撥款轉換</a>
+    <a class="nav-item" href="profit-calculator.html"><span class="icon">💰</span> 毛利試算機</a>
+    <a class="nav-item" href="brand-sales.html"><span class="icon">📈</span> 品牌銷售分析</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">行銷</div>
+    <div class="nav-item soon"><span class="icon">📢</span> 廣告文案<span class="soon-tag">即將推出</span></div>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">客服</div>
+    <div class="nav-item soon"><span class="icon">💬</span> 客服回覆<span class="soon-tag">即將推出</span></div>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">業務</div>
+    <div class="nav-item soon"><span class="icon">🤝</span> 廠商談判<span class="soon-tag">即將推出</span></div>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">人事</div>
+    <a class="nav-item" href="attendance.html"><span class="icon">🗓️</span> 考勤查驗</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">庫存</div>
+    <a class="nav-item" href="stock-analysis.html"><span class="icon">📦</span> 庫存訂貨分析</a>
+    <a class="nav-item" href="slow-mover-alert.html"><span class="icon">🔴</span> 滯銷品警示</a>
+    <a class="nav-item" href="feebit-inventory-filter.html"><span class="icon">🏪</span> 商品篩選工具</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">研發</div>
+    <a class="nav-item" href="research-notes.html"><span class="icon">📚</span> 研發筆記</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">法規</div>
+    <a class="nav-item" href="http://127.0.0.1:5050" target="_blank"><span class="icon">📋</span> PIF Builder</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">生活</div>
+    <a class="nav-item" href="travel-planner.html"><span class="icon">✈️</span> 旅行規劃</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">系統</div>
+    <a class="nav-item" href="tools.html"><span class="icon">🔧</span> 使用工具</a>
+  </div>
+  <div class="sidebar-footer">v1.0 · Feebit © 2026</div>
+</div>
+<div id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<!-- ── MAIN ── -->
+<div id="main">
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:8px">
+      <button class="btn-hamburger" onclick="openSidebar()">☰</button>
+      <span class="topbar-title">蝦皮運費補助申請</span>
+      <span class="topbar-badge" style="background:#7c3aed">財務工具</span>
+      <span style="font-size:11px;color:var(--gray-400);margin-left:4px">v1.0</span>
+    </div>
+    <button class="btn-share" onclick="copyShare(this)" title="複製分享連結">🔗 分享</button>
+  </div>
+
+  <div class="page">
+
+    <!-- Upload -->
+    <div class="upload-zone" id="dropzone" onclick="document.getElementById('fileInput').click()"
+         ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
+      <input type="file" id="fileInput" accept=".xlsx,.xls" onchange="onFileChange(event)">
+      <div class="uz-icon">📂</div>
+      <h3>上傳蝦皮錢包報表</h3>
+      <p>將 my_balance_transaction_report.shopee.*.xlsx 拖曳至此，或點擊選擇檔案</p>
+      <div class="btn-upload-file">選擇 Excel 檔案</div>
+    </div>
+
+    <!-- Results Area -->
+    <div id="results" style="display:none">
+
+      <!-- Summary -->
+      <div class="summary-grid" id="summaryGrid"></div>
+
+      <!-- Over-limit warning -->
+      <div class="warn-banner" id="limitWarn" style="display:none">
+        <span style="font-size:18px">⚠️</span>
+        <span id="limitWarnText"></span>
+      </div>
+
+      <!-- Table -->
+      <div class="result-card">
+        <div class="result-card-header">
+          <h3>申請清單（依優先順序排列，最多 30 筆）</h3>
+          <span class="rch-meta" id="tableMetaText"></span>
+        </div>
+        <table class="result-table">
+          <thead>
+            <tr>
+              <th style="width:40px">#</th>
+              <th>訂單編號</th>
+              <th>申請類型</th>
+              <th>費用明細</th>
+              <th style="width:100px;text-align:right">申請金額</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+        <div class="copy-all-wrap" id="copyAllWrap"></div>
+      </div>
+
+      <!-- Reset -->
+      <div style="text-align:center;margin-top:8px">
+        <button class="btn btn-outline" onclick="resetTool()" style="font-size:13px">
+          重新上傳另一份檔案
+        </button>
+      </div>
+    </div>
+
+  </div><!-- .page -->
+</div><!-- #main -->
+
+<!-- SheetJS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+
+/* ── Sidebar ── */
+function openSidebar() {
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('sidebar-overlay').style.display = 'block';
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').style.display = 'none';
+}
+
+/* ── Share ── */
+function copyShare(btn) {
+  const url = location.href.split('?')[0] + '?share=1';
+  navigator.clipboard.writeText(url).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = '已複製！';
+    setTimeout(() => btn.textContent = orig, 2000);
+  });
+}
+
+/* ── Drag & Drop ── */
+function onDragOver(e) {
+  e.preventDefault();
+  document.getElementById('dropzone').classList.add('dragover');
+}
+function onDragLeave(e) {
+  document.getElementById('dropzone').classList.remove('dragover');
+}
+function onDrop(e) {
+  e.preventDefault();
+  document.getElementById('dropzone').classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file) processFile(file);
+}
+function onFileChange(e) {
+  const file = e.target.files[0];
+  if (file) processFile(file);
+}
+
+/* ── Core Processing ── */
+function processFile(file) {
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+      const data = parseRows(rows);
+      renderResults(data);
+    } catch(err) {
+      alert('檔案解析失敗，請確認是否為蝦皮錢包報表 Excel 檔案。\n' + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function parseRows(rows) {
+  // Find header row containing '訂單編號'
+  let headerIdx = -1;
+  for (let i = 0; i < rows.length; i++) {
+    if (rows[i] && rows[i].some(c => c === '訂單編號')) {
+      headerIdx = i;
+      break;
+    }
+  }
+  if (headerIdx === -1) throw new Error('找不到欄位標題列（訂單編號）');
+
+  const headers = rows[headerIdx];
+  const colIdx = {
+    date:    headers.indexOf('交易日期'),
+    type:    headers.indexOf('交易類型'),
+    desc:    headers.indexOf('描述'),
+    orderId: headers.indexOf('訂單編號'),
+    dir:     headers.indexOf('進帳/支出'),
+    amount:  headers.indexOf('金額'),
+  };
+
+  const KEYWORDS = {
+    uncollected: '買家未取的出貨運費',
+    returnShip:  '退貨退款的退貨運費',
+    outShip:     '退貨退款的出貨運費',
+  };
+
+  // Collect relevant rows
+  const relevantRows = [];
+  for (let i = headerIdx + 1; i < rows.length; i++) {
+    const r = rows[i];
+    if (!r || !r[colIdx.orderId]) continue;
+    const desc = String(r[colIdx.desc] || '');
+    const dir  = String(r[colIdx.dir]  || '');
+    const type = String(r[colIdx.type] || '');
+    if (type !== '帳款調整' || dir !== '支出') continue;
+
+    let feeType = null;
+    if (desc.includes(KEYWORDS.uncollected)) feeType = 'uncollected';
+    else if (desc.includes(KEYWORDS.returnShip)) feeType = 'returnShip';
+    else if (desc.includes(KEYWORDS.outShip))   feeType = 'outShip';
+    if (!feeType) continue;
+
+    relevantRows.push({
+      orderId: String(r[colIdx.orderId]).trim(),
+      feeType,
+      amount:  Math.abs(Number(r[colIdx.amount]) || 0),
+    });
+  }
+
+  // Group by orderId
+  const orderMap = {};
+  for (const row of relevantRows) {
+    if (!orderMap[row.orderId]) {
+      orderMap[row.orderId] = { orderId: row.orderId, uncollected: 0, returnShip: 0, outShip: 0 };
+    }
+    orderMap[row.orderId][row.feeType] += row.amount;
+  }
+
+  // Calculate claim per order
+  const MAX_PER_ORDER = 60;
+  const orders = Object.values(orderMap).map(o => {
+    const hasUncollected = o.uncollected > 0;
+    let mainType, detailParts, rawTotal, claimAmt;
+
+    if (hasUncollected) {
+      mainType    = 'uncollected';
+      rawTotal    = o.uncollected;
+      claimAmt    = Math.min(rawTotal, MAX_PER_ORDER);
+      detailParts = [`未取 $${o.uncollected}`];
+    } else {
+      mainType    = 'return';
+      rawTotal    = o.returnShip + o.outShip;
+      claimAmt    = Math.min(rawTotal, MAX_PER_ORDER);
+      detailParts = [];
+      if (o.returnShip > 0) detailParts.push(`退貨運費 $${o.returnShip}`);
+      if (o.outShip    > 0) detailParts.push(`出貨運費 $${o.outShip}`);
+    }
+
+    return {
+      orderId: o.orderId,
+      mainType,
+      detailParts,
+      rawTotal,
+      claimAmt,
+      capped: rawTotal > MAX_PER_ORDER,
+    };
+  });
+
+  // Sort: uncollected first, then by claimAmt desc
+  orders.sort((a, b) => {
+    if (a.mainType === 'uncollected' && b.mainType !== 'uncollected') return -1;
+    if (a.mainType !== 'uncollected' && b.mainType === 'uncollected') return 1;
+    return b.claimAmt - a.claimAmt;
+  });
+
+  return orders;
+}
+
+/* ── Render ── */
+function renderResults(allOrders) {
+  const MAX_APPLY = 30;
+  const applyOrders = allOrders.slice(0, MAX_APPLY);
+  const uncollectedOrders = applyOrders.filter(o => o.mainType === 'uncollected');
+  const returnOrders      = applyOrders.filter(o => o.mainType === 'return');
+  const totalClaim        = applyOrders.reduce((s, o) => s + o.claimAmt, 0);
+  const skippedCount      = allOrders.length - applyOrders.length;
+
+  // Summary
+  const sg = document.getElementById('summaryGrid');
+  sg.innerHTML = `
+    <div class="stat-card blue">
+      <div class="sc-label">可申請訂單</div>
+      <div class="sc-value">${allOrders.length}</div>
+      <div class="sc-sub">本月共 ${allOrders.length} 筆符合</div>
+    </div>
+    <div class="stat-card purple">
+      <div class="sc-label">未取運費</div>
+      <div class="sc-value">${uncollectedOrders.length}</div>
+      <div class="sc-sub">優先申請</div>
+    </div>
+    <div class="stat-card orange">
+      <div class="sc-label">退貨退款運費</div>
+      <div class="sc-value">${returnOrders.length}</div>
+      <div class="sc-sub">退貨運費補助</div>
+    </div>
+    <div class="stat-card green">
+      <div class="sc-label">總申請金額</div>
+      <div class="sc-value">$${totalClaim}</div>
+      <div class="sc-sub">${applyOrders.length} 筆 × 上限 $60</div>
+    </div>
+  `;
+
+  // Warning if over 30
+  const lw = document.getElementById('limitWarn');
+  if (skippedCount > 0) {
+    document.getElementById('limitWarnText').textContent =
+      `共 ${allOrders.length} 筆符合資格，本月商城上限 30 筆，已略過末 ${skippedCount} 筆（依優先順序排列，未取優先）`;
+    lw.style.display = 'flex';
+  } else {
+    lw.style.display = 'none';
+  }
+
+  // Table
+  document.getElementById('tableMetaText').textContent =
+    `共 ${applyOrders.length} 筆 · 總計 $${totalClaim}`;
+
+  const tbody = document.getElementById('tableBody');
+  tbody.innerHTML = '';
+
+  let lastType = null;
+  applyOrders.forEach((o, idx) => {
+    // Section divider
+    if (o.mainType !== lastType) {
+      const divRow = document.createElement('tr');
+      divRow.className = 'section-divider';
+      divRow.innerHTML = `<td colspan="5">${o.mainType === 'uncollected' ? '🟣 未取運費（優先申請）' : '🟡 退貨退款運費'}</td>`;
+      tbody.appendChild(divRow);
+      lastType = o.mainType;
+    }
+
+    const isUncollected = o.mainType === 'uncollected';
+    const badgeClass    = isUncollected ? 'uncollected' : 'return';
+    const badgeText     = isUncollected ? '未取運費' : '退貨退款';
+    const amtClass      = o.capped ? 'capped' : (o.claimAmt === 60 ? 'full' : '');
+    const detailStr     = o.detailParts.join(' + ') + (o.capped ? ` → 上限 $60` : '');
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><div class="row-num ${badgeClass}">${idx + 1}</div></td>
+      <td>
+        <div class="order-id-wrap">
+          <span class="order-id">${escHtml(o.orderId)}</span>
+          <button class="btn-copy" onclick="copyOrderId(this, '${escHtml(o.orderId)}')">複製</button>
+        </div>
+      </td>
+      <td><span class="type-badge ${badgeClass}">${badgeText}</span></td>
+      <td><span class="fee-detail">${detailStr}</span></td>
+      <td style="text-align:right">
+        <span class="claim-amount ${amtClass}">$${o.claimAmt}</span>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  // Copy All buttons
+  const copyWrap = document.getElementById('copyAllWrap');
+  copyWrap.innerHTML = '';
+  if (uncollectedOrders.length > 0) {
+    const btn = document.createElement('button');
+    btn.className = 'btn-copy-all purple';
+    btn.textContent = `複製全部未取訂單（${uncollectedOrders.length} 筆）`;
+    btn.onclick = () => copyAllIds(uncollectedOrders, btn);
+    copyWrap.appendChild(btn);
+  }
+  if (returnOrders.length > 0) {
+    const btn = document.createElement('button');
+    btn.className = 'btn-copy-all orange';
+    btn.textContent = `複製全部退貨訂單（${returnOrders.length} 筆）`;
+    btn.onclick = () => copyAllIds(returnOrders, btn);
+    copyWrap.appendChild(btn);
+  }
+  if (applyOrders.length > 0) {
+    const btn = document.createElement('button');
+    btn.className = 'btn-copy-all gray';
+    btn.textContent = `複製全部 ${applyOrders.length} 筆`;
+    btn.onclick = () => copyAllIds(applyOrders, btn);
+    copyWrap.appendChild(btn);
+  }
+
+  // Show results
+  document.getElementById('dropzone').style.display = 'none';
+  document.getElementById('results').style.display = 'block';
+}
+
+function copyOrderId(btn, id) {
+  navigator.clipboard.writeText(id).then(() => {
+    btn.textContent = '已複製！';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = '複製';
+      btn.classList.remove('copied');
+    }, 1800);
+  });
+}
+
+function copyAllIds(orders, btn) {
+  const text = orders.map(o => o.orderId).join('\n');
+  navigator.clipboard.writeText(text).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = '已複製！';
+    setTimeout(() => btn.textContent = orig, 2000);
+  });
+}
+
+function resetTool() {
+  document.getElementById('dropzone').style.display = 'block';
+  document.getElementById('results').style.display = 'none';
+  document.getElementById('fileInput').value = '';
+}
+
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+</script>
+</body>
+</html>
