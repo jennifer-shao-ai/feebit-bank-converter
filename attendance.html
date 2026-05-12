@@ -383,14 +383,18 @@ select.inline-sel:focus{border-color:var(--primary);}
     <div id="vfy-summary"></div>
     <div style="margin-top:20px;padding:12px 16px;background:#f8fafc;border:1px solid var(--gray-200);border-radius:8px;font-size:12px;color:var(--gray-600);line-height:1.8;">
       <strong style="color:var(--gray-700);display:block;margin-bottom:6px;">📋 考勤評分說明（滿分 100 分）</strong>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:4px 24px;">
-        <span>⏰ 遲到 1 次：<strong style="color:var(--warning);">－3 分</strong></span>
-        <span>🚪 早退 1 次：<strong style="color:var(--warning);">－3 分</strong></span>
-        <span>❓ 缺刷卡 1 次：<strong style="color:var(--danger);">－5 分</strong></span>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:4px 24px;">
+        <span>⏰ 遲到 1–10 分：<strong style="color:var(--warning);">－1 分</strong></span>
+        <span>⏰ 遲到 11–30 分：<strong style="color:var(--warning);">－2 分</strong></span>
+        <span>⏰ 遲到 31 分+：<strong style="color:var(--warning);">－3 分</strong></span>
+        <span>⏰ 第 3 次遲到起每次額外：<strong style="color:var(--warning);">－1 分</strong></span>
+        <span>⏰ 第 5 次遲到起每次額外：<strong style="color:var(--warning);">－2 分</strong></span>
+        <span>🚪 早退 1 次：<strong style="color:var(--warning);">－2 分</strong></span>
+        <span>❓ 缺刷卡（前 2 次）：<strong style="color:var(--danger);">－1 分</strong></span>
+        <span>❓ 缺刷卡（第 3 次起）：<strong style="color:var(--danger);">－2 分</strong></span>
         <span>🚫 缺勤 1 天：<strong style="color:var(--danger);">－10 分</strong></span>
-        <span>📋 請假 1 天：<strong style="color:var(--gray-500);">－1 分</strong></span>
-        <span>🎯 加班申請：<strong style="color:var(--success);">不扣分</strong></span>
-        <span>✅ 特休 / 公假 / 生理假 / 排班調整：<strong style="color:var(--success);">不扣分</strong></span>
+        <span>📋 請假（提前申請）1 天：<strong style="color:var(--gray-500);">－0.5 分</strong></span>
+        <span>✅ 特休 / 公假 / 生理假 / 排班調整 / 補休：<strong style="color:var(--success);">不扣分</strong></span>
       </div>
       <div style="margin-top:6px;color:var(--gray-400);font-size:11px;">遲到寬限分鐘內不計；最低 0 分，最高 100 分。</div>
     </div>
@@ -1032,8 +1036,9 @@ function analyzeEmployee(empId, month){
 
   const rows=[];
   let totalDays=0, totalHours=0, lateCount=0, earlyCount=0, missingCount=0, absentCount=0;
+  const lateMinutesList=[];
   const leaveBreakdown={};
-  const NO_DEDUCT_LEAVES=['公假','生理假','特休','排班調整'];
+  const NO_DEDUCT_LEAVES=['公假','生理假','特休','排班調整','補休'];
   empLeaves.filter(l=>!NO_DEDUCT_LEAVES.includes(l.type)).forEach(l=>{
     const lr=recMap[l.date];
     const hasActualPunch=lr&&lr.clockIn&&lr.clockOut;
@@ -1102,10 +1107,10 @@ function analyzeEmployee(empId, month){
         const sInM=toMins(sStart), sOutM=toMins(sEnd);
         const lateDeadline=sInM+(emp.lateGrace??30);
         const dayLeave=isLeave?empLeaves.find(l=>l.date===date):null;
-        const isHalfDayLeave=!!dayLeave&&(dayLeave.hours??0)<=4;
-        if(sInM!==null&&inM>lateDeadline){ lateMin=inM-lateDeadline; status.push('遲到 '+lateMin+' 分'); rowClass='row-late'; lateCount++; }
-        if((!isPT||sch)&&sOutM!==null&&outM<sOutM-(emp.earlyGrace??0)&&override!=='免早退'&&!isHalfDayLeave){ earlyMin=sOutM-outM; status.push('早退 '+earlyMin+' 分'); if(!rowClass||rowClass==='row-ok') rowClass='row-early'; earlyCount++; }
-        if(isHalfDayLeave&&dayLeave){ status.push('半天'+dayLeave.type); if(!rowClass) rowClass='row-ok'; }
+        // 有請假紀錄且當天有打卡 → 早退由請假涵蓋，不計入早退
+        if(sInM!==null&&inM>lateDeadline){ lateMin=inM-lateDeadline; status.push('遲到 '+lateMin+' 分'); rowClass='row-late'; lateCount++; lateMinutesList.push(lateMin); }
+        if((!isPT||sch)&&sOutM!==null&&outM<sOutM-(emp.earlyGrace??0)&&override!=='免早退'&&!dayLeave){ earlyMin=sOutM-outM; status.push('早退 '+earlyMin+' 分'); if(!rowClass||rowClass==='row-ok') rowClass='row-early'; earlyCount++; }
+        if(dayLeave){ const lbl=(dayLeave.hours??8)<=4?'半天'+dayLeave.type:dayLeave.type; status.push(lbl); if(!rowClass) rowClass='row-ok'; }
         if(!status.length){ status=['正常']; rowClass='row-ok'; }
         hours=calcWorkHours(rec.clockIn,rec.clockOut,emp);
         totalHours+=hours;
@@ -1117,7 +1122,7 @@ function analyzeEmployee(empId, month){
 
   const expectedWork=expected.length; // 應出勤 = 工作日總數，不扣請假
   return {emp,rows,totalDays,totalHours:fmt(totalHours),lateCount,earlyCount,missingCount,absentCount,
-    totalOT,leaveBreakdown,expectedWork,
+    totalOT,leaveBreakdown,expectedWork,lateMinutesList,
     leaveTotal:fmt(Object.values(leaveBreakdown).reduce((a,b)=>a+b,0),1)};
 }
 
@@ -1154,12 +1159,21 @@ function setOverride(m,empId,date,val){
 function calcScore(empId, month){
   const r=analyzeEmployee(empId,month); if(!r) return 100;
   let s=100;
-  s-=r.lateCount*3;
-  s-=r.earlyCount*3;
-  s-=r.missingCount*5;
+  // 遲到：依分鐘段基礎扣分，第3次起額外-1，第5次起額外-2
+  (r.lateMinutesList||[]).forEach((mins,idx)=>{
+    const base=mins<=10?1:mins<=30?2:3;
+    const extra=idx>=4?2:idx>=2?1:0;
+    s-=(base+extra);
+  });
+  // 早退 -2/次
+  s-=r.earlyCount*2;
+  // 缺刷卡：前2次各-1，第3次起各-2
+  for(let i=0;i<r.missingCount;i++) s-=i>=2?2:1;
+  // 缺勤 -10/天
   s-=r.absentCount*10;
+  // 請假 -0.5/天（不扣分假別已在 leaveBreakdown 排除）
   const leaveTotal=Object.values(r.leaveBreakdown||{}).reduce((a,b)=>a+b,0);
-  s-=leaveTotal; // 每請假1天扣1分，公假不計（公假不進leaveBreakdown）
+  s-=leaveTotal*0.5;
   return Math.max(0,Math.min(100,Math.round(s*10)/10));
 }
 
