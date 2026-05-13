@@ -119,7 +119,7 @@ a.home-card { text-decoration: none; color: inherit; }
       <span class="icon">🔍</span> 酷澎商城對帳
     </a>
     <a class="nav-item" href="shopee-subsidy.html" id="nav-subsidy">
-      <span class="icon">🚚</span> 蝦皮運費補助
+      <span class="icon">🚚</span> 蝦皮運費補助申請
     </a>
     <a class="nav-item" href="shopee-converter.html" id="nav-shopee">
       <span class="icon">🛒</span> 蝦皮撥款轉換
@@ -217,8 +217,7 @@ a.home-card { text-decoration: none; color: inherit; }
       <span class="topbar-title" id="topbar-title">首頁</span>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
-      <button id="share-btn" style="display:none;padding:4px 12px;font-size:12px;cursor:pointer;border:1px solid var(--gray-200);border-radius:var(--radius);background:white" onclick="shareLink()">🔗 分享連結</button>
-      <span class="topbar-badge" id="topbar-badge">飛比特營運工具箱</span>
+<span class="topbar-badge" id="topbar-badge">飛比特營運工具箱</span>
     </div>
   </div>
 
@@ -376,15 +375,6 @@ function navigate(page) {
   history.replaceState(null, '', location.pathname);
   window.scrollTo(0, 0);
   if (window.innerWidth <= 768) closeSidebar();
-}
-function shareLink() {
-  const url = location.origin + location.pathname + location.hash;
-  navigator.clipboard.writeText(url).then(() => {
-    const btn = document.getElementById('share-btn');
-    const orig = btn.textContent;
-    btn.textContent = '✅ 已複製';
-    setTimeout(() => { btn.textContent = orig; }, 2000);
-  });
 }
 function toggleSidebar() {
   document.getElementById('sidebar').classList.toggle('open');
