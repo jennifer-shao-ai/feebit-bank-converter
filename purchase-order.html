@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>採購單轉換 · 飛比特營運工具箱</title>
+<link rel="icon" href="favicon.svg">
+<script>if(location.search.includes("share"))document.documentElement.classList.add("standalone");</script>
+<link rel="stylesheet" href="style.css">
+<style>
+.upload-zone{border:2px dashed var(--gray-300);border-radius:var(--radius);padding:28px 24px;text-align:center;cursor:pointer;transition:all .2s;background:#fff}
+.upload-zone.drag-over{border-color:var(--primary);background:var(--primary-light)}
+.upload-zone .uz-icon{font-size:36px;margin-bottom:6px}
+.upload-zone p{color:var(--gray-600);font-size:13px;margin-top:4px}
+.upload-zone .uz-hint{font-size:11px;color:var(--gray-400);margin-top:4px}
+
+.po-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:4px}
+.form-group{display:flex;flex-direction:column;gap:4px}
+.form-group label{font-size:11px;font-weight:600;color:var(--gray-600)}
+.form-group input,.form-group select{padding:7px 10px;border:1px solid var(--gray-200);border-radius:6px;font-size:13px;font-family:inherit}
+.form-group input:focus,.form-group select:focus{outline:none;border-color:var(--primary)}
+
+.result-table{width:100%;border-collapse:collapse;font-size:13px}
+.result-table th{background:var(--gray-100);padding:8px 10px;text-align:left;font-size:11px;font-weight:600;color:var(--gray-600);border-bottom:1px solid var(--gray-200);white-space:nowrap}
+.result-table td{padding:7px 10px;border-bottom:1px solid var(--gray-100);vertical-align:middle}
+.result-table tr:hover td{background:var(--gray-50)}
+.row-matched td{background:#f0fdf4}
+.row-unmatched td{background:#fff7ed}
+.match-badge{display:inline-block;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:600;white-space:nowrap}
+.badge-auto{background:#dcfce7;color:var(--success)}
+.badge-memory{background:#dbeafe;color:var(--primary)}
+.badge-manual{background:#fef9c3;color:var(--warning)}
+.badge-none{background:#fee2e2;color:var(--danger)}
+
+.product-select{min-width:180px;max-width:260px;padding:5px 8px;border:1px solid var(--gray-200);border-radius:5px;font-size:12px;font-family:inherit}
+.cell-input{width:74px;text-align:right;border:1px solid var(--gray-200);border-radius:4px;padding:3px 6px;font-size:12px;font-family:inherit}
+
+.action-bar{display:flex;gap:10px;margin-top:16px;align-items:center;flex-wrap:wrap}
+.status-hint{font-size:12px;color:var(--gray-500)}
+
+.mapping-table{width:100%;border-collapse:collapse;font-size:13px}
+.mapping-table th{background:var(--gray-100);padding:8px 10px;text-align:left;font-size:11px;font-weight:600;color:var(--gray-600);border-bottom:1px solid var(--gray-200)}
+.mapping-table td{padding:7px 10px;border-bottom:1px solid var(--gray-100)}
+
+.settings-group{margin-bottom:24px}
+.settings-group h3{font-size:13px;font-weight:700;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--gray-200)}
+.setting-row{display:grid;grid-template-columns:150px 1fr;align-items:start;gap:12px;margin-bottom:12px}
+.setting-row label{font-size:13px;font-weight:500;padding-top:8px}
+.setting-row input{padding:7px 10px;border:1px solid var(--gray-200);border-radius:6px;font-size:13px;font-family:inherit;width:100%;max-width:420px}
+.setting-row input:focus{outline:none;border-color:var(--primary)}
+.key-hint{font-size:11px;color:var(--gray-400);margin-top:3px}
+
+.text-input-area{width:100%;height:110px;padding:10px;border:1px solid var(--gray-200);border-radius:6px;font-size:13px;font-family:inherit;resize:vertical;margin-top:10px}
+.text-input-area:focus{outline:none;border-color:var(--primary)}
+
+#loading-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:999;align-items:center;justify-content:center;flex-direction:column;gap:16px}
+#loading-overlay.show{display:flex}
+.spinner{width:38px;height:38px;border:4px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-msg{color:#fff;font-size:14px;font-weight:600}
+
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--gray-800);color:#fff;padding:11px 20px;border-radius:8px;font-size:13px;z-index:1000;transition:transform .25s;white-space:nowrap;pointer-events:none}
+#toast.show{transform:translateX(-50%) translateY(0)}
+#toast.success{background:var(--success)}
+#toast.error{background:var(--danger)}
+
+.btn-sm{padding:4px 10px;font-size:11px;border-radius:5px}
+.divider{text-align:center;color:var(--gray-400);font-size:12px;margin:8px 0}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<div id="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand">飛比特 Feebit</div>
+    <div class="sub">營運工具箱</div>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">總覽</div>
+    <a class="nav-item" href="index.html"><span class="icon">🏠</span> 首頁</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">財務</div>
+    <a class="nav-item" href="bank-converter.html"><span class="icon">🏦</span> 帳務轉換</a>
+    <a class="nav-item" href="accounting-ops.html"><span class="icon">📅</span> 例行帳務作業</a>
+    <a class="nav-item" href="finance-dashboard.html"><span class="icon">📊</span> 帳務分析</a>
+    <a class="nav-item" href="coupang-invoice.html"><span class="icon">🧾</span> 酷澎發票轉檔</a>
+    <a class="nav-item" href="coupang-reconcile.html"><span class="icon">🔍</span> 酷澎商城對帳</a>
+    <a class="nav-item" href="shopee-converter.html"><span class="icon">🛒</span> 蝦皮撥款轉換</a>
+    <a class="nav-item" href="profit-calculator.html"><span class="icon">💰</span> 毛利試算機</a>
+    <a class="nav-item" href="brand-sales.html"><span class="icon">📈</span> 品牌銷售分析</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">行銷</div>
+    <div class="nav-item soon"><span class="icon">📢</span> 廣告文案<span class="soon-tag">即將推出</span></div>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">客服</div>
+    <div class="nav-item soon"><span class="icon">💬</span> 客服回覆<span class="soon-tag">即將推出</span></div>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">業務</div>
+    <a class="nav-item active" href="purchase-order.html"><span class="icon">📋</span> 採購單轉換</a>
+    <div class="nav-item soon"><span class="icon">🤝</span> 廠商談判<span class="soon-tag">即將推出</span></div>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">人事</div>
+    <a class="nav-item" href="attendance.html"><span class="icon">🗓️</span> 考勤查驗</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">庫存</div>
+    <a class="nav-item" href="stock-analysis.html"><span class="icon">📦</span> 庫存訂貨分析</a>
+    <a class="nav-item" href="slow-mover-alert.html"><span class="icon">🔴</span> 滯銷品警示</a>
+    <a class="nav-item" href="feebit-inventory-filter.html"><span class="icon">🏪</span> 商品篩選工具</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">研發</div>
+    <a class="nav-item" href="research-notes.html"><span class="icon">📚</span> 研發筆記</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">法規</div>
+    <a class="nav-item" href="http://127.0.0.1:5050" target="_blank"><span class="icon">📋</span> PIF Builder</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">生活</div>
+    <a class="nav-item" href="travel-planner.html"><span class="icon">✈️</span> 旅行規劃</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">系統</div>
+    <a class="nav-item" href="tools.html"><span class="icon">🔧</span> 使用工具</a>
+  </div>
+  <div class="sidebar-footer">v1.0 · Feebit © 2026</div>
+</div>
+
+<div id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<!-- MAIN -->
+<div id="main">
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:10px">
+      <button class="hamburger" onclick="openSidebar()">☰</button>
+      <span class="topbar-title">採購單轉換</span>
+      <span class="topbar-badge">v1.0</span>
+    </div>
+    <button class="btn-share" onclick="syncProducts()" title="強制重新載入 Ragic 商品清單">↻ 更新商品庫</button>
+  </div>
+
+  <div class="page">
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchTab('convert')">轉換</button>
+      <button class="tab-btn" onclick="switchTab('mapping')">對應紀錄</button>
+      <button class="tab-btn" onclick="switchTab('settings')">⚙ 設定</button>
+    </div>
+
+    <!-- ── 轉換 Tab ── -->
+    <div id="tab-convert" class="tab-pane active">
+
+      <div class="card">
+        <div class="card-title">上傳廠商 Invoice</div>
+        <div id="upload-zone" class="upload-zone"
+             ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)"
+             onclick="document.getElementById('file-input').click()">
+          <div class="uz-icon">📄</div>
+          <p><strong>拖曳檔案到此處</strong>，或點擊選擇</p>
+          <p class="uz-hint">支援：JPG / PNG 圖片、Excel（.xlsx .xls）</p>
+          <input type="file" id="file-input" accept=".jpg,.jpeg,.png,.xlsx,.xls" style="display:none" onchange="handleFileSelect(event)">
+        </div>
+        <div class="divider">— 或貼上文字 —</div>
+        <textarea id="text-input" class="text-input-area" placeholder="貼上 invoice 文字內容（品名清單、CSV 或表格文字均可）&#10;&#10;例：Heimish Cleansing Balm 120ml  ×80  @277"></textarea>
+        <div style="margin-top:12px;display:flex;gap:10px;align-items:center">
+          <button class="btn btn-primary" onclick="parseInvoice()">解析 Invoice</button>
+          <span id="file-label" style="font-size:12px;color:var(--gray-500)"></span>
+        </div>
+      </div>
+
+      <!-- 採購單基本資訊（解析後才顯示） -->
+      <div class="card" id="po-info-card" style="display:none">
+        <div class="card-title">採購單基本資訊</div>
+        <div class="po-grid">
+          <div class="form-group">
+            <label>廠商編號</label>
+            <input type="text" id="po-vendor-code" placeholder="例：KR004">
+          </div>
+          <div class="form-group">
+            <label>廠商名稱</label>
+            <input type="text" id="po-vendor-name" placeholder="例：Style Korean">
+          </div>
+          <div class="form-group">
+            <label>採購日期</label>
+            <input type="date" id="po-date">
+          </div>
+          <div class="form-group">
+            <label>預計到貨日</label>
+            <input type="date" id="po-arrival">
+          </div>
+          <div class="form-group">
+            <label>採購人員</label>
+            <input type="text" id="po-person">
+          </div>
+          <div class="form-group">
+            <label>備註</label>
+            <input type="text" id="po-note" placeholder="選填">
+          </div>
+        </div>
+      </div>
+
+      <!-- 商品明細結果 -->
+      <div class="card" id="result-card" style="display:none">
+        <div class="card-title" style="justify-content:space-between">
+          <span>商品明細</span>
+          <span id="match-summary" style="font-size:12px;color:var(--gray-500);font-weight:400"></span>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="result-table">
+            <thead>
+              <tr>
+                <th>廠商品名</th>
+                <th>比對</th>
+                <th>對應商品（可修改）</th>
+                <th>商品代號</th>
+                <th>國際條碼</th>
+                <th>商品名稱</th>
+                <th style="text-align:right">單價(未稅)</th>
+                <th style="text-align:right">數量</th>
+                <th style="text-align:right">金額</th>
+              </tr>
+            </thead>
+            <tbody id="result-tbody"></tbody>
+          </table>
+        </div>
+        <div class="action-bar">
+          <button class="btn btn-success" onclick="copyTabFormat()">複製 Tab 格式</button>
+          <button class="btn btn-primary" onclick="createPurchaseOrder()">建採購單到 Ragic</button>
+          <button class="btn btn-outline" onclick="saveManualMappings()">儲存手動對應</button>
+          <span id="action-hint" class="status-hint"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── 對應紀錄 Tab ── -->
+    <div id="tab-mapping" class="tab-pane">
+      <div class="card">
+        <div class="card-title" style="justify-content:space-between">
+          <span>廠商品名對應紀錄</span>
+          <button class="btn btn-outline btn-sm" onclick="clearAllMappings()">清除全部</button>
+        </div>
+        <p style="font-size:12px;color:var(--gray-500);margin-bottom:14px">系統記住的廠商品名 ↔ 飛比特商品對應，下次解析會自動套用。</p>
+        <div id="mapping-container"></div>
+      </div>
+    </div>
+
+    <!-- ── 設定 Tab ── -->
+    <div id="tab-settings" class="tab-pane">
+      <div class="card">
+        <div class="settings-group">
+          <h3>API 金鑰（僅存在你的瀏覽器，不會上傳）</h3>
+          <div class="setting-row">
+            <label>Ragic API Token</label>
+            <div>
+              <input type="password" id="s-ragic-key" placeholder="貼上 Ragic API Token">
+              <div class="key-hint">Ragic 後台 → 右上角帳號 → API Access Token</div>
+            </div>
+          </div>
+          <div class="setting-row">
+            <label>Anthropic API Key</label>
+            <div>
+              <input type="password" id="s-claude-key" placeholder="sk-ant-api03-...">
+              <div class="key-hint">console.anthropic.com → API Keys，用於圖片辨識與文字解析</div>
+            </div>
+          </div>
+        </div>
+        <div class="settings-group">
+          <h3>預設值</h3>
+          <div class="setting-row">
+            <label>採購人員</label>
+            <input type="text" id="s-person" placeholder="Jennifer Shao">
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <button class="btn btn-primary" onclick="saveSettings()">儲存設定</button>
+          <span id="settings-ok" style="font-size:12px;color:var(--success)"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Loading -->
+<div id="loading-overlay">
+  <div class="spinner"></div>
+  <div class="loading-msg" id="loading-msg">處理中...</div>
+</div>
+<div id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+// ── 常數 ──
+const RAGIC_BASE   = 'https://ap13.ragic.com/feebit50968407';
+const PRODUCT_PATH = '/product/16';
+const PO_PATH      = '/ragicpurchasing/20003';
+const PO_SUBTABLE  = '_subtable_3001286';
+
+const LS_RAGIC    = 'fb_po_ragic_key';
+const LS_CLAUDE   = 'fb_po_claude_key';
+const LS_PERSON   = 'fb_po_person';
+const LS_PRODUCTS = 'fb_po_products';
+const LS_PROD_TS  = 'fb_po_products_ts';
+const LS_MAPPING  = 'fb_po_mapping';
+const CACHE_TTL   = 24 * 60 * 60 * 1000;
+
+let selectedFile = null;
+let products = [];
+
+// ── UI ──
+function switchTab(name) {
+  ['convert','mapping','settings'].forEach((n, i) => {
+    document.querySelectorAll('.tab-btn')[i].classList.toggle('active', n === name);
+    document.getElementById('tab-' + n).classList.toggle('active', n === name);
+  });
+  if (name === 'mapping') loadMappingTable();
+}
+
+function showLoading(msg) {
+  document.getElementById('loading-msg').textContent = msg || '處理中...';
+  document.getElementById('loading-overlay').classList.add('show');
+}
+function hideLoading() { document.getElementById('loading-overlay').classList.remove('show'); }
+
+function toast(msg, type) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show' + (type ? ' ' + type : '');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.className = '', 3000);
+}
+
+function openSidebar()  { document.getElementById('sidebar').classList.add('open'); document.getElementById('sidebar-overlay').classList.add('show'); }
+function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebar-overlay').classList.remove('show'); }
+
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function norm(s) { return String(s||'').toLowerCase().replace(/[^a-z0-9一-鿿가-힯]/g,''); }
+
+// ── 設定 ──
+function get(k, d='') { return localStorage.getItem(k) || d; }
+
+function saveSettings() {
+  const rk = document.getElementById('s-ragic-key').value.trim();
+  const ck = document.getElementById('s-claude-key').value.trim();
+  const p  = document.getElementById('s-person').value.trim();
+  if (rk) localStorage.setItem(LS_RAGIC, rk);
+  if (ck) localStorage.setItem(LS_CLAUDE, ck);
+  if (p)  localStorage.setItem(LS_PERSON, p);
+  const el = document.getElementById('settings-ok');
+  el.textContent = '✓ 已儲存';
+  setTimeout(() => el.textContent = '', 2000);
+}
+
+function initUI() {
+  const rk = get(LS_RAGIC), ck = get(LS_CLAUDE), p = get(LS_PERSON, 'Jennifer Shao');
+  if (rk) document.getElementById('s-ragic-key').value = rk;
+  if (ck) document.getElementById('s-claude-key').value = ck;
+  document.getElementById('s-person').value = p;
+  document.getElementById('po-person').value = p;
+  document.getElementById('po-date').value = new Date().toISOString().slice(0,10);
+}
+
+// ── 商品清單 ──
+async function getProducts() {
+  const ts = parseInt(localStorage.getItem(LS_PROD_TS) || '0');
+  const cached = localStorage.getItem(LS_PRODUCTS);
+  if (cached && Date.now() - ts < CACHE_TTL) return JSON.parse(cached);
+  return fetchProducts();
+}
+
+async function fetchProducts() {
+  const key = get(LS_RAGIC);
+  if (!key) throw new Error('請先在「設定」填入 Ragic API Token');
+  showLoading('載入商品清單...');
+  const url = `${RAGIC_BASE}${PRODUCT_PATH}?api&APIKey=${encodeURIComponent(key)}&limit=9999`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Ragic 商品 API 錯誤：${res.status}`);
+  const data = await res.json();
+  const list = Object.values(data)
+    .filter(r => r && typeof r === 'object')
+    .map(r => ({
+      code:    r['產品代號'] || '',
+      barcode: r['EAN13碼'] || r['國際條碼 (盒損不要填)'] || '',
+      name:    r['產品名稱'] || '',
+      vendor:  r['廠商代號'] || ''
+    }))
+    .filter(r => r.code && r.name);
+  localStorage.setItem(LS_PRODUCTS, JSON.stringify(list));
+  localStorage.setItem(LS_PROD_TS, Date.now().toString());
+  hideLoading();
+  return list;
+}
+
+async function syncProducts() {
+  try {
+    localStorage.removeItem(LS_PROD_TS);
+    products = await fetchProducts();
+    hideLoading();
+    toast(`商品庫已更新，共 ${products.length} 筆`, 'success');
+  } catch(e) { hideLoading(); toast(e.message, 'error'); }
+}
+
+// ── 對應表 ──
+function getMapping() {
+  try { return JSON.parse(localStorage.getItem(LS_MAPPING) || '{}'); } catch { return {}; }
+}
+function saveOneMapping(vendorName, p) {
+  const m = getMapping();
+  m[norm(vendorName)] = { vendorName, code: p.code, barcode: p.barcode, name: p.name };
+  localStorage.setItem(LS_MAPPING, JSON.stringify(m));
+}
+function removeMapping(k) {
+  const m = getMapping(); delete m[k];
+  localStorage.setItem(LS_MAPPING, JSON.stringify(m));
+  loadMappingTable();
+}
+function clearAllMappings() {
+  if (!confirm('確定清除全部對應紀錄？')) return;
+  localStorage.removeItem(LS_MAPPING); loadMappingTable();
+}
+function loadMappingTable() {
+  const m = getMapping(), keys = Object.keys(m);
+  const c = document.getElementById('mapping-container');
+  if (!keys.length) { c.innerHTML = '<p style="color:var(--gray-400);font-size:13px">尚無對應紀錄</p>'; return; }
+  let html = `<table class="mapping-table"><thead><tr>
+    <th>廠商品名</th><th>飛比特代號</th><th>飛比特品名</th><th></th>
+  </tr></thead><tbody>`;
+  for (const [k, v] of Object.entries(m)) {
+    html += `<tr><td>${esc(v.vendorName)}</td><td>${esc(v.code)}</td><td>${esc(v.name)}</td>
+    <td><button class="btn btn-outline btn-sm" onclick="removeMapping('${esc(k)}')">刪除</button></td></tr>`;
+  }
+  c.innerHTML = html + '</tbody></table>';
+}
+
+// ── 商品比對 ──
+function matchProduct(vendorName) {
+  const mapping = getMapping(), nv = norm(vendorName);
+  if (mapping[nv]) return { ...mapping[nv], matchType: 'memory' };
+  if (!products.length) return null;
+  const p = products.find(p => {
+    const pn = norm(p.name);
+    return pn && nv && (pn.includes(nv) || nv.includes(pn));
+  });
+  if (p) return { ...p, matchType: 'auto' };
+  return null;
+}
+
+// ── 檔案處理 ──
+function handleDragOver(e) { e.preventDefault(); document.getElementById('upload-zone').classList.add('drag-over'); }
+function handleDragLeave() { document.getElementById('upload-zone').classList.remove('drag-over'); }
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('upload-zone').classList.remove('drag-over');
+  const f = e.dataTransfer.files[0]; if (f) setFile(f);
+}
+function handleFileSelect(e) { const f = e.target.files[0]; if (f) setFile(f); }
+function setFile(f) {
+  selectedFile = f;
+  document.getElementById('file-label').textContent = `已選擇：${f.name}`;
+}
+
+// ── Claude API ──
+const PARSE_PROMPT = `你是專業進出口發票解析助手。分析廠商 invoice（英文/中文/韓文均可），提取所有商品明細。
+只輸出 JSON array，不要任何說明：
+[{"vendorName":"原始品名保留原文","qty":數量,"unitPrice":單價,"amount":金額}]
+規則：qty/unitPrice/amount 為純數字；金額空白用 qty×unitPrice；只取商品列，排除標題/小計/稅額/運費。`;
+
+async function callClaude(content, isImage, mediaType) {
+  const key = get(LS_CLAUDE);
+  if (!key) throw new Error('請先在「設定」填入 Anthropic API Key');
+  const msgContent = isImage
+    ? [{ type:'image', source:{ type:'base64', media_type:mediaType, data:content } }, { type:'text', text:PARSE_PROMPT }]
+    : PARSE_PROMPT + '\n\n' + content;
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'x-api-key': key,
+      'anthropic-version': '2023-06-01',
+      'content-type': 'application/json',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 2048,
+      messages: [{ role:'user', content: msgContent }]
+    })
+  });
+  if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e.error?.message || `API 錯誤 ${res.status}`); }
+  const d = await res.json();
+  const raw = d.content[0].text.trim();
+  const m = raw.match(/\[[\s\S]*\]/);
+  if (!m) throw new Error('AI 回傳格式異常，請再試一次');
+  return JSON.parse(m[0]);
+}
+
+async function parseImage(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = async e => {
+      try { resolve(await callClaude(e.target.result.split(',')[1], true, file.type || 'image/jpeg')); }
+      catch(err) { reject(err); }
+    };
+    r.readAsDataURL(file);
+  });
+}
+
+async function parseExcel(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = async e => {
+      try {
+        const wb = XLSX.read(e.target.result, { type:'array' });
+        const csv = XLSX.utils.sheet_to_csv(wb.Sheets[wb.SheetNames[0]]);
+        resolve(await callClaude(csv, false));
+      } catch(err) { reject(err); }
+    };
+    r.readAsArrayBuffer(file);
+  });
+}
+
+// ── 主解析流程 ──
+async function parseInvoice() {
+  const textInput = document.getElementById('text-input').value.trim();
+  if (!selectedFile && !textInput) { toast('請上傳檔案或貼上文字', 'error'); return; }
+  if (!get(LS_CLAUDE)) { toast('請先在「設定」填入 Anthropic API Key', 'error'); return; }
+  try {
+    showLoading('載入商品清單...');
+    products = await getProducts();
+    let items;
+    if (selectedFile) {
+      const ext = selectedFile.name.split('.').pop().toLowerCase();
+      if (['jpg','jpeg','png'].includes(ext)) {
+        showLoading('AI 辨識圖片中...');
+        items = await parseImage(selectedFile);
+      } else {
+        showLoading('解析 Excel...');
+        items = await parseExcel(selectedFile);
+      }
+    } else {
+      showLoading('AI 解析文字中...');
+      items = await callClaude(textInput, false);
+    }
+    hideLoading();
+    if (!items?.length) { toast('解析不到商品項目，請確認 invoice 格式', 'error'); return; }
+    renderResults(items);
+    document.getElementById('po-info-card').style.display = '';
+    document.getElementById('result-card').style.display = '';
+  } catch(e) {
+    hideLoading();
+    toast('解析失敗：' + e.message, 'error');
+    console.error(e);
+  }
+}
+
+// ── 渲染結果 ──
+function buildOptions(selected) {
+  let html = '<option value="">— 請選擇 —</option>';
+  for (const p of products) {
+    const sel = selected?.code === p.code ? 'selected' : '';
+    html += `<option value="${esc(p.code)}" data-barcode="${esc(p.barcode)}" data-name="${esc(p.name)}" ${sel}>${esc(p.code)} ${esc(p.name)}</option>`;
+  }
+  return html;
+}
+
+function renderResults(items) {
+  let html = '', matched = 0;
+  items.forEach((item, idx) => {
+    const m = matchProduct(item.vendorName);
+    if (m) matched++;
+    const amt = item.amount || Math.round((item.qty || 0) * (item.unitPrice || 0));
+    const rowCls = m ? 'row-matched' : 'row-unmatched';
+    const badgeCls = m?.matchType === 'memory' ? 'badge-memory' : m ? 'badge-auto' : 'badge-none';
+    const badgeTxt = m?.matchType === 'memory' ? '已記憶' : m ? '自動' : '待對應';
+    html += `<tr class="${rowCls}" data-idx="${idx}" data-vname="${esc(item.vendorName)}">
+      <td style="max-width:180px;word-break:break-all;font-size:12px">${esc(item.vendorName)}</td>
+      <td><span class="match-badge ${badgeCls}" id="badge-${idx}">${badgeTxt}</span></td>
+      <td><select class="product-select" onchange="onSelect(this,${idx})">${buildOptions(m)}</select></td>
+      <td class="c-code">${esc(m?.code||'')}</td>
+      <td class="c-bar">${esc(m?.barcode||'')}</td>
+      <td class="c-name" style="font-size:12px;min-width:120px">${esc(m?.name||'')}</td>
+      <td style="text-align:right"><input class="cell-input c-price" type="number" value="${item.unitPrice||''}" onchange="recalc(${idx})"></td>
+      <td style="text-align:right"><input class="cell-input c-qty"   type="number" value="${item.qty||''}"       onchange="recalc(${idx})"></td>
+      <td style="text-align:right" class="c-amt">${amt||''}</td>
+    </tr>`;
+  });
+  document.getElementById('result-tbody').innerHTML = html;
+  document.getElementById('match-summary').textContent = `已比對 ${matched} / ${items.length} 筆`;
+  document.getElementById('action-hint').textContent = matched < items.length ? `尚有 ${items.length-matched} 筆需手動選擇` : '';
+}
+
+function onSelect(sel, idx) {
+  const opt = sel.selectedOptions[0];
+  const row = document.querySelector(`tr[data-idx="${idx}"]`);
+  row.querySelector('.c-code').textContent = opt.value;
+  row.querySelector('.c-bar').textContent  = opt.dataset.barcode || '';
+  row.querySelector('.c-name').textContent = opt.dataset.name || '';
+  const badge = document.getElementById('badge-' + idx);
+  if (opt.value) {
+    row.className = 'row-matched';
+    badge.className = 'match-badge badge-manual'; badge.textContent = '手動';
+  } else {
+    row.className = 'row-unmatched';
+    badge.className = 'match-badge badge-none'; badge.textContent = '待對應';
+  }
+  updateSummary();
+}
+
+function recalc(idx) {
+  const row = document.querySelector(`tr[data-idx="${idx}"]`);
+  const p = parseFloat(row.querySelector('.c-price').value) || 0;
+  const q = parseFloat(row.querySelector('.c-qty').value)   || 0;
+  row.querySelector('.c-amt').textContent = p && q ? Math.round(p * q) : '';
+}
+
+function updateSummary() {
+  const rows = document.querySelectorAll('#result-tbody tr');
+  let matched = 0;
+  rows.forEach(r => { if (r.querySelector('.c-code').textContent) matched++; });
+  document.getElementById('match-summary').textContent = `已比對 ${matched} / ${rows.length} 筆`;
+  document.getElementById('action-hint').textContent = matched < rows.length ? `尚有 ${rows.length-matched} 筆需手動選擇` : '';
+}
+
+// ── 收集結果 ──
+function collectItems() {
+  return Array.from(document.querySelectorAll('#result-tbody tr')).map(row => ({
+    vendorName: row.dataset.vname,
+    code:    row.querySelector('.c-code').textContent,
+    barcode: row.querySelector('.c-bar').textContent,
+    name:    row.querySelector('.c-name').textContent,
+    price:   parseFloat(row.querySelector('.c-price').value) || 0,
+    qty:     parseFloat(row.querySelector('.c-qty').value)   || 0,
+    amount:  parseFloat(row.querySelector('.c-amt').textContent) || 0,
+    isManual: row.querySelector('.match-badge')?.textContent === '手動'
+  }));
+}
+
+// ── 複製 Tab 格式 ──
+function copyTabFormat() {
+  const lines = collectItems().map(it =>
+    [it.code, it.barcode, it.name, it.price, it.qty, it.amount].join('\t')
+  );
+  const text = lines.join('\n');
+  navigator.clipboard.writeText(text)
+    .then(() => toast('已複製！直接貼到 Ragic 採購細項', 'success'))
+    .catch(() => {
+      const ta = Object.assign(document.createElement('textarea'), { value: text });
+      document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+      toast('已複製！', 'success');
+    });
+}
+
+// ── 儲存手動對應 ──
+function saveManualMappings() {
+  let saved = 0;
+  collectItems().forEach(it => {
+    if (it.isManual && it.code) {
+      saveOneMapping(it.vendorName, { code: it.code, barcode: it.barcode, name: it.name });
+      saved++;
+      // 更新 badge 顯示為已記憶
+      const rows = document.querySelectorAll('#result-tbody tr');
+      rows.forEach(row => {
+        if (row.dataset.vname === it.vendorName) {
+          const badge = row.querySelector('.match-badge');
+          badge.className = 'match-badge badge-memory'; badge.textContent = '已記憶';
+        }
+      });
+    }
+  });
+  toast(saved > 0 ? `已儲存 ${saved} 筆對應，下次自動套用` : '沒有新的手動對應', saved > 0 ? 'success' : '');
+}
+
+// ── 建採購單到 Ragic ──
+async function createPurchaseOrder() {
+  const ragicKey = get(LS_RAGIC);
+  if (!ragicKey) { toast('請先設定 Ragic API Token', 'error'); return; }
+  const items = collectItems().filter(it => it.code);
+  if (!items.length) { toast('沒有已比對的商品', 'error'); return; }
+  const body = {
+    '廠商編號':   document.getElementById('po-vendor-code').value.trim(),
+    '廠商名稱':   document.getElementById('po-vendor-name').value.trim(),
+    '採購日期':   (document.getElementById('po-date').value || '').replace(/-/g,'/'),
+    '預計到貨日': (document.getElementById('po-arrival').value || '').replace(/-/g,'/'),
+    '採購人員':   document.getElementById('po-person').value.trim() || get(LS_PERSON,'Jennifer Shao'),
+    '備註':       document.getElementById('po-note').value.trim(),
+    [PO_SUBTABLE]: items.map(it => ({
+      '商品代號': it.code,
+      '國際條碼': it.barcode,
+      '商品名稱': it.name,
+      '單價(未稅)': it.price,
+      '數量': it.qty,
+      '金額': it.amount
+    }))
+  };
+  try {
+    showLoading('建立採購單...');
+    const url = `${RAGIC_BASE}${PO_PATH}?api&APIKey=${encodeURIComponent(ragicKey)}`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const d = await res.json();
+    hideLoading();
+    if (res.ok && (d.status === 'success' || d._ragicId || d.id)) {
+      const id = d._ragicId || d.id || '';
+      toast(`採購單已建立${id ? ' ID: '+id : ''}`, 'success');
+      saveManualMappings();
+    } else {
+      toast('建單失敗：' + (d.error || d.message || JSON.stringify(d)), 'error');
+    }
+  } catch(e) { hideLoading(); toast('建單失敗：' + e.message, 'error'); }
+}
+
+// ── Init ──
+initUI();
+</script>
+</body>
+</html>

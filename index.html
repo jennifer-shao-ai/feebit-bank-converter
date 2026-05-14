@@ -57,6 +57,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Microsoft
 .home-card { background: white; border-radius: var(--radius); padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); cursor: pointer; transition: all 0.15s; border: 2px solid transparent; }
 .home-card:hover { border-color: var(--primary); box-shadow: 0 4px 12px rgba(37,99,235,0.1); }
 .home-card.soon { opacity: 0.5; cursor: default; pointer-events: none; }
+a.home-card { text-decoration: none; color: inherit; }
 .home-card .hc-icon { font-size: 32px; margin-bottom: 12px; }
 .home-card .hc-name { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
 .home-card .hc-desc { font-size: 12px; color: var(--gray-600); line-height: 1.4; }
@@ -80,7 +81,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Microsoft
   .page { padding: 16px; }
   .topbar { padding: 0 16px; }
   .home-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
-.nav-item.soon { display: none; }
+  .nav-item.soon { display: none; }
 }
 </style>
 </head>
@@ -117,10 +118,13 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Microsoft
     <a class="nav-item" href="coupang-reconcile.html" id="nav-reconcile">
       <span class="icon">🔍</span> 酷澎商城對帳
     </a>
+    <a class="nav-item" href="shopee-subsidy.html" id="nav-subsidy">
+      <span class="icon">🚚</span> 蝦皮運費補助申請
+    </a>
     <a class="nav-item" href="shopee-converter.html" id="nav-shopee">
       <span class="icon">🛒</span> 蝦皮撥款轉換
     </a>
-    <a class="nav-item" href="profit-calculator.html" id="nav-price"><span class="icon">💰</span> 毛利試算機</a>
+    <a class="nav-item" href="profit-calculator.html" id="nav-profit"><span class="icon">💰</span> 毛利試算機</a>
     <a class="nav-item" href="brand-sales.html" id="nav-brand"><span class="icon">📈</span> 品牌銷售分析</a>
   </div>
 
@@ -142,6 +146,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Microsoft
 
   <div class="sidebar-section">
     <div class="sidebar-label">業務</div>
+    <a class="nav-item" href="purchase-order.html" id="nav-po">
+      <span class="icon">📋</span> 採購單轉換
+    </a>
     <div class="nav-item soon" id="nav-nego">
       <span class="icon">🤝</span> 廠商談判
       <span class="soon-tag">即將推出</span>
@@ -166,12 +173,22 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Microsoft
     <a class="nav-item" href="feebit-inventory-filter.html" id="nav-inventory">
       <span class="icon">🏪</span> 商品篩選工具
     </a>
+    <a class="nav-item" href="reorder-suggestions.html" id="nav-reorder">
+      <span class="icon">🛒</span> 庫存訂貨建議
+    </a>
   </div>
 
   <div class="sidebar-section">
     <div class="sidebar-label">研發</div>
     <a class="nav-item" href="research-notes.html" id="nav-research">
       <span class="icon">📚</span> 研發筆記
+    </a>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-label">法規</div>
+    <a class="nav-item" href="http://127.0.0.1:5050" target="_blank" id="nav-pif">
+      <span class="icon">📋</span> PIF Builder
     </a>
   </div>
 
@@ -189,7 +206,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Microsoft
     </a>
   </div>
 
-  <div class="sidebar-footer">v1.8 · Feebit © 2026</div>
+  <div class="sidebar-footer">v3.0 · Feebit © 2026</div>
 </div>
 
 <!-- ── SIDEBAR OVERLAY ── -->
@@ -203,8 +220,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Microsoft
       <span class="topbar-title" id="topbar-title">首頁</span>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
-      <button id="share-btn" style="display:none;padding:4px 12px;font-size:12px;cursor:pointer;border:1px solid var(--gray-200);border-radius:var(--radius);background:white" onclick="shareLink()">🔗 分享連結</button>
-      <span class="topbar-badge" id="topbar-badge">飛比特營運工具箱</span>
+<span class="topbar-badge" id="topbar-badge">飛比特營運工具箱</span>
     </div>
   </div>
 
@@ -214,54 +230,60 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Microsoft
     <div class="tool-page active" id="page-home">
       <p style="color:var(--gray-600);font-size:14px;margin-bottom:20px">選擇一個工具開始使用</p>
       <div class="home-grid">
-        <div class="home-card" onclick="location.href='bank-converter.html'">
+        <a class="home-card" href="bank-converter.html">
           <div class="hc-icon">🏦</div>
           <div class="hc-name">帳務轉換</div>
           <div class="hc-desc">將彰銀 CSV 簡易百年格式轉成帶分類的交易明細，支援 Big5 / UTF-8</div>
           <div class="hc-tag">可使用</div>
-        </div>
-        <div class="home-card" onclick="location.href='accounting-ops.html'">
+        </a>
+        <a class="home-card" href="accounting-ops.html">
           <div class="hc-icon">📅</div>
           <div class="hc-name">例行帳務作業</div>
           <div class="hc-desc">各平台對帳、發票開立、請款截止日整合，直連後台一鍵進入</div>
           <div class="hc-tag">可使用</div>
-        </div>
-        <div class="home-card" onclick="location.href='finance-dashboard.html'">
+        </a>
+        <a class="home-card" href="finance-dashboard.html">
           <div class="hc-icon">📊</div>
           <div class="hc-name">帳務分析</div>
           <div class="hc-desc">上傳 Ragic CSV 自動存檔，圓餅圖、月收支趨勢、年度淨利，任意區間回查</div>
           <div class="hc-tag">可使用</div>
-        </div>
-        <div class="home-card" onclick="location.href='coupang-invoice.html'">
+        </a>
+        <a class="home-card" href="coupang-invoice.html">
           <div class="hc-icon">🧾</div>
           <div class="hc-name">酷澎發票轉檔</div>
           <div class="hc-desc">上傳酷澎 Excel，自動清理 SKU Name 欄特殊符號，保留英文、數字、中文</div>
           <div class="hc-tag">可使用</div>
-        </div>
-        <div class="home-card" onclick="location.href='coupang-reconcile.html'">
+        </a>
+        <a class="home-card" href="coupang-reconcile.html">
           <div class="hc-icon">🔍</div>
           <div class="hc-name">酷澎商城對帳</div>
           <div class="hc-desc">上傳訂單與結款檔，跨月累積比對、品牌銷售排行、日期區間篩選</div>
           <div class="hc-tag">可使用</div>
-        </div>
-        <div class="home-card" onclick="location.href='shopee-converter.html'">
+        </a>
+        <a class="home-card" href="shopee-subsidy.html">
+          <div class="hc-icon">🚚</div>
+          <div class="hc-name">蝦皮運費補助申請</div>
+          <div class="hc-desc">上傳蝦皮錢包報表，自動篩選未取／退貨運費訂單、合併計算、一鍵複製單號</div>
+          <div class="hc-tag">可使用</div>
+        </a>
+        <a class="home-card" href="shopee-converter.html">
           <div class="hc-icon">🛒</div>
           <div class="hc-name">蝦皮撥款轉換</div>
           <div class="hc-desc">上傳蝦皮撥款明細，自動整理為可匯入帳務系統的格式</div>
           <div class="hc-tag">可使用</div>
-        </div>
-        <div class="home-card" onclick="location.href='profit-calculator.html'">
+        </a>
+        <a class="home-card" href="profit-calculator.html">
           <div class="hc-icon">💰</div>
           <div class="hc-name">毛利試算機</div>
           <div class="hc-desc">單品／套組成本輸入，跨平台毛利率即時試算，建議售價自動計算</div>
           <div class="hc-tag">可使用</div>
-        </div>
-        <div class="home-card" onclick="location.href='brand-sales.html'">
+        </a>
+        <a class="home-card" href="brand-sales.html">
           <div class="hc-icon">📈</div>
           <div class="hc-name">品牌銷售分析</div>
           <div class="hc-desc">上傳商品銷售 CSV，自動加總各品牌銷售額、排名與佔比</div>
           <div class="hc-tag">可使用</div>
-        </div>
+        </a>
         <div class="home-card soon">
           <div class="hc-icon">📢</div>
           <div class="hc-name">廣告文案</div>
@@ -274,54 +296,72 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Microsoft
           <div class="hc-desc">輸入客訴情境，自動產出溫和但不退讓的回覆</div>
           <div class="hc-tag">即將推出</div>
         </div>
+        <a class="home-card" href="purchase-order.html">
+          <div class="hc-icon">📋</div>
+          <div class="hc-name">採購單轉換</div>
+          <div class="hc-desc">上傳廠商 invoice（圖片/Excel/文字），自動比對商品並直接建採購單到 Ragic</div>
+          <div class="hc-tag">可使用</div>
+        </a>
         <div class="home-card soon">
           <div class="hc-icon">🤝</div>
           <div class="hc-name">廠商談判</div>
           <div class="hc-desc">依情境產出談判策略與話術</div>
           <div class="hc-tag">即將推出</div>
         </div>
-        <div class="home-card" onclick="location.href='attendance.html'">
+        <a class="home-card" href="attendance.html">
           <div class="hc-icon">🗓️</div>
           <div class="hc-name">考勤查驗</div>
           <div class="hc-desc">正職／工讀打卡稽核、遲到早退異常標記、請假加班紀錄、年度考勤評分</div>
           <div class="hc-tag">可使用</div>
-        </div>
-        <div class="home-card" onclick="location.href='stock-analysis.html'">
+        </a>
+        <a class="home-card" href="stock-analysis.html">
           <div class="hc-icon">📦</div>
           <div class="hc-name">庫存訂貨分析</div>
           <div class="hc-desc">上傳商品總表，自動標色低庫存，計算建議訂購數量</div>
           <div class="hc-tag">可使用</div>
-        </div>
-        <div class="home-card" onclick="location.href='slow-mover-alert.html'">
+        </a>
+        <a class="home-card" href="slow-mover-alert.html">
           <div class="hc-icon">🔴</div>
           <div class="hc-name">滯銷品警示</div>
           <div class="hc-desc">每月自動抓 Ragic 庫存，追蹤變化偵測滯銷商品，附競品比價連結</div>
           <div class="hc-tag">可使用</div>
-        </div>
-        <div class="home-card" onclick="location.href='feebit-inventory-filter.html'">
+        </a>
+        <a class="home-card" href="feebit-inventory-filter.html">
           <div class="hc-icon">🏪</div>
           <div class="hc-name">商品篩選工具</div>
           <div class="hc-desc">上傳 Excel 以貨號或 EAN13 隱藏停產品項，匯出時自動標記持續上架欄 Y/N</div>
           <div class="hc-tag">可使用</div>
-        </div>
-        <div class="home-card" onclick="location.href='research-notes.html'">
+        </a>
+        <a class="home-card" href="reorder-suggestions.html">
+          <div class="hc-icon">🛒</div>
+          <div class="hc-name">庫存訂貨建議</div>
+          <div class="hc-desc">依銷售速度計算月銷量、剩餘月份，自動產生 1/3/6 個月補貨建議</div>
+          <div class="hc-tag">可使用</div>
+        </a>
+        <a class="home-card" href="research-notes.html">
           <div class="hc-icon">📚</div>
           <div class="hc-name">研發筆記</div>
           <div class="hc-desc">YouTube 字幕、OCR 圖片轉文字，快速建立產品研發筆記</div>
           <div class="hc-tag">可使用</div>
-        </div>
-        <div class="home-card" onclick="location.href='travel-planner.html'">
+        </a>
+        <a class="home-card" href="http://127.0.0.1:5050" target="_blank">
+          <div class="hc-icon">📋</div>
+          <div class="hc-name">PIF Builder</div>
+          <div class="hc-desc">化粧品 PIF 自動生成，串接 Ragic 產品資料，輸出 Word + PDF（需本機啟動）</div>
+          <div class="hc-tag">本機工具</div>
+        </a>
+        <a class="home-card" href="travel-planner.html">
           <div class="hc-icon">✈️</div>
           <div class="hc-name">旅行規劃</div>
           <div class="hc-desc">多人即時協作行程規劃，Firebase 即時同步</div>
           <div class="hc-tag">可使用</div>
-        </div>
-        <div class="home-card" onclick="location.href='tools.html'">
+        </a>
+        <a class="home-card" href="tools.html">
           <div class="hc-icon">🔧</div>
           <div class="hc-name">使用工具</div>
           <div class="hc-desc">飛比特串接的所有外部工具與服務一覽</div>
           <div class="hc-tag">可使用</div>
-        </div>
+        </a>
       </div>
     </div>
   </div><!-- /page -->
@@ -341,19 +381,9 @@ function navigate(page) {
   const meta = PAGE_META[page] || { title: page, badge: '' };
   document.getElementById('topbar-title').textContent = meta.title;
   document.getElementById('topbar-badge').textContent = meta.badge;
-  history.replaceState(null, '', page === 'home' ? location.pathname : '#' + page);
-  document.getElementById('share-btn').style.display = page === 'home' ? 'none' : '';
+  history.replaceState(null, '', location.pathname);
   window.scrollTo(0, 0);
   if (window.innerWidth <= 768) closeSidebar();
-}
-function shareLink() {
-  const url = location.origin + location.pathname + location.hash;
-  navigator.clipboard.writeText(url).then(() => {
-    const btn = document.getElementById('share-btn');
-    const orig = btn.textContent;
-    btn.textContent = '✅ 已複製';
-    setTimeout(() => { btn.textContent = orig; }, 2000);
-  });
 }
 function toggleSidebar() {
   document.getElementById('sidebar').classList.toggle('open');
