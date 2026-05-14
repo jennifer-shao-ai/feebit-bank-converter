@@ -37,10 +37,10 @@
 .ts-wrapper{min-width:200px;max-width:280px}
 .ts-control{border:1px solid var(--gray-200)!important;border-radius:5px!important;font-size:12px!important;min-height:30px!important;padding:3px 8px!important;box-shadow:none!important;cursor:text}
 .ts-control:focus-within{border-color:var(--primary)!important}
-.ts-dropdown{font-size:12px!important;border:1px solid var(--gray-200)!important;border-radius:6px!important;box-shadow:0 4px 12px rgba(0,0,0,.1)!important}
-.ts-dropdown .option{padding:6px 10px}
+.ts-dropdown{font-size:12px!important;border:1px solid var(--gray-200)!important;border-radius:6px!important;box-shadow:0 4px 12px rgba(0,0,0,.1)!important;width:420px!important;max-width:90vw!important}
+.ts-dropdown .option{padding:6px 10px;white-space:normal;word-break:break-all;line-height:1.4}
 .ts-dropdown .option:hover,.ts-dropdown .option.active{background:var(--primary-light)!important;color:var(--primary)!important}
-.ts-dropdown .option[data-value="__new__"]{color:var(--primary);font-weight:600;border-bottom:1px solid var(--gray-100)}
+.ts-dropdown .option[data-value="__new__"]{color:var(--primary);font-weight:600;border-bottom:1px solid var(--gray-100);white-space:nowrap}
 .ts-dropdown .no-results{padding:8px 10px;color:var(--gray-400)}
 
 /* 新增商品 modal */
