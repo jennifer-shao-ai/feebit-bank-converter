@@ -177,16 +177,17 @@ tr.total-row td:first-child{background:var(--gray-100)!important}
   <div class="topbar">
     <div style="display:flex;align-items:center;gap:10px">
       <button class="btn-hamburger" onclick="toggleSidebar()">☰</button>
-      <span class="topbar-title">帳務分析 <span style="font-size:11px;font-weight:400;color:var(--gray-500);">v2.2</span></span>
+      <span class="topbar-title">帳務分析 <span style="font-size:11px;font-weight:400;color:var(--gray-500);">v2.3</span></span>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
       <button class="btn btn-outline" onclick="openDbModal()" style="font-size:12px;padding:4px 10px">⚙️ 初始化DB</button>
       <button class="btn btn-outline" onclick="openRagicModal()" style="font-size:12px;padding:4px 10px">🔗 Ragic 設定</button>
       <button id="sync-btn" class="btn btn-outline" onclick="syncFromRagic()" style="font-size:12px;padding:4px 12px">↻ 從 Ragic 同步</button>
       <button class="btn btn-outline" onclick="debugRagic()" style="font-size:12px;padding:4px 10px">🔎 Debug</button>
+      <button class="btn btn-outline" onclick="openDeleteModal()" style="font-size:12px;padding:4px 10px;color:#e53e3e;border-color:#e53e3e">🗑 刪除月份資料</button>
       <button class="btn btn-primary" onclick="document.getElementById('csv-input').click()" style="font-size:12px;padding:4px 12px">⬆ 上傳CSV</button>
       <input type="file" id="csv-input" accept=".csv" style="display:none">
-      <span class="topbar-badge">v2.2</span>
+      <span class="topbar-badge">v2.3</span>
     </div>
   </div>
 
@@ -337,6 +338,23 @@ tr.total-row td:first-child{background:var(--gray-100)!important}
     </div><!-- /dashboard -->
   </div><!-- /page -->
 </div><!-- /main -->
+
+<!-- Delete Month Modal -->
+<div class="modal-overlay" id="delete-month-modal">
+  <div class="modal-box" style="width:420px">
+    <h3 style="margin-bottom:6px;color:#e53e3e">🗑 刪除指定月份資料</h3>
+    <p style="font-size:13px;color:var(--gray-600);margin-bottom:20px">刪除後資料無法復原，可重新上傳 CSV 或從 Ragic 同步補回。</p>
+    <div style="margin-bottom:16px">
+      <label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px">選擇要刪除的月份</label>
+      <input type="month" id="delete-month-input" style="width:100%;padding:8px 10px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:14px;box-sizing:border-box">
+    </div>
+    <div id="delete-month-preview" style="font-size:13px;color:var(--gray-600);margin-bottom:16px;min-height:20px"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-outline" onclick="closeDeleteModal()">取消</button>
+      <button class="btn btn-primary" id="delete-confirm-btn" onclick="confirmDeleteMonth()" style="background:#e53e3e;border-color:#e53e3e" disabled>確認刪除</button>
+    </div>
+  </div>
+</div>
 
 <!-- 未分類 Modal -->
 <div class="modal-overlay" id="uncat-modal">
@@ -1400,6 +1418,57 @@ async function syncFromRagic(){
     loadData();
   }catch(e){alert('同步失敗（已儲存 '+totalAll+' 筆）：'+e.message);}
   finally{btn.textContent='↻ 從 Ragic 同步';btn.disabled=false;}
+}
+
+// ── DELETE MONTH ──
+function openDeleteModal(){
+  document.getElementById('delete-month-modal').classList.add('open');
+  document.getElementById('delete-month-input').value='';
+  document.getElementById('delete-month-preview').textContent='';
+  document.getElementById('delete-confirm-btn').disabled=true;
+}
+function closeDeleteModal(){
+  document.getElementById('delete-month-modal').classList.remove('open');
+}
+document.getElementById('delete-month-modal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeDeleteModal();});
+document.getElementById('delete-month-input').addEventListener('change',async function(){
+  const val=this.value;
+  if(!val){document.getElementById('delete-month-preview').textContent='';document.getElementById('delete-confirm-btn').disabled=true;return;}
+  const [y,m]=val.split('-');
+  const from=`${y}-${m}-01`;
+  const lastDay=new Date(+y,+m,0).getDate();
+  const to=`${y}-${m}-${String(lastDay).padStart(2,'0')}`;
+  const {count,error}=await db.from('finance_transactions').select('id',{count:'exact',head:true}).gte('txn_date',from).lte('txn_date',to);
+  if(error){document.getElementById('delete-month-preview').textContent='查詢失敗：'+error.message;return;}
+  const preview=document.getElementById('delete-month-preview');
+  if(!count){
+    preview.textContent=`${y} 年 ${m} 月沒有資料`;
+    preview.style.color='var(--gray-500)';
+    document.getElementById('delete-confirm-btn').disabled=true;
+  } else {
+    preview.innerHTML=`<span style="color:#e53e3e;font-weight:600">將刪除 ${count} 筆</span>（${y} 年 ${m} 月）`;
+    document.getElementById('delete-confirm-btn').disabled=false;
+  }
+});
+async function confirmDeleteMonth(){
+  const val=document.getElementById('delete-month-input').value;
+  if(!val)return;
+  const [y,m]=val.split('-');
+  const from=`${y}-${m}-01`;
+  const lastDay=new Date(+y,+m,0).getDate();
+  const to=`${y}-${m}-${String(lastDay).padStart(2,'0')}`;
+  const btn=document.getElementById('delete-confirm-btn');
+  btn.textContent='刪除中...'; btn.disabled=true;
+  try{
+    const {error}=await db.from('finance_transactions').delete().gte('txn_date',from).lte('txn_date',to);
+    if(error)throw error;
+    alert(`✅ ${y} 年 ${m} 月資料已刪除，可重新上傳或同步`);
+    closeDeleteModal();
+    loadData();
+  }catch(e){
+    alert('刪除失敗：'+e.message);
+    btn.textContent='確認刪除'; btn.disabled=false;
+  }
 }
 
 // ── SIDEBAR ──
