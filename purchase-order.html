@@ -7,6 +7,7 @@
 <link rel="icon" href="favicon.svg">
 <script>if(location.search.includes("share"))document.documentElement.classList.add("standalone");</script>
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.min.css">
 <style>
 .upload-zone{border:2px dashed var(--gray-300);border-radius:var(--radius);padding:28px 24px;text-align:center;cursor:pointer;transition:all .2s;background:#fff}
 .upload-zone.drag-over{border-color:var(--primary);background:var(--primary-light)}
@@ -32,7 +33,25 @@
 .badge-manual{background:#fef9c3;color:var(--warning)}
 .badge-none{background:#fee2e2;color:var(--danger)}
 
-.product-select{min-width:180px;max-width:260px;padding:5px 8px;border:1px solid var(--gray-200);border-radius:5px;font-size:12px;font-family:inherit}
+/* Tom Select 樣式覆寫 */
+.ts-wrapper{min-width:200px;max-width:280px}
+.ts-control{border:1px solid var(--gray-200)!important;border-radius:5px!important;font-size:12px!important;min-height:30px!important;padding:3px 8px!important;box-shadow:none!important;cursor:text}
+.ts-control:focus-within{border-color:var(--primary)!important}
+.ts-dropdown{font-size:12px!important;border:1px solid var(--gray-200)!important;border-radius:6px!important;box-shadow:0 4px 12px rgba(0,0,0,.1)!important}
+.ts-dropdown .option{padding:6px 10px}
+.ts-dropdown .option:hover,.ts-dropdown .option.active{background:var(--primary-light)!important;color:var(--primary)!important}
+.ts-dropdown .option[data-value="__new__"]{color:var(--primary);font-weight:600;border-bottom:1px solid var(--gray-100)}
+.ts-dropdown .no-results{padding:8px 10px;color:var(--gray-400)}
+
+/* 新增商品 modal */
+.np-modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2000;align-items:center;justify-content:center}
+.np-modal-bg.show{display:flex}
+.np-modal{background:#fff;border-radius:10px;padding:24px;width:420px;max-width:90vw;box-shadow:0 8px 32px rgba(0,0,0,.2)}
+.np-modal h3{font-size:15px;font-weight:700;margin-bottom:16px}
+.np-row{margin-bottom:10px}
+.np-row label{display:block;font-size:11px;font-weight:600;color:var(--gray-600);margin-bottom:3px}
+.np-row input{width:100%;padding:7px 10px;border:1px solid var(--gray-200);border-radius:6px;font-size:13px;font-family:inherit}
+.np-row input:focus{outline:none;border-color:var(--primary)}
 .cell-input{width:74px;text-align:right;border:1px solid var(--gray-200);border-radius:4px;padding:3px 6px;font-size:12px;font-family:inherit}
 
 .action-bar{display:flex;gap:10px;margin-top:16px;align-items:center;flex-wrap:wrap}
@@ -130,7 +149,7 @@
     <div class="sidebar-label">系統</div>
     <a class="nav-item" href="tools.html"><span class="icon">🔧</span> 使用工具</a>
   </div>
-  <div class="sidebar-footer">v1.0 · Feebit © 2026</div>
+  <div class="sidebar-footer">v2.0 · Feebit © 2026</div>
 </div>
 
 <div id="sidebar-overlay" onclick="closeSidebar()"></div>
@@ -141,7 +160,7 @@
     <div style="display:flex;align-items:center;gap:10px">
       <button class="hamburger" onclick="openSidebar()">☰</button>
       <span class="topbar-title">採購單轉換</span>
-      <span class="topbar-badge">v1.0</span>
+      <span class="topbar-badge">v2.0</span>
     </div>
     <button class="btn-share" onclick="syncProducts()" title="強制重新載入 Ragic 商品清單">↻ 更新商品庫</button>
   </div>
@@ -286,6 +305,22 @@
   </div>
 </div>
 
+<!-- 新增商品 Modal -->
+<div id="np-modal-bg" class="np-modal-bg">
+  <div class="np-modal">
+    <h3>新增商品到 Ragic</h3>
+    <div class="np-row"><label>商品代號 *</label><input type="text" id="np-code" placeholder="例：01010099"></div>
+    <div class="np-row"><label>國際條碼（EAN13）</label><input type="text" id="np-barcode" placeholder="選填"></div>
+    <div class="np-row"><label>商品名稱 *</label><input type="text" id="np-name" placeholder="中文或英文品名"></div>
+    <div class="np-row"><label>廠商代號</label><input type="text" id="np-vendor" placeholder="選填"></div>
+    <div style="display:flex;gap:10px;margin-top:16px">
+      <button class="btn btn-primary" onclick="submitNewProduct()">建立並選取</button>
+      <button class="btn btn-outline" onclick="closeNpModal()">取消</button>
+    </div>
+    <div id="np-status" style="margin-top:10px;font-size:12px;color:var(--danger)"></div>
+  </div>
+</div>
+
 <!-- Loading -->
 <div id="loading-overlay">
   <div class="spinner"></div>
@@ -293,6 +328,7 @@
 </div>
 <div id="toast"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 // ── 常數 ──
@@ -311,6 +347,8 @@ const CACHE_TTL   = 24 * 60 * 60 * 1000;
 
 let selectedFile = null;
 let products = [];
+let tsInstances = {};
+let newProductRowIdx = -1;
 
 // ── UI ──
 function switchTab(name) {
@@ -558,16 +596,11 @@ async function parseInvoice() {
 }
 
 // ── 渲染結果 ──
-function buildOptions(selected) {
-  let html = '<option value="">— 請選擇 —</option>';
-  for (const p of products) {
-    const sel = selected?.code === p.code ? 'selected' : '';
-    html += `<option value="${esc(p.code)}" data-barcode="${esc(p.barcode)}" data-name="${esc(p.name)}" ${sel}>${esc(p.code)} ${esc(p.name)}</option>`;
-  }
-  return html;
-}
-
 function renderResults(items) {
+  // 清除舊的 Tom Select 實例
+  Object.values(tsInstances).forEach(ts => { try { ts.destroy(); } catch(e){} });
+  tsInstances = {};
+
   let html = '', matched = 0;
   items.forEach((item, idx) => {
     const m = matchProduct(item.vendorName);
@@ -579,7 +612,7 @@ function renderResults(items) {
     html += `<tr class="${rowCls}" data-idx="${idx}" data-vname="${esc(item.vendorName)}">
       <td style="max-width:180px;word-break:break-all;font-size:12px">${esc(item.vendorName)}</td>
       <td><span class="match-badge ${badgeCls}" id="badge-${idx}">${badgeTxt}</span></td>
-      <td><select class="product-select" onchange="onSelect(this,${idx})">${buildOptions(m)}</select></td>
+      <td><select id="sel-${idx}" data-preselect="${esc(m?.code||'')}"></select></td>
       <td class="c-code">${esc(m?.code||'')}</td>
       <td class="c-bar">${esc(m?.barcode||'')}</td>
       <td class="c-name" style="font-size:12px;min-width:120px">${esc(m?.name||'')}</td>
@@ -591,16 +624,45 @@ function renderResults(items) {
   document.getElementById('result-tbody').innerHTML = html;
   document.getElementById('match-summary').textContent = `已比對 ${matched} / ${items.length} 筆`;
   document.getElementById('action-hint').textContent = matched < items.length ? `尚有 ${items.length-matched} 筆需手動選擇` : '';
+  initTomSelects();
 }
 
-function onSelect(sel, idx) {
-  const opt = sel.selectedOptions[0];
+function initTomSelects() {
+  const opts = [
+    { value: '__new__', text: '＋ 新增商品到 Ragic' },
+    ...products.map(p => ({ value: p.code, text: `${p.code}　${p.name}` }))
+  ];
+  document.querySelectorAll('#result-tbody tr').forEach(row => {
+    const idx = parseInt(row.dataset.idx);
+    const sel = document.getElementById('sel-' + idx);
+    if (!sel) return;
+    const preselect = sel.dataset.preselect || '';
+    const ts = new TomSelect(sel, {
+      options: opts,
+      items: preselect ? [preselect] : [],
+      maxOptions: null,
+      placeholder: '搜尋代號或品名...',
+      onChange(value) {
+        if (value === '__new__') {
+          ts.setValue('', true);
+          openNpModal(idx);
+        } else {
+          onSelectByCode(value, idx);
+        }
+      }
+    });
+    tsInstances[idx] = ts;
+  });
+}
+
+function onSelectByCode(code, idx) {
+  const p = code ? products.find(pr => pr.code === code) : null;
   const row = document.querySelector(`tr[data-idx="${idx}"]`);
-  row.querySelector('.c-code').textContent = opt.value;
-  row.querySelector('.c-bar').textContent  = opt.dataset.barcode || '';
-  row.querySelector('.c-name').textContent = opt.dataset.name || '';
+  row.querySelector('.c-code').textContent = code || '';
+  row.querySelector('.c-bar').textContent  = p?.barcode || '';
+  row.querySelector('.c-name').textContent = p?.name || '';
   const badge = document.getElementById('badge-' + idx);
-  if (opt.value) {
+  if (code) {
     row.className = 'row-matched';
     badge.className = 'match-badge badge-manual'; badge.textContent = '手動';
   } else {
@@ -608,6 +670,64 @@ function onSelect(sel, idx) {
     badge.className = 'match-badge badge-none'; badge.textContent = '待對應';
   }
   updateSummary();
+}
+
+// ── 新增商品 Modal ──
+function openNpModal(idx) {
+  newProductRowIdx = idx;
+  ['np-code','np-barcode','np-name','np-vendor'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('np-status').textContent = '';
+  document.getElementById('np-modal-bg').classList.add('show');
+  document.getElementById('np-name').focus();
+}
+
+function closeNpModal() {
+  document.getElementById('np-modal-bg').classList.remove('show');
+  newProductRowIdx = -1;
+}
+
+async function submitNewProduct() {
+  const code    = document.getElementById('np-code').value.trim();
+  const barcode = document.getElementById('np-barcode').value.trim();
+  const name    = document.getElementById('np-name').value.trim();
+  const vendor  = document.getElementById('np-vendor').value.trim();
+  const status  = document.getElementById('np-status');
+
+  if (!code || !name) { status.textContent = '商品代號和商品名稱為必填'; return; }
+  const ragicKey = get(LS_RAGIC);
+  if (!ragicKey) { status.textContent = '請先設定 Ragic API Token'; return; }
+
+  status.textContent = '建立中...';
+  status.style.color = 'var(--gray-500)';
+  try {
+    const url = `${RAGIC_BASE}${PRODUCT_PATH}?api&APIKey=${encodeURIComponent(ragicKey)}`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ '產品代號': code, 'EAN13碼': barcode, '產品名稱': name, '廠商代號': vendor })
+    });
+    const d = await res.json();
+    if (!res.ok) throw new Error(d.error || d.message || `HTTP ${res.status}`);
+
+    // 加入本地商品清單
+    const newProduct = { code, barcode, name, vendor };
+    products.push(newProduct);
+    localStorage.setItem(LS_PRODUCTS, JSON.stringify(products));
+
+    // 更新所有 Tom Select 的選項
+    const newOpt = { value: code, text: `${code}　${name}` };
+    Object.values(tsInstances).forEach(ts => ts.addOption(newOpt));
+
+    // 在目標行選取新商品
+    if (newProductRowIdx >= 0 && tsInstances[newProductRowIdx]) {
+      tsInstances[newProductRowIdx].setValue(code);
+    }
+    closeNpModal();
+    toast(`商品「${name}」已新增到 Ragic`, 'success');
+  } catch(e) {
+    status.textContent = '建立失敗：' + e.message;
+    status.style.color = 'var(--danger)';
+  }
 }
 
 function recalc(idx) {
@@ -627,16 +747,22 @@ function updateSummary() {
 
 // ── 收集結果 ──
 function collectItems() {
-  return Array.from(document.querySelectorAll('#result-tbody tr')).map(row => ({
-    vendorName: row.dataset.vname,
-    code:    row.querySelector('.c-code').textContent,
-    barcode: row.querySelector('.c-bar').textContent,
-    name:    row.querySelector('.c-name').textContent,
-    price:   parseFloat(row.querySelector('.c-price').value) || 0,
-    qty:     parseFloat(row.querySelector('.c-qty').value)   || 0,
-    amount:  parseFloat(row.querySelector('.c-amt').textContent) || 0,
-    isManual: row.querySelector('.match-badge')?.textContent === '手動'
-  }));
+  return Array.from(document.querySelectorAll('#result-tbody tr')).map(row => {
+    const idx = parseInt(row.dataset.idx);
+    const ts = tsInstances[idx];
+    const code = ts ? (ts.getValue() === '__new__' ? '' : ts.getValue()) : row.querySelector('.c-code').textContent;
+    const p = code ? products.find(pr => pr.code === code) : null;
+    return {
+      vendorName: row.dataset.vname,
+      code,
+      barcode: p?.barcode || row.querySelector('.c-bar').textContent,
+      name:    p?.name    || row.querySelector('.c-name').textContent,
+      price:   parseFloat(row.querySelector('.c-price').value) || 0,
+      qty:     parseFloat(row.querySelector('.c-qty').value)   || 0,
+      amount:  parseFloat(row.querySelector('.c-amt').textContent) || 0,
+      isManual: row.querySelector('.match-badge')?.textContent === '手動'
+    };
+  });
 }
 
 // ── 複製 Tab 格式 ──
