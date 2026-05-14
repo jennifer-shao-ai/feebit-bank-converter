@@ -87,6 +87,11 @@
   </div>
 
   <div class="sidebar-section">
+    <div class="sidebar-label">法規</div>
+    <a class="nav-item" href="http://127.0.0.1:5050" target="_blank"><span class="icon">📋</span> PIF Builder</a>
+  </div>
+
+  <div class="sidebar-section">
     <div class="sidebar-label">生活</div>
     <a class="nav-item" href="travel-planner.html">
       <span class="icon">✈️</span> 旅行規劃
@@ -319,6 +324,7 @@ const DEFAULT_RULES = [
   { summary: '勞保', contains: true, payeeKey: '', type: '支出', main: '勞保', sub: '', payee: '' },
   { summary: '健保', contains: true, payeeKey: '', type: '支出', main: '健保', sub: '', payee: '' },
   { summary: '勞退', contains: true, payeeKey: '', type: '支出', main: '勞退', sub: '', payee: '' },
+  { summary: '豐銀行受', contains: true, payeeKey: '', type: '收入', main: '賣場/通路銷售', sub: '酷澎商城', payee: '' },
 ];
 function getRules() {
   try { const s = localStorage.getItem(KEY_RULES); return s ? JSON.parse(s) : [...DEFAULT_RULES]; }
@@ -384,13 +390,16 @@ function parseTWD2601(text) {
         if (fullText.includes(kw)) { rule = { type:'支出', main:kw, sub:'', payee:'' }; break; }
       }
     }
+    if (!rule && fullText.includes('豐銀行受')) {
+      rule = { type: '收入', main: '賣場/通路銷售', sub: '酷澎商城', payee: '' };
+    }
     const descParts = [summary, payeeCode, note.trim()].filter(s => s && s !== '00000000');
     result.push({
       date: rocToAd(f[C.TX_DT]), accountNum: f[C.ACC],
       accountName: getAccountName(f[C.ACC]), currency: f[C.CUR]||'TWD',
       amount: inc>0 ? inc : exp, rawType: inc>0 ? '收入' : '支出',
       summary, payeeCode, description: [...new Set(descParts)].join(' ').trim(),
-      main: rule?rule.main:'', sub: rule?rule.sub:'', payee: rule?rule.payee:'',
+      main: rule?rule.main:'', sub: rule?rule.sub:'', payee: (rule && rule.main==='薪資/外包') ? rule.payee : '',
       type: rule ? rule.type : (inc>0?'收入':'支出'), auto: !!rule, needsCat: !rule,
     });
   }
@@ -546,7 +555,7 @@ function showModal(tx) {
   document.getElementById('modal-sub-select').innerHTML = '';
   document.getElementById('modal-sub').style.display = 'block';
   document.getElementById('modal-sub').value = '';
-  document.getElementById('modal-payee').value = tx.payeeCode || '';
+  document.getElementById('modal-payee').value = '';
   document.getElementById('modal-remember').checked = true;
   document.getElementById('split-section').style.display = 'none';
   splitTx = null;
@@ -571,6 +580,8 @@ function handleMainChange() {
     subSel.style.display = 'none';
     subInput.style.display = 'block';
   }
+  const payeeEl = document.getElementById('modal-payee');
+  if (v !== '薪資/外包') payeeEl.value = '';
 }
 function handleSubSelectChange() {
   const sel = document.getElementById('modal-sub-select');
@@ -591,11 +602,12 @@ function getModalVals() {
   const subInput = document.getElementById('modal-sub');
   const subVal = (subSel.style.display !== 'none' && subSel.value && subSel.value !== '__custom_sub__')
     ? subSel.value : subInput.value.trim();
+  const mainVal = sel === '__custom__' ? cus : sel;
   return {
     type: document.getElementById('modal-type').value,
-    main: sel==='__custom__' ? cus : sel,
+    main: mainVal,
     sub:  subVal,
-    payee:document.getElementById('modal-payee').value.trim(),
+    payee: mainVal === '薪資/外包' ? document.getElementById('modal-payee').value.trim() : '',
     remember: document.getElementById('modal-remember').checked,
   };
 }

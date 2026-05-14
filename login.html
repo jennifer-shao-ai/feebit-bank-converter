@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>登入 — 飛比特</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--primary:#2563eb;--primary-dark:#1d4ed8;--danger:#dc2626;--gray-100:#f3f4f6;--gray-200:#e5e7eb;--gray-500:#6b7280;--gray-600:#4b5563;--gray-800:#1f2937;--radius:10px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'PingFang TC','Microsoft JhengHei',sans-serif;background:var(--gray-100);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.card{background:white;border-radius:16px;padding:40px 36px;width:100%;max-width:400px;box-shadow:0 4px 24px rgba(0,0,0,.08)}
+.brand{font-size:22px;font-weight:800;color:#0f172a;letter-spacing:.5px;margin-bottom:4px}
+.sub{font-size:13px;color:var(--gray-500);margin-bottom:32px}
+label{display:block;font-size:12px;font-weight:600;color:var(--gray-600);margin-bottom:5px}
+input{width:100%;padding:10px 12px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:14px;margin-bottom:16px;transition:border-color .15s;background:white;color:var(--gray-800)}
+input:focus{outline:none;border-color:var(--primary)}
+.btn-login{width:100%;padding:11px;border:none;border-radius:var(--radius);background:var(--primary);color:white;font-size:14px;font-weight:600;cursor:pointer;transition:background .15s;margin-top:4px}
+.btn-login:hover{background:var(--primary-dark)}
+.btn-login:disabled{opacity:.6;cursor:not-allowed}
+.err{color:var(--danger);font-size:12px;margin-top:10px;min-height:18px}
+.note{margin-top:24px;font-size:12px;color:var(--gray-500);text-align:center;line-height:1.6}
+.divider{height:1px;background:var(--gray-200);margin:24px 0}
+.btn-magic{width:100%;padding:10px;border:1px solid var(--gray-200);border-radius:var(--radius);background:white;color:var(--gray-600);font-size:13px;cursor:pointer;transition:all .15s}
+.btn-magic:hover{border-color:var(--primary);color:var(--primary)}
+.success-msg{background:#dcfce7;color:#15803d;border-radius:var(--radius);padding:12px 14px;font-size:13px;margin-top:12px;display:none}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="brand">飛比特 Feebit</div>
+  <div class="sub">請登入以存取工具箱</div>
+
+  <label>電子信箱</label>
+  <input type="email" id="email" placeholder="your@email.com" autocomplete="email">
+  <label>密碼</label>
+  <input type="password" id="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')signIn()">
+
+  <button class="btn-login" id="login-btn" onclick="signIn()">登入</button>
+  <div class="err" id="err-msg"></div>
+
+  <div class="divider"></div>
+
+  <button class="btn-magic" onclick="sendMagicLink()">✉️ 用 Magic Link 免密碼登入</button>
+  <div class="success-msg" id="magic-msg">Magic Link 已寄出，請查收信件（含垃圾信件夾）</div>
+
+  <div class="note">沒有帳號？請聯繫 Jennifer 取得授權<br>帳號由 Feebit 管理員統一邀請</div>
+</div>
+
+<script>
+const SB_URL = 'https://tokhhoyzztaynppcatci.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRva2hob3l6enRheW5wcGNhdGNpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMDAyODMsImV4cCI6MjA5MDg3NjI4M30.PQB4lJGF3OMatv5wIedCu3zIWq0urrFbniBRYTbNtUU';
+const db = supabase.createClient(SB_URL, SB_KEY);
+
+const params = new URLSearchParams(location.search);
+const nextUrl = params.get('next') || 'index.html';
+
+// 若已登入直接跳轉
+db.auth.getSession().then(({data:{session}})=>{ if(session) location.href=nextUrl; });
+
+// 處理 Magic Link 回調（#access_token 在 URL hash 中）
+if(location.hash.includes('access_token')){
+  db.auth.getSession().then(({data:{session}})=>{ if(session) location.href=nextUrl; });
+}
+
+async function signIn(){
+  const email=document.getElementById('email').value.trim();
+  const password=document.getElementById('password').value;
+  const errEl=document.getElementById('err-msg');
+  const btn=document.getElementById('login-btn');
+  errEl.textContent='';
+  if(!email||!password){errEl.textContent='請填寫信箱與密碼';return;}
+  btn.disabled=true; btn.textContent='登入中...';
+  const{error}=await db.auth.signInWithPassword({email,password});
+  if(error){errEl.textContent='登入失敗：'+(error.message==='Invalid login credentials'?'帳號或密碼錯誤':error.message); btn.disabled=false; btn.textContent='登入'; return;}
+  location.href=nextUrl;
+}
+
+async function sendMagicLink(){
+  const email=document.getElementById('email').value.trim();
+  const errEl=document.getElementById('err-msg');
+  errEl.textContent='';
+  if(!email){errEl.textContent='請先填寫電子信箱';return;}
+  const{error}=await db.auth.signInWithOtp({email, options:{emailRedirectTo: location.href.split('?')[0]+'?next='+encodeURIComponent(nextUrl)}});
+  if(error){errEl.textContent='寄送失敗：'+error.message;return;}
+  document.getElementById('magic-msg').style.display='block';
+}
+</script>
+</body>
+</html>

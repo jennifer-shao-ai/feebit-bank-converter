@@ -1,4 +1,4 @@
-name: 庫存快照（每月1日、15日）
+name: 庫存快照＋自動報告（每月1日、15日）
 
 on:
   schedule:
@@ -7,7 +7,7 @@ on:
   workflow_dispatch: # 允許手動觸發
 
 jobs:
-  snapshot:
+  snapshot-and-report:
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -33,3 +33,20 @@ jobs:
           git add data/inventory-snapshots.json
           git diff --staged --quiet || git commit -m "📦 自動庫存快照 $(date +'%Y-%m-%d')"
           git push
+
+      - name: 傳送庫存訂貨建議 Email（每月1日、15日）
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+        run: node scripts/send-reorder-report.js
+
+      - name: 傳送滯銷品月報 Email（僅每月1日）
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+        run: |
+          day=$(date -u +%d)
+          if [ "$day" = "01" ]; then
+            echo "📬 月初，執行滯銷品月報..."
+            node scripts/send-slow-mover-report.js
+          else
+            echo "⏩ 今天是 ${day} 日，非月初，跳過滯銷品月報"
+          fi
