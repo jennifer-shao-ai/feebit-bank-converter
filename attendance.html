@@ -381,20 +381,43 @@ select.inline-sel:focus{border-color:var(--primary);}
       <div class="tbl-wrap" id="vfy-table"></div>
     </div>
     <div id="vfy-summary"></div>
-    <div style="margin-top:20px;padding:12px 16px;background:#f8fafc;border:1px solid var(--gray-200);border-radius:8px;font-size:12px;color:var(--gray-600);line-height:1.8;">
-      <strong style="color:var(--gray-700);display:block;margin-bottom:6px;">📋 考勤評分說明（滿分 100 分）</strong>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:4px 24px;">
-        <span>⏰ 遲到 1–10 分：<strong style="color:var(--warning);">－1 分</strong></span>
-        <span>⏰ 遲到 11–30 分：<strong style="color:var(--warning);">－2 分</strong></span>
-        <span>⏰ 遲到 31 分+：<strong style="color:var(--warning);">－3 分</strong></span>
-        <span>⏰ 第 3 次遲到起每次額外：<strong style="color:var(--warning);">－1 分</strong></span>
-        <span>⏰ 第 5 次遲到起每次額外：<strong style="color:var(--warning);">－2 分</strong></span>
-        <span>🚪 早退 1 次：<strong style="color:var(--warning);">－2 分</strong></span>
-        <span>❓ 缺刷卡（前 2 次）：<strong style="color:var(--danger);">－1 分</strong></span>
-        <span>❓ 缺刷卡（第 3 次起）：<strong style="color:var(--danger);">－2 分</strong></span>
-        <span>🚫 缺勤 1 天：<strong style="color:var(--danger);">－10 分</strong></span>
-        <span>📋 請假（提前申請）1 天：<strong style="color:var(--gray-500);">－0.5 分</strong></span>
-        <span>✅ 特休 / 公假 / 生理假 / 排班調整 / 補休：<strong style="color:var(--success);">不扣分</strong></span>
+    <div style="margin-top:20px;padding:14px 16px;background:#f8fafc;border:1px solid var(--gray-200);border-radius:8px;font-size:12px;color:var(--gray-600);line-height:1.8;">
+      <strong style="color:var(--gray-700);display:block;margin-bottom:10px;">📋 考勤評分說明（滿分 100 分）</strong>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="background:#fff7ed;border-radius:6px;padding:8px 12px;">
+          <div style="font-weight:600;color:#9a3412;margin-bottom:4px;">⏰ 遲到</div>
+          <div style="display:flex;flex-wrap:wrap;gap:4px 20px;">
+            <span>1–10 分鐘 <strong>－1 分</strong></span>
+            <span>11–30 分鐘 <strong>－2 分</strong></span>
+            <span>31 分鐘以上 <strong>－3 分</strong></span>
+            <span style="color:var(--warning);">第 3 次起每次額外 <strong>－1 分</strong></span>
+            <span style="color:var(--warning);">第 5 次起每次額外 <strong>－2 分</strong></span>
+          </div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;">
+          <div style="background:#fef9c3;border-radius:6px;padding:8px 12px;flex:1;min-width:160px;">
+            <div style="font-weight:600;color:#713f12;margin-bottom:4px;">🚪 早退</div>
+            <span>每次 <strong>－2 分</strong></span>
+          </div>
+          <div style="background:#fef2f2;border-radius:6px;padding:8px 12px;flex:1;min-width:180px;">
+            <div style="font-weight:600;color:#991b1b;margin-bottom:4px;">❓ 缺刷卡</div>
+            <span>前 2 次各 <strong>－1 分</strong>　第 3 次起各 <strong>－2 分</strong></span>
+          </div>
+          <div style="background:#fce7f3;border-radius:6px;padding:8px 12px;flex:1;min-width:140px;">
+            <div style="font-weight:600;color:#9d174d;margin-bottom:4px;">🚫 缺勤</div>
+            <span>每天 <strong>－10 分</strong></span>
+          </div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;">
+          <div style="background:#eff6ff;border-radius:6px;padding:8px 12px;flex:1;min-width:200px;">
+            <div style="font-weight:600;color:#1e40af;margin-bottom:4px;">📋 請假（提前申請）</div>
+            <span>每天 <strong>－0.5 分</strong></span>
+          </div>
+          <div style="background:#f0fdf4;border-radius:6px;padding:8px 12px;flex:2;min-width:240px;">
+            <div style="font-weight:600;color:#166534;margin-bottom:4px;">✅ 不扣分假別</div>
+            <span>特休・公假・生理假・排班調整・補休・喪假</span>
+          </div>
+        </div>
       </div>
       <div style="margin-top:6px;color:var(--gray-400);font-size:11px;">遲到寬限分鐘內不計；最低 0 分，最高 100 分。</div>
     </div>
@@ -1038,7 +1061,7 @@ function analyzeEmployee(empId, month){
   let totalDays=0, totalHours=0, lateCount=0, earlyCount=0, missingCount=0, absentCount=0;
   const lateMinutesList=[];
   const leaveBreakdown={};
-  const NO_DEDUCT_LEAVES=['公假','生理假','特休','排班調整','補休'];
+  const NO_DEDUCT_LEAVES=['公假','生理假','特休','排班調整','補休','喪假'];
   empLeaves.filter(l=>!NO_DEDUCT_LEAVES.includes(l.type)).forEach(l=>{
     const lr=recMap[l.date];
     const hasActualPunch=lr&&lr.clockIn&&lr.clockOut;
@@ -1072,7 +1095,7 @@ function analyzeEmployee(empId, month){
     // 工讀生：沒有排班且沒有加班申請的日子，完全跳過不顯示也不計算
     if(isPT&&!sch&&!ot) return;
 
-    let status=[], rowClass='', hours=0, lateMin=0, earlyMin=0;
+    let status=[], rowClass='', hours=0, lateMin=0, earlyMin=0, rowDeduct=0;
     const LEAVE_TYPES=['特休','病假','事假','婚假','喪假','公假','補休','產假','陪產假','育嬰留停','生理假','排班調整','其他'];
     const NON_WORK_STATUSES=['假日','國定假日','彈性假期','補假','請假',...LEAVE_TYPES];
 
@@ -1093,31 +1116,32 @@ function analyzeEmployee(empId, month){
     } else if(isLeave&&(!rec||(!rec.clockIn&&!rec.clockOut))){
       const lv=empLeaves.find(l=>l.date===date);
       status=[lv?.type||'請假'];
+      if(lv&&!NO_DEDUCT_LEAVES.includes(lv.type)) rowDeduct=-0.5;
     } else if(!rec&&isExpected){
-      status=['缺勤']; rowClass='row-absent'; absentCount++;
+      status=['缺勤']; rowClass='row-absent'; absentCount++; rowDeduct=-10;
     } else if(rec){
       // 工讀生：有排班但沒有打卡時間不算出勤日
       if(isPT&&!rec.clockIn&&!rec.clockOut){ return; }
       totalDays++;
-      if(!rec.clockIn&&!rec.clockOut){ status=['未打卡']; rowClass='row-missing'; missingCount++; }
-      else if(!rec.clockIn){ status=['未打上班卡']; rowClass='row-missing'; missingCount++; }
-      else if(!rec.clockOut){ status=['未打下班卡']; rowClass='row-missing'; missingCount++; }
+      if(!rec.clockIn&&!rec.clockOut){ status=['未打卡']; rowClass='row-missing'; missingCount++; rowDeduct=-(missingCount>=3?2:1); }
+      else if(!rec.clockIn){ status=['未打上班卡']; rowClass='row-missing'; missingCount++; rowDeduct=-(missingCount>=3?2:1); }
+      else if(!rec.clockOut){ status=['未打下班卡']; rowClass='row-missing'; missingCount++; rowDeduct=-(missingCount>=3?2:1); }
       else {
         const inM=toMins(rec.clockIn), outM=toMins(rec.clockOut);
         const sInM=toMins(sStart), sOutM=toMins(sEnd);
         const lateDeadline=sInM+(emp.lateGrace??30);
         const dayLeave=isLeave?empLeaves.find(l=>l.date===date):null;
         // 有請假紀錄且當天有打卡 → 早退由請假涵蓋，不計入早退
-        if(sInM!==null&&inM>lateDeadline){ lateMin=inM-lateDeadline; status.push('遲到 '+lateMin+' 分'); rowClass='row-late'; lateCount++; lateMinutesList.push(lateMin); }
-        if((!isPT||sch)&&sOutM!==null&&outM<sOutM-(emp.earlyGrace??0)&&override!=='免早退'&&!dayLeave){ earlyMin=sOutM-outM; status.push('早退 '+earlyMin+' 分'); if(!rowClass||rowClass==='row-ok') rowClass='row-early'; earlyCount++; }
-        if(dayLeave){ const lbl=(dayLeave.hours??8)<=4?'半天'+dayLeave.type:dayLeave.type; status.push(lbl); if(!rowClass) rowClass='row-ok'; }
+        if(sInM!==null&&inM>lateDeadline){ lateMin=inM-lateDeadline; status.push('遲到 '+lateMin+' 分'); rowClass='row-late'; lateCount++; lateMinutesList.push(lateMin); const lbase=lateMin<=10?1:lateMin<=30?2:3; rowDeduct-=lbase+(lateCount-1>=4?2:lateCount-1>=2?1:0); }
+        if((!isPT||sch)&&sOutM!==null&&outM<sOutM-(emp.earlyGrace??0)&&override!=='免早退'&&!dayLeave){ earlyMin=sOutM-outM; status.push('早退 '+earlyMin+' 分'); if(!rowClass||rowClass==='row-ok') rowClass='row-early'; earlyCount++; rowDeduct-=2; }
+        if(dayLeave){ const lbl=(dayLeave.hours??8)<=4?'半天'+dayLeave.type:dayLeave.type; status.push(lbl); if(!rowClass) rowClass='row-ok'; if(!NO_DEDUCT_LEAVES.includes(dayLeave.type)) rowDeduct-=Math.round(((dayLeave.hours??8)/8)*0.5*100)/100; }
         if(!status.length){ status=['正常']; rowClass='row-ok'; }
         hours=calcWorkHours(rec.clockIn,rec.clockOut,emp);
         totalHours+=hours;
       }
     } else { return; }
 
-    rows.push({date,emp,rec,sStart,sEnd,status,rowClass,hours,lateMin,earlyMin,isLeave,isPublicLeave,ot,isExpected,isNonWorkday,override});
+    rows.push({date,emp,rec,sStart,sEnd,status,rowClass,hours,lateMin,earlyMin,isLeave,isPublicLeave,ot,isExpected,isNonWorkday,override,deduct:rowDeduct});
   });
 
   const expectedWork=expected.length; // 應出勤 = 工作日總數，不扣請假
@@ -1284,7 +1308,7 @@ function renderVerify(){
     document.getElementById('vfy-table').innerHTML='<div class="empty-state"><div class="ei">🔍</div><div>無考勤資料，請先匯入打卡紀錄</div></div>';
   } else {
     document.getElementById('vfy-table').innerHTML=`<table>
-      <thead><tr><th>日期</th><th>員工</th><th>類型</th><th>排班</th><th>上班打卡</th><th>下班打卡</th><th>時數</th><th>狀態</th><th>調整</th></tr></thead>
+      <thead><tr><th>日期</th><th>員工</th><th>類型</th><th>排班</th><th>上班打卡</th><th>下班打卡</th><th>時數</th><th>狀態</th><th>本日扣分</th><th>調整</th></tr></thead>
       <tbody>
       ${allRows.map(r=>{
         const statusHtml=r.status.map(s=>{
@@ -1305,6 +1329,7 @@ function renderVerify(){
           <td style="cursor:pointer;" onclick="editPunchCell(this,'${month}','${r.emp.id}','${r.date}','out')" title="點擊編輯">${r.rec?.clockOut||'<span style="color:var(--gray-400)">—</span>'}</td>
           <td>${r.isLeave&&!r.isPublicLeave&&!r.rec?`<span style="color:var(--primary);font-size:11px;">${esc(r.status[0]||'請假')}</span>`:r.hours?fmt(r.hours)+' h':'-'}</td>
           <td>${statusHtml}</td>
+          <td style="text-align:center;font-weight:700;font-size:12px;">${(()=>{const d=r.deduct||0;if(!d)return '<span style="color:var(--gray-400);">—</span>';return `<span style="color:var(--danger);">${parseFloat(d.toFixed(2))}</span>`;})()}</td>
           <td>${overrideSel}</td>
         </tr>`;
       }).join('')}
